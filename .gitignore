@@ -1,0 +1,6 @@
+# Ảnh partition lớn KHÔNG vào git (>100MB bị GitHub chặn; tái tạo được bằng script)
+backups/full/
+*.b64
+
+# OS noise
+.DS_Store
