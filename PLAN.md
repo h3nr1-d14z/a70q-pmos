@@ -40,11 +40,11 @@ Ngày lập: 2026-11-10. Xem `RESEARCH.md` cho toàn bộ nền tảng nghiên c
 | Repo | Branch | Ghi chú |
 |---|---|---|
 | https://github.com/Halium/android | `halium-11.0` (hoặc `halium-10.0` — quyết sau khi xem curtana) | Manifest gốc Halium |
-| https://github.com/a70q-lineage/android_device_samsung_a70q | `lineage-18.1` | Device tree Android 11 — nền chính |
-| https://github.com/a70q-lineage/android_kernel_samsung_sm6150 | `lineage-18.1` (kiểm tra khi clone) | Kernel 4.14 — cộng halium patches từ curtana kernel |
-| https://github.com/a70q-lineage/proprietary_vendor_samsung_a70q | `lineage-18.1` | Vendor blobs |
-| https://github.com/a70q-lineage/android_device_samsung_sm6150-common | `lineage-18.1` | Common tree |
-| https://github.com/a70q-lineage/proprietary_vendor_samsung_sm6150-common | `lineage-18.1` | Blobs common |
+| https://github.com/a70q-lineage/android_device_samsung_a70q | `lineage-22.2` (không có 18.1; 20/21/22.2) | Device tree — nền chính, adapt lên halium-11 ở Phase 4 |
+| https://github.com/rtd1250/android_kernel_samsung_sm6150 | `lineage-18.1` (đã có trên repo rtd1250; a70q-lineage chỉ có 20/21/22.2/upstream) | Kernel 4.14 — cộng halium patches từ curtana kernel |
+| https://github.com/a70q-lineage/proprietary_vendor_samsung_a70q | `lineage-22.2` (chỉ còn 21/22.2 — bảng cũ ghi 18.1 lỗi thời, check API 2026-11-10) | Vendor blobs |
+| https://github.com/a70q-lineage/android_device_samsung_sm6150-common | `lineage-22.2` | Common tree |
+| https://github.com/a70q-lineage/proprietary_vendor_samsung_sm6150-common | `lineage-22.2` (chỉ còn 21/22.2) | Blobs common |
 | https://github.com/ubports-a70q/android_device_samsung_a70q | `halium-9` | **Bản đồ tham khảo** — HAL glue đã viết cho máy này |
 | https://github.com/ubports-a70q/android_kernel_samsung_a70q | `lineage-16.0` | Kernel cũ đã patch cho UT — tham khảo patches |
 
@@ -66,27 +66,27 @@ Ngày lập: 2026-11-10. Xem `RESEARCH.md` cho toàn bộ nền tảng nghiên c
 - [x] **NFC variant: CÓ NFC, chip NXP NQx** (nqx.default) — Nura wiki sai với biến thể XXV
 - [x] `adb pull` dtbo (10 MiB) + vbmeta (64 KiB) → backups/
 
-### Phase 1 — Môi trường build — ✅ CHỐT: **Mac mini M4** (Apple Silicon) build trong container Linux arm64; Mac này = flash/debug host
+### Phase 1 — Môi trường build — ✅ CHỐT: **Mac mini M4** build trong container **linux/amd64 qua Rosetta (OrbStack)**; Mac này = flash/debug host
 - [x] Repo handoff đã push GitHub (`h3nr1-d14z/ubuntu-touch-a70`, private): README.md handoff + PLAN/RESEARCH/LOG + backup script + lshal dump + manifest; ảnh partition 612MB KHÔNG vào git (tái tạo bằng backups/full-backup.sh)
 - [x] **Build kit trong repo**: `build/Dockerfile` (ubuntu 20.04 arm64 + deps Halium), `build/run.sh` (volumes ext4 case-sensitive + ccache + cp ra/vào), `build/manifests/samsung_a70q.xml` (kernel rtd1250 lineage-18.1 + device/vendor a70q-lineage lineage-20 — template, UNTESTED)
 - [x] Kiểm tra Mac này: Docker Desktop ✅, Parallels ✅, heimdall-apple-silicon ✅, adb wireless ✅ — giữ làm flash host + fallback build
-- [ ] Mac mini: cài Docker Desktop/OrbStack, clone repo, `./build/run.sh build && ./build/run.sh shell` — làm theo README.md mục "Tiếp tục ở máy mới"
-- [ ] Trong shell: repo init halium-11.0 → copy local manifest → `repo sync --current-branch --no-clone-bundle --no-tags` (~25–40 GB)
+- [x] Mac mini: cài **OrbStack** (brew cask; docker CLI ở `~/.orbstack/bin`), `./build/run.sh build` OK 2026-11-10 — **2 fix arm64 đã commit vào Dockerfile** (bỏ multilib x86_64-only; mkbootimg/avbtool clone từ AOSP thay vì PyPI). Lưu ý VM OrbStack mặc định 8 GB RAM — kiểm lại khi `mka`
+- [ ] repo init halium-11.0 + local manifest **ĐANG CHẠY nền** (container `halium-sync`, volume `halium-src`) → theo dõi tới khi xong (~25–40 GB)
 - [ ] Vendor blobs: dùng trees `proprietary_vendor_samsung_a70q` + `_sm6150-common` có sẵn trong git; extract-files từ device qua adb chỉ khi muốn khớp DXD2 mới hơn
 - Lưu ý Mac mini M4 RAM 16GB: `--memory=12g` cho container (override qua HALIUM_MEM); disk image Docker ≥ 60GB
 
 ### Phase 2 — Kernel
-- [ ] Clone kernel: chọn branch `lineage-18.1` (rtd1250 repo, era A11 khớp halium-11) hoặc `lineage-22.2` (a70q-lineage, mới nhất — đang chạy thật trên máy)
-- [ ] Áp halium patches (binder/ashmem/vendor cmdlines) — tham khảo patch trong `ubports-a70q/android_kernel_samsung_a70q` cũ + docs standalone_kernel_build
-- [ ] **Fix Bluetooth Samsung (đã verify 2026-11-10): uncomment trong `net/bluetooth/Makefile`: `rfcomm/`, `bnep/`, `hidp/`** — hiện bị comment; bluez trên UT cần kernel RFCOMM (HFP call audio/tethering/HID). `hci_sock.c` đã kiểm tra nguyên vẹn, không cần sửa
-- [ ] Check `.gitignore` (pattern `vmlinux*` không anchor) + không tin `/proc/config.gz` (verify bằng runtime)
-- [ ] Toolchain cùng era kernel (clang 8/9, không clang mới — clang 14 gây hang boot theo kinh nghiệm note10lite)
-- [ ] Chọn defconfig, build `hybris-mer-kernel` (hoặc standalone)
-- [ ] Sản phẩm: `boot.img` halium boot được
+- [x] Clone kernel: **rtd1250 `lineage-18.1`** (sync xong 2026-11-10, commit `0b4c66a2b` — đã fix cảnh báo clang mới)
+- [ ] Áp halium kernel patches: **đã thẩm định — defconfig 18.1 sẵn sàng**: `CONFIG_ASHMEM=y`, `CONFIG_ANDROID_BINDER_IPC=y` (binder,hwbinder,vndbinder), KHÔNG có `CONFIG_ANDROID_PARANOID_NETWORK` → không cần patch mer-style thêm; đánh giá lại sau khi `mka halium-boot` chạy scripts/check-kernel-config
+- [x] **Fix Bluetooth Samsung — XONG trong tree (2026-11-10)**: `net/bluetooth/Makefile` uncomment `rfcomm/`, `bnep/`, `hidp/` + `a70q_defconfig`: `CONFIG_BT_RFCOMM=y`, `CONFIG_BT_RFCOMM_TTY=y`, `CONFIG_BT_BNEP=y`, `CONFIG_BT_BNEP_MC_FILTER=y`, `CONFIG_BT_BNEP_PROTO_FILTER=y`, `CONFIG_BT_HIDP=y` (defconfig cũng đang tắt — uncomment Makefile một mình chưa đủ)
+- [x] Check `.gitignore`: 18.1 đã anchor (`/vmlinux`, `/vmlinux.32`) — cảnh báo note10lite KHÔNG áp dụng cho tree này
+- [x] Toolchain: **CHỐT 2026-11-11 — container `linux/amd64` qua Rosetta (image `halium-a70q:amd64`)**. Lý do: `prebuilts/clang/host/` chỉ có `linux-x86`/`darwin-x86` — route native-arm64 chết ở tầng build system, không chỉ kernel. `breakfast` đã PASS với HOST_ARCH=x86_64. Hiệu năng: 1.5–2x chậm hơn native, chấp nhận cho correctness; nếu sau này muốn nhanh, route (1) gcc-aarch64 native chỉ đứng riêng được kernel
+- [x] Chọn defconfig `a70q_defconfig` (BoardConfig đã trỏ đúng `TARGET_KERNEL_SOURCE`/`CONFIG`), build kernel
+- [x] Sản phẩm: `boot.img` halium boot được — **KERNEL BUILD XONG 2026-11-11**: `4.14.261-lineage-g0b4c66a2b87b-dirty`, 8 modules, RFCOMM/BNEP/HIDP built-in (317 symbols trong vmlinux), ~18 phút qua Rosetta
 
-### Phase 3 — Halium build
-- [ ] `source build/envsetup.sh && breakfast a70q && mka halium-boot`
-- [ ] Fix lỗi build theo docs; sản phẩm: `halium-boot.img`
+### Phase 3 — Halium build — ✅ HOÀN THÀNH 2026-11-11
+- [x] `source build/envsetup.sh && breakfast a70q && ALLOW_MISSING_DEPENDENCIES=true mka halium-boot`
+- [x] Sản phẩm: **`out/target/product/a70q/halium-boot.img`** (20,168,704 bytes ≈ 19.2 MiB, magic `ANDROID!`, header v1, sha256 `b160a7b7…fc408`) — đã copy ra host `out/halium-boot.img`. Toàn bộ lỗi build trong quá trình nằm ở `ERRORS.md` C1–C11/D1–D4
 
 ### Phase 4 — Adapt device tree lên Halium 11
 - [ ] So sánh tree `lineage-18.1` với tree `halium-9` cũ: chuyển lại các glue (init scripts, fstab, sepolicy, overlays) sang cấu trúc halium-11
@@ -94,9 +94,9 @@ Ngày lập: 2026-11-10. Xem `RESEARCH.md` cho toàn bộ nền tảng nghiên c
 - [ ] Xây device tarball bằng `halium-generic-adaptation-build-tools` (build.sh + cấu trúc GitLab community-ports)
 
 ### Phase 5 — Boot test (đã có rollback 100% từ repo a70-root)
-- [ ] Flash qua **heimdall-apple-silicon v2.2.2** (đã cài, đã flash 6 phiên thành công) — lưu ý quirk: **1 lệnh flash / lần Download Mode**
+- [x] **heimdall-apple-silicon v2.2.2 đã cài trên MÁY NÀY** (`~/bin/heimdall`, binary arm64 từ GitHub aljosasavic; brew cask heimdall-suite bị disable — xem ERRORS.md D4). Quirk proven: **1 lệnh flash / lần Download Mode**
 - [ ] Đẩy `halium-boot.img` vào `boot` partition (a70q có RECOVERY riêng — flash cả 2 nếu cần); **KHÔNG quên vbmeta** (flash kèm hoặc `--disable-verification`) — verified boot sẽ fail `Hash of data does not match` nếu thiếu
-- [ ] Rollback tức thời nếu hỏng: `heimdall flash --BOOT lineage-boot-orig.img` (về LineageOS) hoặc `--BOOT stock_boot.img` (về stock Samsung) — file đã có tại /Volumes/External/Projects/
+- [x] **Rollback tức thời có sẵn TRÊN MÁY NÀY** (backup 2026-11-10, sha256-verified): `backups/full/boot.img` (LineageOS 22.2 đang chạy), `backups/full/vbmeta.img`, `backups/full/dtbo.img`, `backups/full/recovery.img` → `heimdall flash --BOOT backups/full/boot.img --VBMETA backups/full/vbmeta.img` là đủ về trạng thái hiện tại. **Stock Samsung (fac.zip 5 tar Odin) chỉ có ở máy cũ** — chỉ cần nếu rollback về stock hoàn toàn
 - [ ] Boot halium rootfs reference → SSH/adb (wireless adb ổn định hơn USB trên Mac này) → kiểm log
 - [ ] Tiêu chí qua phase: kernel boot + Android container chạy (logcat không crash loop)
 

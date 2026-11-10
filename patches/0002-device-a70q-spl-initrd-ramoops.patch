@@ -1,0 +1,26 @@
+diff --git a/BoardConfig.mk b/BoardConfig.mk
+index cb949d7..52b3def 100644
+--- a/BoardConfig.mk
++++ b/BoardConfig.mk
+@@ -26,8 +26,21 @@ BOARD_NAME           := SRPRL06C005
+ 
+ # Kernel
+ TARGET_KERNEL_CONFIG := a70q_defconfig
++# halium: toolchain = clang r383902b mặc định của tree (Samsung/rtd1250 build kernel
++# này bằng clang qua gcc-wrapper). gcc 4.9 bị chê quá cũ (cần >=5.1); gcc 9.4 build
++# được nhưng cần vá nguồn 3 cụm driver Samsung (audio -Werror, panel FP, touch
++# -Werror) — chỉ quay lại gcc+vá nguồn nếu clang kernel bị chứng minh lỗi lúc boot
+ BOARD_MKBOOTIMG_ARGS += --board $(BOARD_NAME)
+ 
++# halium: dùng initramfs nội bộ (initramfs.gz trong device tree) — tránh curl trong make shell
++BOARD_USE_LOCAL_INITRD := true
++
++# halium: anti-rollback của sboot — header os_version + SPL phải >= floor mà ROM cuối
++# (LOS 22.2: os_version 15.0.0, SPL 2026-06) đã ghi nhận. PLATFORM_* là readonly
++# (version_defaults) → override qua 2 biến này (halium-boot/Android.mk đã patch)
++BOARD_BOOTIMG_OS_VERSION := 15.0.0
++BOARD_BOOTIMG_OS_PATCH_LEVEL := 2026-06
++
+ # Properties
+ TARGET_VENDOR_PROP += $(DEVICE_PATH)/vendor.prop
+ 

@@ -163,8 +163,8 @@ FC    ? android.hardware.gnss@2.1::IGnss/default                                
 FC    ? android.hardware.soundtrigger@2.2::ISoundTriggerHw/default                    N/A        1018   1018
 DC,FM ? android.hidl.memory@1.0::IMapper/ashmem                                       N/A        1090   1090
 FC    ? vendor.qti.hardware.capabilityconfigstore@1.0::ICapabilityConfigStore/default N/A        1053   1053
-DM,FC ? vendor.qti.hardware.display.mapper@3.0::IQtiMapper/default                    N/A        N/A    5154 6110 7863 7962
-DM,FC ? vendor.qti.hardware.display.mapper@4.0::IQtiMapper/default                    N/A        N/A    1033 1113 1784 2040 2278 2421 3672 3880 5154 6110 7085 7734 7863 7962 10157
+DM,FC ? vendor.qti.hardware.display.mapper@3.0::IQtiMapper/default                    N/A        N/A    5154 7863 7962
+DM,FC ? vendor.qti.hardware.display.mapper@4.0::IQtiMapper/default                    N/A        N/A    1033 1113 1784 2040 2278 2421 3672 3880 5154 7085 7734 7863 7962
 FC    ? vendor.qti.hardware.qseecom@1.0::IQSEECom/default                             N/A        579    579
 FC    ? vendor.samsung.hardware.gnss@2.0::ISehGnss/default                            N/A        1032   1032
 
@@ -183,10 +183,10 @@ X     ? android.hardware.gatekeeper@1.0::I*/* (/vendor/lib/hw/)                 
 X     ? android.hardware.gatekeeper@1.0::I*/* (/vendor/lib64/hw/)                     N/A        N/A    1031
 X     ? android.hardware.gnss@2.1::I*/* (/vendor/lib/hw/) (-qti)                      N/A        N/A    
 X     ? android.hardware.gnss@2.1::I*/* (/vendor/lib64/hw/) (-qti)                    N/A        N/A    1032
-X     ? android.hardware.graphics.mapper@3.0::I*/* (/vendor/lib/hw/) (-qti-display)   N/A        N/A    949 2248 5539 6489
-X     ? android.hardware.graphics.mapper@3.0::I*/* (/vendor/lib64/hw/) (-qti-display) N/A        N/A    948 1784 2040 2150 2196 2230 2258 2268 2278 2351 2421 2467 2760 2862 3082 3104 3169 3188 3672 3880 5154 6110 7085 7734 7863 7870 7962 9609 9959 10150 10157 10189 10375 10435 10555 11561
-X     ? android.hardware.graphics.mapper@4.0::I*/* (/vendor/lib/hw/) (-qti-display)   N/A        N/A    949 2248 5539 6489
-X     ? android.hardware.graphics.mapper@4.0::I*/* (/vendor/lib64/hw/) (-qti-display) N/A        N/A    948 1033 1113 1784 2040 2150 2196 2230 2258 2268 2278 2351 2421 2467 2760 2862 3082 3104 3169 3188 3672 3880 5154 6110 7085 7734 7863 7870 7962 9609 9959 10150 10157 10189 10375 10435 10555 11561
+X     ? android.hardware.graphics.mapper@3.0::I*/* (/vendor/lib/hw/) (-qti-display)   N/A        N/A    949 2248 5539
+X     ? android.hardware.graphics.mapper@3.0::I*/* (/vendor/lib64/hw/) (-qti-display) N/A        N/A    948 1784 2040 2150 2196 2230 2258 2268 2278 2351 2421 2467 2760 2862 3082 3104 3169 3188 3672 3880 5154 7085 7734 7863 7870 7962 9609 10189 11561 15234 16075 16524 16603 16691 16982 17245 17516 17540
+X     ? android.hardware.graphics.mapper@4.0::I*/* (/vendor/lib/hw/) (-qti-display)   N/A        N/A    949 2248 5539
+X     ? android.hardware.graphics.mapper@4.0::I*/* (/vendor/lib64/hw/) (-qti-display) N/A        N/A    948 1033 1113 1784 2040 2150 2196 2230 2258 2268 2278 2351 2421 2467 2760 2862 3082 3104 3169 3188 3672 3880 5154 7085 7734 7863 7870 7962 9609 10189 11561 15234 16075 16524 16603 16691 16982 17245 17516 17540
 X     ? android.hardware.soundtrigger@2.2::I*/* (/vendor/lib/hw/)                     N/A        N/A    1018
 X     ? android.hardware.soundtrigger@2.2::I*/* (/vendor/lib64/hw/)                   N/A        N/A    
 X     ? android.hidl.memory@1.0::I*/* (/system/lib/hw/)                               N/A        N/A    

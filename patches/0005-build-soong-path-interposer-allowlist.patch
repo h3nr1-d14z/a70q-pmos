@@ -1,0 +1,73 @@
+diff --git a/apex/vndk.go b/apex/vndk.go
+index 5cc0e2a..818b0d6 100644
+--- a/apex/vndk.go
++++ b/apex/vndk.go
+@@ -160,6 +160,21 @@ func makeCompatSymlinks(name string, ctx android.ModuleContext) (symlinks []stri
+ 			dex2oat = "dex2oat64"
+ 		}
+ 		addSymlink("/apex/com.android.art/bin/"+dex2oat, "$(TARGET_OUT)/bin", "dex2oat")
++
++		// Halium: create symlinks to com.android.art libs needed by libmedia
++		if ctx.Config().Android64() {
++			addSymlink("/apex/com.android.art/lib64/libandroidicu.so", "$(TARGET_OUT)/lib64", "libandroidicu.so")
++			addSymlink("/apex/com.android.art/lib64/libicui18n.so", "$(TARGET_OUT)/lib64", "libicui18n.so")
++			addSymlink("/apex/com.android.art/lib64/libicuuc.so", "$(TARGET_OUT)/lib64", "libicuuc.so")
++			addSymlink("/apex/com.android.art/lib64/libnativehelper.so", "$(TARGET_OUT)/lib64", "libnativehelper.so")
++		}
++		if !ctx.Config().Android64() || ctx.DeviceConfig().DeviceSecondaryArch() != "" {
++			addSymlink("/apex/com.android.art/lib/libandroidicu.so", "$(TARGET_OUT)/lib", "libandroidicu.so")
++			addSymlink("/apex/com.android.art/lib/libicui18n.so", "$(TARGET_OUT)/lib", "libicui18n.so")
++			addSymlink("/apex/com.android.art/lib/libicuuc.so", "$(TARGET_OUT)/lib", "libicuuc.so")
++			addSymlink("/apex/com.android.art/lib/libnativehelper.so", "$(TARGET_OUT)/lib", "libnativehelper.so")
++		}
++
+ 		return
+ 	}
+ 	return
+diff --git a/ui/build/paths/config.go b/ui/build/paths/config.go
+index ed382a5..e89db69 100644
+--- a/ui/build/paths/config.go
++++ b/ui/build/paths/config.go
+@@ -88,7 +88,42 @@ var Configuration = map[string]PathConfig{
+ 	"javap":   Allowed,
+ 	"locale":  Allowed,
+ 	"lsof":    Allowed,
++	"mkbootimg": Allowed, // halium-boot target đóng gói boot.img bằng mkbootimg PATH tool
+ 	"openssl": Allowed,
++
++	// halium: kernel build bằng gcc 4.9 android (TARGET_KERNEL_CLANG_COMPILE=false) —
++	// kbuild gọi toolchain qua PATH theo prefix, interposer chặn nếu không whitelist
++	"aarch64-linux-android-gcc":     Allowed,
++	"aarch64-linux-android-ld":      Allowed,
++	"aarch64-linux-android-as":      Allowed,
++	"aarch64-linux-android-ar":      Allowed,
++	"aarch64-linux-android-nm":      Allowed,
++	"aarch64-linux-android-objcopy": Allowed,
++	"aarch64-linux-android-objdump": Allowed,
++	"aarch64-linux-android-readelf": Allowed,
++	"aarch64-linux-android-strip":   Allowed,
++	"aarch64-linux-android-ranlib":  Allowed,
++	"aarch64-linux-android-size":    Allowed,
++	"arm-linux-androidkernel-gcc":     Allowed,
++	"arm-linux-androidkernel-ld":      Allowed,
++	"arm-linux-androidkernel-as":      Allowed,
++	"arm-linux-androidkernel-ar":      Allowed,
++	"arm-linux-androidkernel-nm":      Allowed,
++	"arm-linux-androidkernel-objcopy": Allowed,
++	"arm-linux-androidkernel-objdump": Allowed,
++	"arm-linux-androidkernel-strip":   Allowed,
++	"aarch64-linux-gnu-gcc":     Allowed,
++	"aarch64-linux-gnu-ld":      Allowed,
++	"aarch64-linux-gnu-as":      Allowed,
++	"aarch64-linux-gnu-ar":      Allowed,
++	"aarch64-linux-gnu-nm":      Allowed,
++	"aarch64-linux-gnu-objcopy": Allowed,
++	"aarch64-linux-gnu-objdump": Allowed,
++	"aarch64-linux-gnu-readelf": Allowed,
++	"aarch64-linux-gnu-strip":   Allowed,
++	"aarch64-linux-gnu-ranlib":  Allowed,
++	"aarch64-linux-gnu-size":    Allowed,
++	"ccache": Allowed,
+ 	"patch":   Allowed,
+ 	"pstree":  Allowed,
+ 	"rsync":   Allowed,

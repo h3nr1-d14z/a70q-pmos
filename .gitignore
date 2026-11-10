@@ -4,3 +4,6 @@ backups/full/
 
 # OS noise
 .DS_Store
+out/
+*.dump
+*.tmp

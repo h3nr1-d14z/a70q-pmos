@@ -1,4 +1,4 @@
-# Manifest backup FULL a70q - 2026-11-10T05:50:35Z
+# Manifest backup FULL a70q - 2026-11-10T15:48:03Z
 
 Device: SM-A705F/DS XXV ([serial removed]), LineageOS 22.2, vendor A11 DXD2
 Phuong thuc: dd | base64 qua su (adb wireless), verify size + sha256
@@ -40,7 +40,7 @@ Skip (reinstall duoc): system, vendor, product, userdata, cache, hidden, omr, pa
 | modemst2 | 2097152 | `e4e32879` |
 | msadp | 262144 | `ab8bafc3` |
 | param | 12582912 | `4a421025` |
-| persist | 33554432 | `cf4fe526` |
+| persist | 33554432 | `ec7a868b` |
 | persistent | 524288 | `45e02485` |
 | pmic | 524288 | `07854d2f` |
 | qupfw | 131072 | `958ce6b9` |

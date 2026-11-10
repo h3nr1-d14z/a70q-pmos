@@ -9,6 +9,7 @@
 | `RESEARCH.md` | Báo cáo nghiên cứu đầy đủ: so sánh OS (UT Noble vs postmarketOS vs Sailfish), ma trận 18 tính năng, các port cùng SoC, quirks Samsung |
 | `PLAN.md` | Kế hoạch 7 phase với quyết định đã chốt (noble + halium-11), trạng thái từng mục |
 | `LOG.md` | Nhật ký nghiên cứu chi tiết theo vòng — nguồn của mọi con số trong RESEARCH/PLAN |
+| `ERRORS.md` | **Sổ lỗi chuẩn hoá**: mọi lỗi đã gặp (symptom → root cause → fix → bài học) — đọc trước khi dựng lại env/build |
 | `backups/MANIFEST.md` | Bảng 50 partition đã backup: size + sha256 từng file |
 | `backups/hals-lshal.txt` | Dump đầy đủ 209 dòng HIDL HAL đang chạy trên vendor A11 |
 | `backups/full-backup.sh` | Script tái tạo toàn bộ backup từ thiết bị (~2 phút) |

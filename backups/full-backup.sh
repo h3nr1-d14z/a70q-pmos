@@ -2,7 +2,7 @@
 # Full partition backup for a70q — read-only dd via su, base64 pipe (PTY-safe)
 # Verify: size must EXACTLY match blockdev --getsize64; sha256 recorded.
 set -u
-ADB="adb -s 192.168.1.202:34005"
+ADB="${ADB:-adb -s 100.82.206.67:40735}"
 DIR="backups/full"
 mkdir -p "$DIR"
 

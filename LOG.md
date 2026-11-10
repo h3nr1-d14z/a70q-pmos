@@ -81,3 +81,49 @@ Mục đích: ghi lại mọi phát hiện theo thời gian để không quên. 
 - **Quy tắc vàng ghi trong README + build kit**: source tree nằm TRONG named volume ext4 case-sensitive, KHÔNG bind mount macOS vào /work — APFS case-insensitive phá Android build system
 - Build kit mới: `build/Dockerfile` (ubuntu 20.04 + deps Halium + repo tool + mkbootimg), `build/run.sh` (volumes halium-src/halium-ccache, memory 12g default, cp ra/vào), `build/manifests/samsung_a70q.xml` (kernel rtd1250/android_kernel_samsung_sm6150 lineage-18.1; device/vendor a70q-lineage lineage-20 làm điểm bắt đầu — template UNTESTED, chỉnh khi setup)
 - Vendor blobs: trees proprietary_vendor_samsung_a70q + _sm6150-common của a70q-lineage có sẵn blobs trong git — không bắt buộc extract-files từ device (chỉ làm khi muốn khớp DXD2)
+
+## 2026-11-10 — Phase 1 EXECUTION trên Mac mini M4
+- Backup tái tạo trên máy mới: 50/50 partition OK (123s) qua wireless adb `100.82.206.67:40735`; sha256 khớp manifest cũ cho mọi partition ổn định, chỉ `persist` đổi hash (`cf4fe526`→`ec7a868b`) — dữ liệu runtime, bình thường. `full-backup.sh` giờ lấy thiết bị từ env `ADB=...`
+- Máy xác nhận: **Mac mini M4** (Mac16,10, 16 GB RAM, 138 GB free)
+- Runtime container: **OrbStack** (`brew install --cask orbstack`), docker server 29.8.2, CLI ở `~/.orbstack/bin` (thêm vào PATH). VM cấp **8 GB** mặc định — OrbStack cấp động, phải kiểm lại khi tới `mka` (PLAN muốn 12g)
+- **Fix Dockerfile #1 (arm64)**: `gcc-multilib/g++-multilib/lib32ncurses-dev/lib32z1-dev` chỉ tồn tại trên x86_64 → thay `gcc g++ libncurses-dev`
+- **Fix Dockerfile #2**: `pip install mkbootimg` KHÔNG tồn tại trên PyPI → clone AOSP `system/tools/mkbootimg` + `external/avb`, symlink `/usr/local/bin/{mkbootimg,avbtool}`
+- Image `halium-a70q:latest` build OK. `repo init -b halium-11.0 --depth=1` + copy `build/manifests/samsung_a70q.xml` + `repo sync` đang chạy nền (25–40 GB)
+- **Xác nhận sớm bug BT trên kernel `lineage-18.1`** (raw GitHub, chưa đợi repo sync xong): `net/bluetooth/Makefile` bị comment `rfcomm/`, `bnep/`, `hidp/` — giống hệt lineage-22.2; `hci_sock.c` 18.1 nguyên vẹn (hci_sock_bind/ioctl/create + proto_ops đầy đủ). Fix Phase 2 = uncomment 3 dòng, không cần sửa gì khác
+- **Lỗi sync #1**: XML comment không được chứa `--` (dòng hướng dẫn `repo sync --current-branch...` trong khối comment của local manifest) → parser chết line 8. Sửa bằng cách bỏ dấu `--` trong comment
+- **Lỗi sync #2 + sửa PLAN**: bảng PLAN ghi vendor `lineage-18.1` = LỖI THỜI; GitHub API 2026-11-10: 2 repo vendor a70q-lineage **chỉ còn `lineage-21` + `lineage-22.2`** (device còn lineage-20/21/22.2). Manifest lineage-20 → fetch fail `couldn't find remote ref`. Chốt: **device + cả 2 vendor = `lineage-22.2`** (thống nhất era, khớp ROM đang chạy); kernel giữ rtd1250 `lineage-18.1`. Cần cập nhật bảng PLAN mục Source trees
+- chromium-webview prebuilt (arm/arm64/x86_64) checkout fail lần 1 — disk còn 54 GB (không full), nghi lỗi tạm thời; sync lại sẽ heal, nếu lặp thì sync riêng `-j1`
+- **Root cause thật của chromium-webview (lần 3)**: KHÔNG phải lỗi tạm thời — các repo này dùng **Git LFS** (`webview.apk` là object LFS); image thiếu `git-lfs` → `git read-tree --reset -u` gọi smudge filter → `git-lfs: not found` → repo bọc thành "Cannot initialize work tree" (stderr git thật bị nuốt — phải chạy tay `GIT_WORK_TREE=... git --git-dir=... read-tree --reset -u -v HEAD` mới thấy). **Fix: thêm `git-lfs` vào Dockerfile + `git lfs install`**, rebuild image (git-lfs 2.9.2 arm64). Bài học: Halium docs liệt kê git-lfs trong deps — bộ Dockerfile cũ thiếu so với docs
+- Sync lần 4 (2026-11-10 ~16:2x) đang chạy với image mới; fetch đã xong từ lần trước nên chỉ còn checkout + tải LFS APK (~100 MB × 3) + fetch vendor lineage-22.2
+- **REPO SYNC HOÀN TẤT (exit 0)** — tree Halium 11 đầy đủ (~80 GB trong volume `halium-src`); kernel `lineage-18.1` commit `0b4c66a2b`; device/vendor a70q `lineage-22.2` đều checkout OK
+- **Phase 2 khởi động**: (1) Fix BT XONG trong tree — Makefile uncomment 3 dòng + defconfig bật RFCOMM(+TTY)/BNEP(+MC+PROTO_FILTER)/HIDP (a70q_defconfig cũng đang `not set` — uncomment Makefile một mình không đủ); (2) `.gitignore` kernel 18.1 đã anchor `/vmlinux` — an toàn; (3) defconfig 18.1 halium-ready sẵn: ASHMEM=y, BINDER_IPC=y (3 devices), không có ANDROID_PARANOID_NETWORK
+- **`hybris-patches/apply-patches.sh` chạy OK (exit 0)** từ gốc tree — điều kiện trước `mka halium-boot` theo docs Halium
+- **Rủi ro toolchain xác nhận**: `prebuilts/clang/host/` chỉ `linux-x86`/`darwin-x86` — toolchain AOSP x86 binary không chạy native arm64. Phương án ghi trong PLAN Phase 2; kernel 4.14 build được bằng gcc-9/aarch64 của focal nếu chọn route (1). Quyết định sau lần build đầu
+
+## 2026-11-11 — Build đầu tiên + adapt device tree (Phase 4 tới sớm)
+- Build thử #1 (container arm64): fail đúng như dự đoán — OrbStack báo x86 loader thiếu, và `breakfast` thiếu product (`lineage_a70q`) vì local manifest THIẾU `device/samsung/sm6150-common` (template UNTESTED sót). Bài học quy trình: pipe vào `tail` nuốt exit code → lần sau dùng `set -o pipefail`
+- **CHỐT ROUTE BUILD: container `linux/amd64` qua Rosetta của OrbStack** — image `halium-a70q:amd64` (same Dockerfile, `docker build --platform linux/amd64`); mọi toolchain x86 của AOSP chạy; `breakfast` xác nhận HOST_ARCH=x86_64 OK. Route native-arm64 bỏ (chỉ còn giá trị nếu sau này đứng riêng kernel)
+- Sync thêm `device/samsung/sm6150-common` (lineage-22.2, commit `6fd8cb6`) vào local manifest — manifest giờ 5 project
+- **Adapt device tree cho parse trong halium-11 (3 patch, giữ git upstream để export patch file sau)**:
+  1. `sm6150-common/common.mk`: comment inherit `hardware/qcom-caf/common/common.mk`
+  2. `sm6150-common/BoardConfigCommon.mk`: bỏ `hardware/qcom-caf/common/vendor_framework_compatibility_matrix.xml` + `hardware/samsung/vintf/samsung_framework_compatibility_matrix.xml` khỏi DEVICE_FRAMEWORK_COMPATIBILITY_MATRIX_FILE (cả hai path không tồn tại trong tree 18.1), comment `DEVICE_MATRIX_FILE := hardware/qcom-caf/common/compatibility_matrix.xml`
+  3. `device/qcom/sepolicy_vndr` đã có sẵn trong halium tree — không cần sửa
+- Kết quả: **`breakfast a70q` PASS** trong amd64 container: TARGET_PRODUCT=lineage_a70q, Android 11, kernel vars chuẩn (`TARGET_KERNEL_SOURCE=kernel/samsung/sm6150`, `TARGET_KERNEL_CONFIG=a70q_defconfig`, BOOTIMAGE_PARTITION_SIZE=64MiB, SEPARATED_DTBO=true, cmdline/base/pagesize/offsets đầy đủ)
+- `PRODUCT_SOONG_NAMESPACES` còn tham chiếu `hardware/qcom-caf/sm8150` — chỉ lỗi khi build module soong đó, `mka halium-boot` không đụng; để nguyên
+- **`mka halium-boot` đang chạy nền** (amd64/Rosetta, 12 GB) — kernel 4.14 build lần đầu dự kiến 30–90 phút
+
+- **BUILD THÀNH CÔNG 2026-11-11**: `mka halium-boot` exit 0 → `out/target/product/a70q/halium-boot.img` (20,168,704 bytes, magic `ANDROID!`, header v1, cmdline từ BoardConfigCommon, os_patch 2024-02-05, board SRPRL06C005) — copy ra host `out/halium-boot.img`, sha256 `b160a7b7017428c8e653de6459693d155137564b88bc178ed6c88aad0d9fc408`
+- Kernel: `4.14.261-lineage-g0b4c66a2b87b-dirty`, 8 module, **fix BT đã nằm trong vmlinux** (CONFIG_BT_RFCOMM/_TTY/BNEP/MC_FILTER/PROTO_FILTER/HIDP =y; 317 rfcomm symbols) — bluez trên UT có kernel RFCOMM để dùng
+- Tổng thời gian build sạch: kati ~4 phút + ninja đóng gói ~3.5 phút (kernel cached 18 phút lần đầu) — Rosetta amd64
+- Còn 2 warning vô hại khi build kernel: `secgetspf: No such file or directory` + `cp: bad .../perflog.h` (glue Samsung kỳ vọng file từ system/core — chỉ ảnh hưởng logging perf, không phá build); depmod WARNING modules.order/builtin trong PACKAGING intermediates (không ảnh hưởng boot)
+- **TIẾP THEO = Phase 5 flash test**: heimdall sẵn (`~/bin/heimdall`), rollback sẵn (`backups/full/{boot,vbmeta,dtbo,recovery}.img`). Cần người đưa máy về Download Mode → flash `halium-boot.img` vào `boot` (+ `vbmeta` disable-verification hoặc kèm vbmeta gốc); rollback tức thời bằng `backups/full/boot.img`
+
+## 2026-11-11 (tiếp) — Vòng lặp fix parse soong: vendor bp lineage-22.2 vs soong A11
+Soong parse TOÀN BỘ Android.bp trong tree (không liên quan PRODUCT_SOONG_NAMESPACES). Vendor trees 22.2 (A15) gãy hàng loạt trên soong A11; các fix đã thử theo thứ tự:
+1. Bỏ namespace trong `PRODUCT_SOONG_NAMESPACES` (vendor .mk) — KHÔNG giải quyết (bp list do soong finder tự scan, không phải findleaves)
+2. Codemod 17 block `prebuilt_rfsa` → `filegroup` — hết lỗi này nhưng lộ tiếp lỗi khác
+3. `soong_namespace { imports: [...] }` trỏ dir không tồn tại (`hardware/qcom-caf/*`) → emptied — lộ tiếp class lỗi deps chéo namespace + deps tới module chỉ có ở lineage-22.2 (`libprotobuf-*-vendorcompat`...) — đây là đáy: không thể parse vendor bp A15 trên soong A11 bằng patch rời rạc
+4. **CHỐT: `.find-ignore`** — soong finder (`build/soong/ui/build/finder.go`) tôn trọng file `.find-ignore` đặt trong thư mục = prune subtree khỏi scan. Đặt `vendor/samsung/.find-ignore` → vendor bp KHÔNG bị parse. Restore toàn bộ vendor trees về upstream (`git checkout -- .`) vì không còn bị parse. `halium-boot` không build vendor module nào; blobs dùng thẳng file cho rootfs ở Phase 4
+- Patch tạm (đã siêu) trên `build/make/core/config.mk`: thêm `vendor/samsung` vào `FIND_LEAVES_EXCLUDES` — giữ nguyên, vô hại và nhất quán với .find-ignore
+- Lỗi đã đi qua trước đó: `prebuilt_nfc_nci_nxp` (cc_prebuilt đè source module, chỉ có arm64 src) — hết khi vendor tree không bị scan
+- Ghi chú RAM: container chỉ thấy 7.82 GB (OrbStack VM 8 GB mặc định; `--memory=12g` không vượt trần VM được). Warning của build system, chưa gãy; nếu OOM khi compile kernel → nâng VM memory OrbStack

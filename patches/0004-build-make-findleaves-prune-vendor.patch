@@ -1,0 +1,13 @@
+diff --git a/core/config.mk b/core/config.mk
+index c9efa11..5cf65d2 100644
+--- a/core/config.mk
++++ b/core/config.mk
+@@ -292,7 +292,7 @@ include $(BUILD_SYSTEM)/envsetup.mk
+ 
+ # Pruned directory options used when using findleaves.py
+ # See envsetup.mk for a description of SCAN_EXCLUDE_DIRS
+-FIND_LEAVES_EXCLUDES := $(addprefix --prune=, $(SCAN_EXCLUDE_DIRS) .repo .git)
++FIND_LEAVES_EXCLUDES := $(addprefix --prune=, $(SCAN_EXCLUDE_DIRS) .repo .git vendor/samsung) # halium: vendor trees lineage-22.2 (A15 bp) không parse được trên soong A11 — prune, blobs dùng trực tiếp cho rootfs
+ 
+ -include vendor/extra/BoardConfigExtra.mk
+ ifneq ($(LINEAGE_BUILD),)
