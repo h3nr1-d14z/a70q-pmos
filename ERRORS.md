@@ -187,7 +187,15 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
   - `ccache` gọi bằng path tuyệt đối → không cần whitelist
   - gcc-9 trên kernel Samsung cần vá: `techpack/audio/asoc/msm-pcm-routing-v2.c` (7× `static const int const` trùng), `drivers/input/touchscreen/imagis_40xx` (-Werror + snprintf sizeof(dst)==dst), panel `S6E3FA7_AMS628RF05` (float + `-mgeneral-regs-only`) — hoặc passthrough gcc-wrapper.py như đã làm
 
-### D. Quy trình (meta)
+### C16. Boot header cmdline giới hạn 512 byte — truncation âm thầm
+- **Triệu chứng**: `panic=0` thêm vào cuối cmdline KHÔNG xuất hiện trong boot image đã build (verify header = False), trong khi ramoops params (thêm trước đó) lại có
+- **Root cause**: cmdline field trong boot header cố định **512 byte**; mkbootimg cắt bớt phần vượt mà không báo lỗi. Cmdline gốc 417 + ramoops 134 + panic=0 > 512 → đuôi bị cắt
+- **Fix**: bỏ 3 tham số phụ không ảnh hưởng boot (`msm_rtb.filter=0x237`, `service_locator.enable=1`, `video=vfb:...`) → 472 chars, mọi param quan trọng nằm gọn
+- **Bài học**: sau mỗi lần sửa cmdline PHẢI verify bằng `unpack_bootimg.py | grep` — mkbootimg không cảnh báo truncation; ưu tiên bỏ tham số debug/profiling (msm_rtb, vfb) thay vì tham số chức năng
+
+---
+
+## D. Quy trình (meta)
 
 ### D1. Pipe vào `tail` nuốt exit code
 - **Triệu chứng**: job báo "exited 0" trong khi build FAILED

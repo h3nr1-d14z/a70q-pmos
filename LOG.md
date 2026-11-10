@@ -127,3 +127,24 @@ Soong parse TOÀN BỘ Android.bp trong tree (không liên quan PRODUCT_SOONG_NA
 - Patch tạm (đã siêu) trên `build/make/core/config.mk`: thêm `vendor/samsung` vào `FIND_LEAVES_EXCLUDES` — giữ nguyên, vô hại và nhất quán với .find-ignore
 - Lỗi đã đi qua trước đó: `prebuilt_nfc_nci_nxp` (cc_prebuilt đè source module, chỉ có arm64 src) — hết khi vendor tree không bị scan
 - Ghi chú RAM: container chỉ thấy 7.82 GB (OrbStack VM 8 GB mặc định; `--memory=12g` không vượt trần VM được). Warning của build system, chưa gãy; nếu OOM khi compile kernel → nâng VM memory OrbStack
+
+## 2026-11-11 đêm — Trạng thái qua đêm + quy trình buổi sáng (cho người đọc tiếp)
+
+### Tình trạng máy (khi ngủ)
+- Máy đang **bootloop** với image cũ (kernel clang + initramfs misc-logging CŨ — trước C14): panic sớm, misc rỗng đã xác nhận
+- Máy cắm điện loop đến khi hết pin rồi tự tắt — vô hại phần cứng, không mất dữ liệu (userdata không hề bị flash)
+
+### Ảnh chờ flash (đã verify 3 lớp, hash `ba7884191b3ad887`)
+`out/halium-boot.img` = kernel **gcc 9.4** (đã vá: mm.h extern-inline, gcc-wrapper passthrough, -mgeneral-regs-only bỏ, audio Kbuild -Werror bỏ) + **initramfs NCM** (khắc phục C13/C14) + **dump kmsg→misc(sda10)** + **stage marker đầu /init** + cmdline: ramoops(0xa1300000) + **panic=0** (freeze thay vì loop) + anti-rollback header 15.0.0/2026-06 + DTB **LOS 22.2** (380,315 B — hardware description đã chứng minh boot trên chính máy này, đã build kernel lai `final-halium-boot.img` trong volume dự phòng)
+
+### Quy trình buổi sáng
+1. Force tắt máy (giữ nguồn) → **giữ 2 phím Volume + cắm cáp** → Download Mode
+2. Báo "dm rồi" → agent flash `out/halium-boot.img` + `out/vbmeta-disabled.img` + `out/dtbo-empty.img`
+3. Kết quả 3 nhánh:
+   - **Không loop + macOS thấy USB ethernet mới + telnet 192.168.2.15:23 được** → RESCUE SUCCESS: agent tự telnet đọc dmesg/pstore rồi báo
+   - **Máy đứng yên đen thui (không loop)** → panic=0 giữ máy; vào DM → flash `out/losboot-ramoops.img` + vbmeta-disabled + `backups/full/dtbo.img` → boot LOS → agent đọc `/sys/fs/pstore/console-ramoops`
+   - **Vẫn bootloop nhanh** → kernel chết trước cả pstore console (DTB 18.1 thiếu) — fallback: kernel lai gcc+DTB-LOS đã build sẵn (`final-halium-boot.img` trong volume)
+4. Rollback LOS bất cứ lúc nào: `backups/full/{boot,vbmeta,dtbo}.img` (đã làm 2 lần thành công)
+
+### Trạng thái build cuối (verify trong image)
+`MKA_EXIT=0 | cmdline 472 chars | panic=0 ✓ | ramoops ✓ | ncm ✓ | sda10 ✓ | init-stage ✓` — đã push GitHub kèm `patches/` đầy đủ (commit `5721e91` + các commit sau)
