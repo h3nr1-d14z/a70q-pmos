@@ -66,12 +66,14 @@ Ngày lập: 2026-11-10. Xem `RESEARCH.md` cho toàn bộ nền tảng nghiên c
 - [x] **NFC variant: CÓ NFC, chip NXP NQx** (nqx.default) — Nura wiki sai với biến thể XXV
 - [x] `adb pull` dtbo (10 MiB) + vbmeta (64 KiB) → backups/
 
-### Phase 1 — Môi trường build — ✅ CHỐT: máy MỚI (nhiều ổ đĩa) build Linux native; Mac = flash/debug host; Docker arm64 trên Mac = fallback
-- [x] Repo handoff đã push GitHub (`h3nr1-d14z/ubuntu-touch-a70`, private): README.md handoff đầy đủ + PLAN/RESEARCH/LOG + backup script + lshal dump + manifest; ảnh partition 612MB KHÔNG vào git (tái tạo bằng backups/full-backup.sh, ~110 giây)
-- [x] Kiểm tra Mac: Docker Desktop ✅, Parallels Desktop ✅ (fallback), python3 3.12 ✅, git+brew ✅, heimdall-apple-silicon ✅, adb wireless ✅
-- [x] MÁY MỚI: clone repo handoff → làm theo README.md mục "Tiếp tục ở máy mới" (deps Halium → repo init halium-11.0 → local manifest a70q-lineage lineage-18.1 → repo sync 25–40 GB)
-- [ ] MÁY MỚI: nếu cần ảnh partition (tham chiếu/rollback) → nối device, chạy `bash backups/full-backup.sh` — hoặc copy 612MB qua LAN từ Mac (nhanh hơn)
-- [ ] `brew install repo` trên Mac chỉ cần nếu chạy phương án fallback Docker arm64 (host arch = target arch → build kernel native, không qemu)
+### Phase 1 — Môi trường build — ✅ CHỐT: **Mac mini M4** (Apple Silicon) build trong container Linux arm64; Mac này = flash/debug host
+- [x] Repo handoff đã push GitHub (`h3nr1-d14z/ubuntu-touch-a70`, private): README.md handoff + PLAN/RESEARCH/LOG + backup script + lshal dump + manifest; ảnh partition 612MB KHÔNG vào git (tái tạo bằng backups/full-backup.sh)
+- [x] **Build kit trong repo**: `build/Dockerfile` (ubuntu 20.04 arm64 + deps Halium), `build/run.sh` (volumes ext4 case-sensitive + ccache + cp ra/vào), `build/manifests/samsung_a70q.xml` (kernel rtd1250 lineage-18.1 + device/vendor a70q-lineage lineage-20 — template, UNTESTED)
+- [x] Kiểm tra Mac này: Docker Desktop ✅, Parallels ✅, heimdall-apple-silicon ✅, adb wireless ✅ — giữ làm flash host + fallback build
+- [ ] Mac mini: cài Docker Desktop/OrbStack, clone repo, `./build/run.sh build && ./build/run.sh shell` — làm theo README.md mục "Tiếp tục ở máy mới"
+- [ ] Trong shell: repo init halium-11.0 → copy local manifest → `repo sync --current-branch --no-clone-bundle --no-tags` (~25–40 GB)
+- [ ] Vendor blobs: dùng trees `proprietary_vendor_samsung_a70q` + `_sm6150-common` có sẵn trong git; extract-files từ device qua adb chỉ khi muốn khớp DXD2 mới hơn
+- Lưu ý Mac mini M4 RAM 16GB: `--memory=12g` cho container (override qua HALIUM_MEM); disk image Docker ≥ 60GB
 
 ### Phase 2 — Kernel
 - [ ] Clone kernel: chọn branch `lineage-18.1` (rtd1250 repo, era A11 khớp halium-11) hoặc `lineage-22.2` (a70q-lineage, mới nhất — đang chạy thật trên máy)

@@ -60,17 +60,34 @@ Lưu ý: backup **bao nhiêu lần cũng được, luôn read-only** (`dd if=...
 2. Port pair chỉ sống trong lúc dialog mở. Sau pair, dò port connect qua mDNS (`adb mdns services` → service `_adb-tls-connect`) rồi `adb connect <ip>:<port>`.
 3. Máy đang chạy LineageOS userdebug nên `adb root` được, `su` có sẵn.
 
-## Tiếp tục ở máy mới — thứ tự việc (Phase 1, chi tiết trong PLAN.md)
+## Tiếp tục ở máy mới — Mac mini M4 (Apple Silicon, nhiều ổ đĩa)
 
-Máy mới nhiều ổ đĩa → **build Linux native** (không cần container như phương án trên Mac):
+**Kiến trúc chốt:** build trong container Linux arm64 (host arm64 = target arm64 → kernel build **native**, không qemu). Mac mini = build machine; Mac cũ = flash/debug host (heimdall đã thuần thục ở đó).
 
-1. Cài deps theo docs Halium (git, repo, python3, ccache, bc, bison, flex, libssl-dev...) — docs.halium.org → Porting → Build
-2. `repo init -u https://github.com/Halium/android -b halium-11.0 --depth=1`
-3. Tạo local manifest `halium/devices/manifests/samsung_a70q.xml` khai báo các repo device của org **a70q-lineage** (kernel `android_kernel_samsung_sm6150` branch `lineage-18.1`, device tree, vendor...) — danh sách 6 repo trong LOG.md
-4. `./halium/devices/setup a70q && repo sync` (~25–40 GB, dùng `--current-branch --no-clone-bundle --no-tags`)
-5. Áp halium kernel patches (binder/ashmem/vendor cmdlines) + **fix Bluetooth 3 dòng Makefile** (trên) + toolchain clang 8/9 era (clang 14 gây hang boot theo kinh nghiệm note10lite)
-6. `source build/envsetup.sh && breakfast a70q && mka halium-boot` → `halium-boot.img`
-7. Rootfs UT noble prebuilt + adaptation tarball → flash boot (+ **dtbo/vbmeta phải đi kèm**, verified boot sẽ fail `Hash of data does not match` nếu thiếu)
+Repo này có sẵn **build kit**: `build/Dockerfile` (ubuntu 20.04 + deps Halium), `build/run.sh` (quản lý container), `build/manifests/samsung_a70q.xml` (local manifest).
+
+Quy trình trên Mac mini:
+
+1. Cài **Docker Desktop** hoặc **OrbStack** (OrbStack nhẹ hơn, khuyến nghị). Kiểm tra dung lượng disk image Docker ≥ 60 GB (Settings → Resources)
+2. Clone repo này, rồi:
+   ```bash
+   ./build/run.sh build   # build image lần đầu (~5 phút)
+   ./build/run.sh shell   # vào build shell
+   ```
+3. Trong shell (source tree nằm trong volume ext4 — **QUY TẮC VÀNG: không bind mount thư mục macOS vào /work**, APFS case-insensitive làm Android build gãy khó debug):
+   ```bash
+   repo init -u https://github.com/Halium/android -b halium-11.0 --depth=1
+   mkdir -p .repo/local_manifests
+   cp /handoff/build/manifests/samsung_a70q.xml .repo/local_manifests/
+   repo sync --current-branch --no-clone-bundle --no-tags   # ~25–40 GB
+   # ./halium/devices/setup a70q  (nếu manifest halium nhận device; xem PLAN Phase 1)
+   ```
+4. Kernel patches + **fix Bluetooth 3 dòng `net/bluetooth/Makefile`** (kiểm tra lại trên branch lineage-18.1 khi clone) + toolchain era đúng (clang 8/9 — clang 14 gây hang boot theo kinh nghiệm note10lite)
+5. `source build/envsetup.sh && breakfast a70q && mka halium-boot` → `halium-boot.img`
+6. Copy kết quả ra thư mục host: `./build/run.sh cp /work/out/... out/` (hoặc AirDrop/LAN giữa 2 Mac)
+7. Rootfs UT noble **prebuilt tải trực tiếp** (không build) + adaptation tarball theo cấu trúc GitLab community-ports → flash ở Mac cũ qua heimdall (**dtbo/vbmeta phải đi kèm**, AVB fail `Hash of data does not match` nếu thiếu)
+
+**Vendor blobs:** trees `proprietary_vendor_samsung_a70q` + `_sm6150-common` của org a70q-lineage đã chứa blobs extract sẵn trong git — dùng ngay. Muốn blobs khớp đúng firmware máy (DXD2, mới hơn tree) thì chạy `extract-files.sh` từ thiết bị qua adb sau.
 
 **Địa chỉ tham khảo quan trọng**: `note10lite-criolian/docs` (GitHub) — quy trình Samsung halium-11 đầy đủ từng bước; `Halium/hybris-mer-kernel-setup`; `halium-generic-adaptation-build-tools`; thread XDA "CRDIDLPHALI/UBports Ubuntu touch for Galaxy A70" (2021, halium-9 cũ — tham khảo quirks, KHÔNG theo manifest cũ).
 

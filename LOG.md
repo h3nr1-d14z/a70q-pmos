@@ -72,3 +72,12 @@ Mục đích: ghi lại mọi phát hiện theo thời gian để không quên. 
 - **KẾT QUẢ BACKUP FULL: 50/50 partition OK, khớp size 100%, 108 giây** → backups/full/*.img + backups/MANIFEST.md (size + sha256 từng file)
 - Cross-verify: `recovery` = 82,825,216 bytes = đúng size recovery.img LineageOS trong repo a70-root (chứng minh recovery partition đang là LineageOS recovery); `boot` = 67,108,864 (64 MiB) khớp convention repack đã dùng
 - Phase 0 HOÀN THÀNH 100% — mọi thứ cần để port + rollback an toàn đã nằm trên máy tính (backups/ + /Volumes/External/Projects/a70-backup/ + fac.zip)
+
+## 2026-11-10 — Handoff: push GitHub + máy build = Mac mini M4
+- Repo handoff: **h3nr1-d14z/ubuntu-touch-a70** (private, main) — README.md handoff đầy đủ, 3 docs nghiên cứu, backup script + manifest + lshal dump + dtbo/vbmeta
+- Ảnh partition 612MB KHÔNG vào git (GitHub chặn >100MB + tái tạo được bằng `backups/full-backup.sh` ~110 giây từ thiết bị)
+- Commit dùng email noreply GitHub (GH007 email privacy) — git config trong repo đã set sẵn noreply
+- **Quyết định build machine: Mac mini M4** (Apple Silicon, nhiều ổ) — build trong container Linux arm64 (host arch = target arch → kernel native, không qemu); Mac này giữ vai trò flash/debug host (heimdall-apple-silicon)
+- **Quy tắc vàng ghi trong README + build kit**: source tree nằm TRONG named volume ext4 case-sensitive, KHÔNG bind mount macOS vào /work — APFS case-insensitive phá Android build system
+- Build kit mới: `build/Dockerfile` (ubuntu 20.04 + deps Halium + repo tool + mkbootimg), `build/run.sh` (volumes halium-src/halium-ccache, memory 12g default, cp ra/vào), `build/manifests/samsung_a70q.xml` (kernel rtd1250/android_kernel_samsung_sm6150 lineage-18.1; device/vendor a70q-lineage lineage-20 làm điểm bắt đầu — template UNTESTED, chỉnh khi setup)
+- Vendor blobs: trees proprietary_vendor_samsung_a70q + _sm6150-common của a70q-lineage có sẵn blobs trong git — không bắt buộc extract-files từ device (chỉ làm khi muốn khớp DXD2)

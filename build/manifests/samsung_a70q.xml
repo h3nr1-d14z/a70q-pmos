@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!--
+  Local manifest a70q cho Halium 11.0 — UNTESTED TEMPLATE, chỉnh khi setup thật.
+
+  Cách dùng (trong build shell, sau khi repo init halium-11.0):
+    mkdir -p .repo/local_manifests
+    cp /handoff/build/manifests/samsung_a70q.xml .repo/local_manifests/
+    repo sync --current-branch --no-clone-bundle --no-tags
+
+  Quyết định branch (chi tiết trong LOG.md của repo handoff):
+  - kernel: repo rtd1250/android_kernel_samsung_sm6150 branch lineage-18.1
+    (era A11 khớp halium-11; org a70q-lineage chỉ có lineage-20/21/22.2/upstream cho kernel)
+  - device/vendor trees: a70q-lineage chỉ có lineage-20/21/22.2 → dùng lineage-20 làm
+    điểm bắt đầu, ADAPT sang halium-11 ở Phase 4 (tham chiếu: ubports-a70q halium-9
+    cho glue Samsung, S-8506 halium-10 sm6150-common cho cấu trúc halium device tree).
+  - Khi build kernel REMEMBER: kiểm tra net/bluetooth/Makefile trên lineage-18.1
+    (RFCOMM/BNEP/HIDP bị comment là bệnh Samsung — đã xác nhận trên nhánh lineage-22.2).
+-->
+<manifest>
+  <remote name="a70q"    fetch="https://github.com/a70q-lineage" />
+  <remote name="rtd1250" fetch="https://github.com/rtd1250" />
+
+  <project path="kernel/samsung/sm6150"
+           name="android_kernel_samsung_sm6150"
+           remote="rtd1250" revision="lineage-18.1" />
+
+  <project path="device/samsung/a70q"
+           name="android_device_samsung_a70q"
+           remote="a70q" revision="lineage-20" />
+
+  <project path="vendor/samsung/a70q"
+           name="proprietary_vendor_samsung_a70q"
+           remote="a70q" revision="lineage-20" />
+
+  <project path="vendor/samsung/sm6150-common"
+           name="proprietary_vendor_samsung_sm6150-common"
+           remote="a70q" revision="lineage-20" />
+</manifest>
