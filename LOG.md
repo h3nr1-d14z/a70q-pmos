@@ -171,3 +171,9 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
    - **Loop nhanh** → gcc kernel cũng chết siêu sớm (trước fbcon+pstore) → toolchain-independent → điều tra DTB/ABL (flash test gcc-kernel + DTB-LOS-append)
 3. Đọc ramoops (nếu kernel sống ≥ pstore-attach ~0.16s): giữ 2 phím Volume tại vòng restart → warm DM → flash LOS reader (warm) → LOS attach cùng vùng → `/sys/fs/pstore/console-ramoops-0` = console log của kernel gcc
 4. Rollback LOS: flash `backups/full/{boot,vbmeta,dtbo}.img` bất cứ lúc nào
+
+### ⭐ ROOT CAUSE CHỐT (đêm 11/11): DEVTMPFS
+- Mọi bootloop/initramfs-fail đêm nay giải thích bằng MỘT nguyên nhân: `a70q_defconfig` Samsung có `# CONFIG_DEVTMPFS is not set` — halium initramfs cần devtmpfs (/init mount nó; không có → /dev rỗng → không console/block-device/gadget qua... configfs vẫn /sys nhưng /init chết giữa) → panic → reboot-loop; misc empty vì sda10 dump viết vào /dev/block/sda10 không tồn tại (trước lẫn sau mount)
+- Fix: CONFIG_DEVTMPFS=y + CONFIG_DEVTMPFS_MOUNT=y trong a70q_defconfig → clean rebuild (đang chạy, kbuild-devtmpfs)
+- LOS reader boot OK với ramdisk LOS vì ramdisk LOS tự chứa /dev nodes (mknod sẵn trong cpio) — KHÔNG phụ thuộc devtmpfs
+- Flash sau khi build: halium-boot (gcc kernel + initramfs NCM + devtmpfs) → nếu devtmpfs là root cause duy nhất: /init chạy → marker post-mount vào misc → NCM gadget (kernel clang/gcc đều có f_ncm builtin... gcc kernel ✓) → telnet 192.168.2.15 rescue → ĐỌC DMESG LIVE

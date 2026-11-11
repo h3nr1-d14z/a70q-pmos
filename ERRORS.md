@@ -238,3 +238,13 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 - **Fix cmdline** (BoardConfigCommon): thêm `console=tty0` (fbcon trên vt0) — kernel log + panic hiển thị TRỰC TIẾP trên AMOLED (panel sống từ splash ABL), user chụp ảnh gửi lại = đọc được panic
 - **Kèm theo**: `panic=0` giữ máy đứng yên hiển thị panic thay vì reboot-loop
 - **Bài học**: với port không có UART, fbcon là kênh debug chính từ giai đoạn sớm nhất (sau khi DRM panel probe ~1-2s); chi phí: kernel rebuild + vài trăm KB
+
+### C20. ⭐ ROOT CAUSE chính của mọi bootloop/initramfs-fail: Samsung kernel TẮT DEVTMPFS
+- **Triệu chứng tổng hợp**: MỌI halium-boot đều bootloop nhanh; misc rỗng; không marker; không USB; không rescue — kể cả khi kernel LOS (proven) + initramfs halium
+- **Root cause**: `a70q_defconfig` gốc Samsung: `# CONFIG_DEVTMPFS is not set` — kernel KHÔNG có devtmpfs. Halium initramfs (và mọi initramfs chuẩn Linux) YÊU CẦU devtmpfs: `/init` mount devtmpfs → nếu fail → /dev rỗng → không /dev/console, không /dev/block/sda10 (misc-dump fail), không anything → init chết giữa chừng → "attempted to kill init" → panic_timeout 5s → reboot → loop
+- **Fix**: `CONFIG_DEVTMPFS=y` + `CONFIG_DEVTMPFS_MOUNT=y` trong a70q_defconfig → rebuild
+- **Bài học**:
+  - Samsung SEC kernels TẮT devtmpfs (dùng ueventd path) — MỌI kernel port cho device Samsung phải bật DEVTMPFS+y trước khi debug bất cứ thứ gì khác
+  - Instrumentation đặt TRƯỚC mount /dev (marker đầu /init) vô hiệu — đặt SAU; tốt hơn: dùng device node path đúng qua devtmpfs
+  - pstore-ram qua cmdline ghi console từ ~0.16s — nhưng đọc lại bằng boot sau chỉ đúng nếu chuỗi reboot/DM là WARM (không ngắt nguồn); force-tắt = mất records
+  - LOS reader boot ok vì LOS kernel của rtd1250 có thể cũng devtmpfs=n nhưng ramdisk LOS tự chứa /dev nodes (mknod trong cpio) — halium initramfs KHÔNG chứa dev nodes (dựa vào devtmpfs)
