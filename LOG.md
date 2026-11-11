@@ -177,3 +177,8 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - Fix: CONFIG_DEVTMPFS=y + CONFIG_DEVTMPFS_MOUNT=y trong a70q_defconfig → clean rebuild (đang chạy, kbuild-devtmpfs)
 - LOS reader boot OK với ramdisk LOS vì ramdisk LOS tự chứa /dev nodes (mknod sẵn trong cpio) — KHÔNG phụ thuộc devtmpfs
 - Flash sau khi build: halium-boot (gcc kernel + initramfs NCM + devtmpfs) → nếu devtmpfs là root cause duy nhất: /init chạy → marker post-mount vào misc → NCM gadget (kernel clang/gcc đều có f_ncm builtin... gcc kernel ✓) → telnet 192.168.2.15 rescue → ĐỌC DMESG LIVE
+
+### Bằng chứng bổ sung (khuya)
+- Flash kernel **gcc-9.4 + fbcon** qua DM sạch (sau Mac restart, adb server chết, không watcher): bootloop + **KHÔNG có gì trên màn hình** → kernel gcc cũng chết trước fbcon (~1-2s) → **cả clang-13 lẫn gcc-9.4 đều chết siêu sớm** → toolchain-independent → nghi vấn chính: kernel tree 4.14.261 (lineage-18.1 + SM6150 vendor) có early-boot issue với DTB/tree-state hiện tại, hoặc cần era-correct toolchain (clang r3441b/9.0 — era LOS 18.1 mà rtd1250 dùng)
+- LOS reader (LOS kernel gốc) + cmdline ramoops của ta: BOOT OK + ramoops attach 0.16s ✓ → cmdline vô hại với kernel proven
+- C20 DEVTMPFS fix = điều kiện cần (initramfs chạy) nhưng CHƯA chắc đủ — kernel chết trước cả khi initramfs kịp chạy ở các attempt mới nhất (pstore rỗng sau warm read, fbcon silent)
