@@ -131,20 +131,26 @@ Soong parse TOÀN BỘ Android.bp trong tree (không liên quan PRODUCT_SOONG_NA
 ## 2026-11-11 đêm — Trạng thái qua đêm + quy trình buổi sáng (cho người đọc tiếp)
 
 ### Tình trạng máy (khi ngủ)
-- Máy đang **bootloop** với image cũ (kernel clang + initramfs misc-logging CŨ — trước C14): panic sớm, misc rỗng đã xác nhận
-- Máy cắm điện loop đến khi hết pin rồi tự tắt — vô hại phần cứng, không mất dữ liệu (userdata không hề bị flash)
+- Máy đang **bootloop** với **testA** (kernel LOS 22.2 + initramfs NCM của ta + cmdline ta + dtbo LOS gốc): LOS kernel thiếu `f_ncm` → gadget fail → rescue `reboot -f` → loop. Máy cắm điện loop đến hết pin rồi tự tắt — vô hại phần cứng, userdata không hề bị flash
 
-### Ảnh chờ flash (đã verify 3 lớp, hash `ba7884191b3ad887`)
-`out/halium-boot.img` = kernel **gcc 9.4** (đã vá: mm.h extern-inline, gcc-wrapper passthrough, -mgeneral-regs-only bỏ, audio Kbuild -Werror bỏ) + **initramfs NCM** (khắc phục C13/C14) + **dump kmsg→misc(sda10)** + **stage marker đầu /init** + cmdline: ramoops(0xa1300000) + **panic=0** (freeze thay vì loop) + anti-rollback header 15.0.0/2026-06 + DTB **LOS 22.2** (380,315 B — hardware description đã chứng minh boot trên chính máy này, đã build kernel lai `final-halium-boot.img` trong volume dự phòng)
+### Ảnh chờ flash buổi sáng (hash `8991b011`)
+`out/halium-boot.img` = kernel **clang r383902b** (chưa từng được test cùng initramfs đã vá — các attempt cũ bootloop do C14 stale-initramfs và C17 cmdline-$0-corruption, KHÔNG chứng minh kernel hỏng) + **initramfs NCM** + **dump kmsg→misc(sda10)** + **stage marker đầu /init** + cmdline SẠCH 497 chars (panic=0 ✓, KHÔNG memmap/ramoops — tránh C17 + tránh chiếm vùng nhớ chưa reserve) + anti-rollback header 15.0.0/2026-06 + dtbo rỗng (base DTB)
+Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.4 + DTB LOS + cùng initramfs)
 
 ### Quy trình buổi sáng
-1. Force tắt máy (giữ nguồn) → **giữ 2 phím Volume + cắm cáp** → Download Mode
+1. Sạc pin nếu máy tắt → force tắt máy (giữ nguồn) → **giữ 2 phím Volume + cắm cáp** → Download Mode
 2. Báo "dm rồi" → agent flash `out/halium-boot.img` + `out/vbmeta-disabled.img` + `out/dtbo-empty.img`
 3. Kết quả 3 nhánh:
    - **Không loop + macOS thấy USB ethernet mới + telnet 192.168.2.15:23 được** → RESCUE SUCCESS: agent tự telnet đọc dmesg/pstore rồi báo
-   - **Máy đứng yên đen thui (không loop)** → panic=0 giữ máy; vào DM → flash `out/losboot-ramoops.img` + vbmeta-disabled + `backups/full/dtbo.img` → boot LOS → agent đọc `/sys/fs/pstore/console-ramoops`
-   - **Vẫn bootloop nhanh** → kernel chết trước cả pstore console (DTB 18.1 thiếu) — fallback: kernel lai gcc+DTB-LOS đã build sẵn (`final-halium-boot.img` trong volume)
-4. Rollback LOS bất cứ lúc nào: `backups/full/{boot,vbmeta,dtbo}.img` (đã làm 2 lần thành công)
+   - **Loop nhanh (~30–60s/vòng) mà misc có marker+dmesg** (đọc qua bước 4) → kernel+initramfs chạy, USB gadget fail → vá USB kernel config rồi lặp
+   - **misc rỗng hoàn toàn** → kernel chết trước `/init` → điều tra DTB 18.1/toolchain (fallback kernel lai gcc+DTB-LOS)
+4. Đọc misc: flash `out/losboot-ramoops.img` + vbmeta-disabled + `backups/full/dtbo.img` → boot LOS → adb → `su -c dd if=/dev/block/by-name/misc` → pull → strings
+5. Rollback LOS bất cứ lúc nào: flash `backups/full/{boot,vbmeta,dtbo}.img` (đã làm 2 lần thành công trong phiên)
+
+### Bài học bổ sung (đêm)
+- **C17**: cmdline chứa `$0` bị expand HAI LỚP (kati → shell) → `/bin/bash` nhét vào giữa tham số; tránh `$` trong cmdline hoàn toàn
+- **C16**: cmdline giới hạn 512 byte, mkbootimg truncation âm thầm — luôn verify bằng unpack_bootimg sau khi sửa
+- Kernel lai (ghép gz/dtb thủ công) là công cụ bisect mạnh: tách biến kernel-blob vs ramdisk vs dtbo mà chỉ tốn 1 lần flash
 
 ### Trạng thái build cuối (verify trong image)
-`MKA_EXIT=0 | cmdline 472 chars | panic=0 ✓ | ramoops ✓ | ncm ✓ | sda10 ✓ | init-stage ✓` — đã push GitHub kèm `patches/` đầy đủ (commit `5721e91` + các commit sau)
+`MKA_EXIT=0 | cmdline 497 chars SẠCH (panic=0 ✓, không memmap/ramoops) | ncm ✓ | sda10 ✓ | init-stage ✓` — đã push GitHub kèm `patches/` đầy đủ (commit `5721e91`, `b6db845`, + commit cuối)

@@ -195,6 +195,14 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 
 ---
 
+### C17. `$0` trong cmdline bị EXPAND HAI LỚP (make/kati rồi shell)
+- **Triệu chứng**: thêm `memmap=0x100000$0xa1300000` vào `BOARD_KERNEL_CMDLINE` → image build xong cmdline chứa `memmap=0x100000/bin/bashxa1300000` (raw bytes: backspace + `ashx` do hai vòng expand chồng nhau)
+- **Root cause**: chuỗi đi qua 2 tầng expand: (1) kati/make expand `$0` → path shell (`/bin/bash`), (2) recipe shell expand tiếp. `$$0` chỉ sống sót tầng 1
+- **Fix**: tránh ký tự `$` trong cmdline hoàn toàn — memmap dùng address hex đi kèm reservation bằng cách khác (DT node, hoặc memmap với cú pháp không $), hoặc sinh cmdline bằng script thay vì qua biến make
+- **Bài học**: mọi giá trị cmdline chứa `$` đều chết trên đường make→kati→shell của AOSP; kiểm bằng unpack_bootimg + grep raw
+
+---
+
 ## D. Quy trình (meta)
 
 ### D1. Pipe vào `tail` nuốt exit code
