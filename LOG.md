@@ -157,6 +157,8 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - **C17**: cmdline chứa `$0` bị expand HAI LỚP (kati → shell) → `/bin/bash` nhét vào giữa tham số; tránh `$` trong cmdline hoàn toàn
 - **C16**: cmdline giới hạn 512 byte, mkbootimg truncation âm thầm — luôn verify bằng unpack_bootimg sau khi sửa
 - Kernel lai (ghép gz/dtb thủ công) là công cụ bisect mạnh: tách biến kernel-blob vs ramdisk vs dtbo mà chỉ tốn 1 lần flash
+- **fbcon test ÂM TÍNH (kernel clang)**: bật `DRM_FBDEV_EMULATION` + `FRAMEBUFFER_CONSOLE` + `console=tty0` → flash → KHÔNG có gì trên màn hình + bootloop tiếp → kernel clang chết TRƯỚC fbcon (~1-2s sau start) → củng cố nghi toolchain clang-13 cho kernel 4.14.261 SM6150 → **flash test kernel gcc-9.4 (đã build thành công 1h16m, 0 forbidden warning, chưa từng được flash)**
+- testB (LOS kernel + initramfs ta): misc rỗng → LOS kernel cũng không chạy /init của ta → nghi ramdisk blob; NHƯNG kernel lai test (LOS kernel + ramdisk ta... chưa đọc misc sau test đó)
 
 ### Trạng thái build cuối (verify trong image)
 `MKA_EXIT=0 | cmdline 497 chars SẠCH (panic=0 ✓, không memmap/ramoops) | ncm ✓ | sda10 ✓ | init-stage ✓` — đã push GitHub kèm `patches/` đầy đủ (commit `5721e91`, `b6db845`, + commit cuối)
