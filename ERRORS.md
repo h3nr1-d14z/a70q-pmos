@@ -231,3 +231,10 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 - `mka halium-boot` đang lặp: đã qua mọi lỗi parse; chờ compile kernel 4.14 bằng clang prebuilt (x86 qua Rosetta)
 - Fix BT đã nằm sẵn trong kernel tree: Makefile uncomment 3 dòng + `a70q_defconfig` bật RFCOMM(+TTY)/BNEP(+MC+PROTO_FILTER)/HIDP
 - `hybris-patches/apply-patches.sh` đã chạy OK (điều kiện trước `mka halium-boot`)
+
+### C19. Debug mù trên thiết bị không có UART/console: bật fbcon lên màn hình
+- **Bối cảnh**: kernel chết/panic siêu sớm, không log nào thu được (pstore attach ~0.16s có thể quá muộn; misc-dump cần /dev/block đã mount)
+- **Fix cấu hình kernel (a70q_defconfig)**: `CONFIG_DRM_FBDEV_EMULATION=y` (trước đó =n!) + `CONFIG_FRAMEBUFFER_CONSOLE=y` + `CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y` + `CONFIG_FONT_SUPPORT=y` + `CONFIG_FONT_8x16=y`
+- **Fix cmdline** (BoardConfigCommon): thêm `console=tty0` (fbcon trên vt0) — kernel log + panic hiển thị TRỰC TIẾP trên AMOLED (panel sống từ splash ABL), user chụp ảnh gửi lại = đọc được panic
+- **Kèm theo**: `panic=0` giữ máy đứng yên hiển thị panic thay vì reboot-loop
+- **Bài học**: với port không có UART, fbcon là kênh debug chính từ giai đoạn sớm nhất (sau khi DRM panel probe ~1-2s); chi phí: kernel rebuild + vài trăm KB
