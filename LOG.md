@@ -133,6 +133,12 @@ Soong parse TOÀN BỘ Android.bp trong tree (không liên quan PRODUCT_SOONG_NA
 ### Tình trạng máy (khi ngủ)
 - Máy đang **bootloop** với **testA** (kernel LOS 22.2 + initramfs NCM của ta + cmdline ta + dtbo LOS gốc): LOS kernel thiếu `f_ncm` → gadget fail → rescue `reboot -f` → loop. Máy cắm điện loop đến hết pin rồi tự tắt — vô hại phần cứng, userdata không hề bị flash
 
+### Kết luận đêm (bằng chứng đầy đủ)
+- misc RỖNG sau testA bootloop (m5/m6: 10 bytes non-zero = chỉ "roms" cũ) → **failure-path dump (dmesg >> sda10 — chạy sau mount /dev nếu /init đi đến panic path) KHÔNG xuất hiện → /init không đến panic path → /init chết giữa chừng HOẶC kernel chết trước /init**
+- Stage marker đặt ở /init top viết TRƯỚC mount /dev → fail silent → misc rỗng không khử được 2 khả năng trên (lỗi instrumentation — vào ERRORS.md học)
+- misc KHÔNG bị ghi đè từ testA đến giờ (LOS boot không ghi misc) → **dmesg testA vẫn nằm nguyên trong misc** → đọc nó là thấy mọi thứ: initramfs unpack ok/failed, Run /init có xảy ra, panic gì
+- Kernel LOS 22.2 = kernel đã chứng minh boot trên máy — nghi vấn chính chuyển sang **ramdisk/initramfs của ta** (unpack fail trên kernel nào cũng vậy? format/size?) — testA chính là test đó (LOS kernel + ramdisk ta) và misc rỗng → ngả về ramdisk/unpack hoặc cmdline (đã sạch, ít nghi)
+
 ### Ảnh chờ flash buổi sáng (hash `8991b011`)
 `out/halium-boot.img` = kernel **clang r383902b** (chưa từng được test cùng initramfs đã vá — các attempt cũ bootloop do C14 stale-initramfs và C17 cmdline-$0-corruption, KHÔNG chứng minh kernel hỏng) + **initramfs NCM** + **dump kmsg→misc(sda10)** + **stage marker đầu /init** + cmdline SẠCH 497 chars (panic=0 ✓, KHÔNG memmap/ramoops — tránh C17 + tránh chiếm vùng nhớ chưa reserve) + anti-rollback header 15.0.0/2026-06 + dtbo rỗng (base DTB)
 Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.4 + DTB LOS + cùng initramfs)
