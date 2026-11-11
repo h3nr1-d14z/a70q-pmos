@@ -162,3 +162,12 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 
 ### Trạng thái build cuối (verify trong image)
 `MKA_EXIT=0 | cmdline 497 chars SẠCH (panic=0 ✓, không memmap/ramoops) | ncm ✓ | sda10 ✓ | init-stage ✓` — đã push GitHub kèm `patches/` đầy đủ (commit `5721e91`, `b6db845`, + commit cuối)
+
+### Sau khi flash gcc-kernel (đêm — DM session user để sẵn)
+1. Máy boot kernel gcc-9.4 + fbcon + ramoops-DTB-reserved + panic=0
+2. Kịch bản quan sát:
+   - **fbcon hiện kernel log trên AMOLED** → nếu panic: màn hình ĐỨNG YÊN (panic=0) → user CHỤP ẢNH gửi → đọc nguyên nhân trực tiếp
+   - **USB NCM ethernet xuất hiện + telnet 192.168.2.15:23** → rescue sống → agent telnet đọc dmesg/pstore trực tiếp
+   - **Loop nhanh** → gcc kernel cũng chết siêu sớm (trước fbcon+pstore) → toolchain-independent → điều tra DTB/ABL (flash test gcc-kernel + DTB-LOS-append)
+3. Đọc ramoops (nếu kernel sống ≥ pstore-attach ~0.16s): giữ 2 phím Volume tại vòng restart → warm DM → flash LOS reader (warm) → LOS attach cùng vùng → `/sys/fs/pstore/console-ramoops-0` = console log của kernel gcc
+4. Rollback LOS: flash `backups/full/{boot,vbmeta,dtbo}.img` bất cứ lúc nào
