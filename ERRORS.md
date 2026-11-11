@@ -248,3 +248,14 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
   - Instrumentation đặt TRƯỚC mount /dev (marker đầu /init) vô hiệu — đặt SAU; tốt hơn: dùng device node path đúng qua devtmpfs
   - pstore-ram qua cmdline ghi console từ ~0.16s — nhưng đọc lại bằng boot sau chỉ đúng nếu chuỗi reboot/DM là WARM (không ngắt nguồn); force-tắt = mất records
   - LOS reader boot ok vì LOS kernel của rtd1250 có thể cũng devtmpfs=n nhưng ramdisk LOS tự chứa /dev nodes (mknod trong cpio) — halium initramfs KHÔNG chứa dev nodes (dựa vào devtmpfs)
+
+### C21. ⭐ heimdall detect làm ĐIỆN THOẠI THOÁT Download Mode (poll = tự đá máy)
+- **Triệu chứng**: user vào DM thành công → vài chục giây sau máy TỰ thoát DM + reboot về bootloop — lặp vô tận, tưởng DM timeout
+- **Root cause**: mỗi lệnh `heimdall detect` mở USB interface → handshake → **close/release** → Samsung DM (sboot) xử lý close = KẾT THÚC phiên Download Mode và REBOOT máy ra boot partition. Poll detect liên tục (của agent hoặc user) = tự đá máy khỏi DM liên tục
+- **Fix/quy tắc**: user vào DM MỘT LẦN → chạy `heimdall flash` LIỀN (flash tự detect+handshake atomically) — **TUYỆT ĐỐI KHÔNG chạy detect/watcher-poll trước hoặc trong khi flash**; watcher (nếu cần) chỉ kiểm và flash trong CÙNG process khi thấy, không poll thả
+- **Bài học**: các lần "dm rồi rồi mất" đêm nay đều do detect-poll của agent (và detect loop user tự chạy theo hướng dẫn của agent)
+
+### C22. Hai heimdall process đồng thời trên cùng DM = một thắng một rớt IOService
+- **Triệu chứng**: watcher auto-flash + manual flash chạy cùng lúc → manual flash Thành công, watcher rớt `bulk transfer failed: no connection to an IOService` (hoặc ngược lại)
+- **Root cause**: hai process claim cùng USB interface của DM — một cái giữ, cái kia bị đá khỏi IOService
+- **Quy tắc**: kill mọi watcher/heimdall khác TRƯỚC khi chạy flash; một flash = một process duy nhất
