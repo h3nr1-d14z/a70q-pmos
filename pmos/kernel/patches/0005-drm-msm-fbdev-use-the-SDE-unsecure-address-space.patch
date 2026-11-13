@@ -1,0 +1,58 @@
+From 7db65638ceaa6a474014ea8ba45ea4b261590db0 Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Fri, 13 Nov 2026 23:10:30 +0000
+Subject: [PATCH] drm/msm: fbdev: use the SDE unsecure address space
+
+msm_fbdev_create() pinned the fbdev buffer in priv->kms->aspace, which the
+SDE kms never sets (it keeps sde_kms->aspace[] and exposes them through
+kms->funcs->get_address_space()). msm_gem_get_iova() then failed with
+"failed to get buffer obj iova: -22" and no fbdev (/dev/fb0, fbcon) was
+registered. Use get_address_space(MSM_SMMU_DOMAIN_UNSECURE) when available.
+---
+ drivers/gpu/drm/msm/msm_fbdev.c | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/msm/msm_fbdev.c b/drivers/gpu/drm/msm/msm_fbdev.c
+index 6923ec2d7..30c3ac2b5 100755
+--- a/drivers/gpu/drm/msm/msm_fbdev.c
++++ b/drivers/gpu/drm/msm/msm_fbdev.c
+@@ -20,6 +20,7 @@
+ 
+ #include "msm_drv.h"
+ #include "msm_kms.h"
++#include "msm_mmu.h"
+ 
+ extern int msm_gem_mmap_obj(struct drm_gem_object *obj,
+ 					struct vm_area_struct *vma);
+@@ -67,6 +68,14 @@ static int msm_fbdev_mmap(struct fb_info *info, struct vm_area_struct *vma)
+ 	return msm_gem_mmap_obj(bo, vma);
+ }
+ 
++static struct msm_gem_address_space *msm_fbdev_aspace(struct msm_kms *kms)
++{
++	if (kms->funcs->get_address_space)
++		return kms->funcs->get_address_space(kms,
++				MSM_SMMU_DOMAIN_UNSECURE);
++	return kms->aspace;
++}
++
+ static int msm_fbdev_create(struct drm_fb_helper *helper,
+ 		struct drm_fb_helper_surface_size *sizes)
+ {
+@@ -104,7 +113,12 @@ static int msm_fbdev_create(struct drm_fb_helper *helper,
+ 	 * in panic (ie. lock-safe, etc) we could avoid pinning the
+ 	 * buffer now:
+ 	 */
+-	ret = msm_gem_get_iova(bo, priv->kms->aspace, &paddr);
++	/*
++	 * SDE keeps its address spaces in sde_kms->aspace[] and never sets the
++	 * legacy kms->aspace, so ask the kms for the unsecure domain instead
++	 * (NULL aspace made this fail with -EINVAL and no /dev/fb0 appeared).
++	 */
++	ret = msm_gem_get_iova(bo, msm_fbdev_aspace(priv->kms), &paddr);
+ 	if (ret) {
+ 		dev_err(dev->dev, "failed to get buffer obj iova: %d\n", ret);
+ 		goto fail_unlock;
+-- 
+2.43.0
+

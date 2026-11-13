@@ -5,7 +5,7 @@
 maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=linux-samsung-a70q
 pkgver=4.14.190
-pkgrel=8
+pkgrel=11
 pkgdesc="Samsung Galaxy A70 kernel fork"
 arch="aarch64"
 _carch="arm64"

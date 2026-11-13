@@ -347,3 +347,24 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 
 ### C37. Upload qua serial: kiểm hash CẢ HAI đầu, không đếm dòng
 - `reboot-mode` upload hỏng (0 byte) nhưng kiểm tra lỏng (grep -c) báo OK → flash.sh chờ DM 180s vô ích. So sánh remote sha256 == local sha256 tường minh
+
+## H. Hiển thị (2026-11-14)
+
+### C38. ✅ Màn hình AMOLED chạy qua DRM/KMS — "không thấy gì" là lỗi cách test
+- `/dev/dri/card0`, connector `DSI-1` connected, mode `1080x2400x60x184032` (tên mode kiểu Samsung → `modetest -s 28@102:#0`, KHÔNG `1080x2400`)
+- `modetest` chạy nền với stdin không phải tty → đọc EOF ngay → thoát → giải phóng fb → panel tắt sau ~0.4ms (log: `DISPLAY_ON` rồi lập tức `ss_brightness_dcs level 0` + `ss_panel_off_pre`). User chỉ thấy "nháy 1 cái"
+- Fix test: giữ stdin mở `sleep 120 | modetest -M msm_drm -s 28@102:#0` → **user xác nhận thấy pattern**. Backlight do driver tự bật lúc bridge_enable (không cần ghi sysfs)
+- **Bài học**: đọc timestamp dmesg từng bước (enable → DISPLAY_ON → off) trước khi đổ lỗi cho driver
+
+### C39. ❌ fbdev trên SDE → bootloop (patch 0005 đã gỡ, để ở kernel/patches/disabled/)
+- Không có `/dev/fb0`: `msm_fbdev_create()` dùng `priv->kms->aspace` (SDE không set) → `failed to get buffer obj iova: -22`
+- Sửa aspace (lấy qua `get_address_space(MSM_SMMU_DOMAIN_UNSECURE)`) → kernel **bootloop**, không bắt được log
+- Kết luận: không cần fbdev — UI pmOS (Phosh/Plasma/Sxmo) dùng KMS trực tiếp
+
+### C40. Không bắt được panic log: ramoops/pstore không giữ qua reboot do panic
+- ramoops attach `0x100000@0xa1300000` + `console [pstore-1]`, nhưng sau `echo c > /proc/sysrq-trigger` → reboot → /sys/fs/pstore rỗng. `/proc/last_kmsg` chỉ chứa log ABL (bootloader)
+- Hệ quả: thử kernel rủi ro → nếu bootloop phải vào DM bằng phím; ưu tiên kiểm chứng trên kernel đang chạy (tool userspace) trước khi đổi kernel
+
+### C41. Firmware: kernel chờ `/vendor/firmware_mnt/image` → timeout 60s mỗi lần (venus...)
+- `apnhlos` = sda17 (vfat, có a612_zap, adsp, bdwlan.*...), `modem` = sda18 (vfat), `dsp` = sda19 (ext4)
+- WiFi: `CONFIG_QCA_CLD_WLAN` chưa bật (LOS build wlan.ko ngoài kernel); source có `drivers/staging/qcacld-3.0`
