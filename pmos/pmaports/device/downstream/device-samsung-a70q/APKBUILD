@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=1
+pkgrel=3
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -13,7 +13,11 @@ depends="
 	postmarketos-base
 "
 makedepends="devicepkg-dev"
-source="deviceinfo"
+install="$pkgname.post-install"
+source="
+	deviceinfo
+	unudhcpd.ecm0.confd
+"
 options="!archcheck !check"
 
 build() {
@@ -22,8 +26,15 @@ build() {
 
 package() {
 	devicepkg_package $startdir $pkgname
+	install -Dm644 "$srcdir"/unudhcpd.ecm0.confd "$pkgdir"/etc/conf.d/unudhcpd.ecm0
+	# ship the service instance + boot runlevel link directly (post-install may run
+	# before postmarketos-base-openrc provides /etc/init.d/unudhcpd)
+	mkdir -p "$pkgdir"/etc/init.d "$pkgdir"/etc/runlevels/boot
+	ln -s unudhcpd "$pkgdir"/etc/init.d/unudhcpd.ecm0
+	ln -s /etc/init.d/unudhcpd.ecm0 "$pkgdir"/etc/runlevels/boot/unudhcpd.ecm0
 }
 
 sha512sums="
-057077083418fd7141e24675ba3ba370c22837e563228e230e105260a03c6352146f3ba557a341fde2fb4c03c765295737717c251edc9661f4965b67972fd1f2  deviceinfo
+d19efec4223215c418ab2e423bf32e2dff5118a82f986deeeb73d8e0a896875c93d5a3e91efc5b52a8117c72303326d5d08bc52aa2c8b3aeccb1704943a5599c  deviceinfo
+a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824adfe19039cb54e98dd8b8384979421be0fa4822c5a1e1955  unudhcpd.ecm0.confd
 "

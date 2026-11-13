@@ -31,4 +31,8 @@ deviceinfo_flash_offset_ramdisk="0x02000000"
 deviceinfo_flash_offset_second="0x00f00000"
 deviceinfo_flash_offset_tags="0x01e00000"
 deviceinfo_flash_heimdall_partition_kernel="BOOT"
-deviceinfo_kernel_cmdline="androidboot.hardware=qcom androidboot.memcg=1 lpm_levels.sleep_disabled=1 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=1 androidboot.usbcontroller=a600000.dwc3 firmware_class.path=/vendor/firmware_mnt/image nokaslr printk.devkmsg=on androidboot.boot_devices=soc/1d84000.ufshc"
+deviceinfo_flash_heimdall_partition_rootfs="USERDATA"
+# UFS logical block size is 4096 (verified /sys/block/sda/queue/logical_block_size);
+# with 512-byte image sectors fdisk on the 4K device finds no subpartitions
+deviceinfo_rootfs_image_sector_size="4096"
+deviceinfo_kernel_cmdline="androidboot.hardware=qcom androidboot.memcg=1 lpm_levels.sleep_disabled=1 msm_rtb.filter=0x237 service_locator.enable=1 swiotlb=1 androidboot.usbcontroller=a600000.dwc3 firmware_class.path=/vendor/firmware_mnt/image nokaslr printk.devkmsg=on loop.max_part=7 androidboot.boot_devices=soc/1d84000.ufshc"

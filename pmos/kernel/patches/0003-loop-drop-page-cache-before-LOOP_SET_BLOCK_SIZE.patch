@@ -1,0 +1,52 @@
+From 367774ceff1673d317e32282da7c26f9f34f7c2d Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Fri, 13 Nov 2026 22:46:20 +0000
+Subject: [PATCH] loop: drop page cache before LOOP_SET_BLOCK_SIZE instead of
+ failing with EAGAIN
+
+invalidate_bdev() keeps pages pinned by buffer heads (e.g. from the
+partition scan that LO_FLAGS_PARTSCAN just did), so loop_set_block_size()
+returned -EAGAIN ("has still dirty pages (nrpages=2)"). util-linux ignores
+that error, leaving a 512-byte loop on top of a 4K GPT. Truncate the bdev
+mapping like upstream kill_bdev() does (5.3: loop: drop caches if offset or
+block_size are changed). Verified on device: after dropping caches the
+ioctl succeeds and loop0p1/p2 (pmOS_boot/pmOS_root) appear.
+---
+ drivers/block/loop.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/block/loop.c b/drivers/block/loop.c
+index 5a557be10..4a9b01bc4 100755
+--- a/drivers/block/loop.c
++++ b/drivers/block/loop.c
+@@ -53,6 +53,7 @@
+ #include <linux/moduleparam.h>
+ #include <linux/sched.h>
+ #include <linux/fs.h>
++#include <linux/buffer_head.h>
+ #include <linux/file.h>
+ #include <linux/stat.h>
+ #include <linux/errno.h>
+@@ -1452,11 +1453,17 @@ static int loop_set_block_size(struct loop_device *lo, unsigned long arg)
+ 		return 0;
+ 
+ 	sync_blockdev(lo->lo_device);
+-	invalidate_bdev(lo->lo_device);
++	/*
++	 * Like upstream kill_bdev() (5.3 "loop: drop caches if offset or
++	 * block_size are changed"): invalidate_bdev() leaves pages pinned by
++	 * buffer heads from the partition scan, making this fail with -EAGAIN.
++	 */
++	invalidate_bh_lrus();
++	truncate_inode_pages(lo->lo_device->bd_inode->i_mapping, 0);
+ 
+ 	blk_mq_freeze_queue(lo->lo_queue);
+ 
+-	/* invalidate_bdev should have truncated all the pages */
++	/* the truncate above should have removed all the pages */
+ 	if (lo->lo_device->bd_inode->i_mapping->nrpages) {
+ 		err = -EAGAIN;
+ 		pr_warn("%s: loop%d (%s) has still dirty pages (nrpages=%lu)\n",
+-- 
+2.43.0
+

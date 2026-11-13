@@ -44,7 +44,13 @@ pmos/pmb/run.sh install --no-image --password 147147      # rootfs chroot + init
 Debug shell: serial `/dev/cu.usbmodempostmarketOS3` (115200), mạng ECM 172.16.42.1 (workaround C30), telnet :23.
 Về Download Mode từ shell: upload `tools/src/reboot-mode.c` (static) → `reboot-mode download`.
 
+## ✅ pmOS BOOT HOÀN CHỈNH (2026-11-14) — SSH `user@172.16.42.1` (mật khẩu tạm 147147 — đổi ngay)
+- Rootfs OpenRC (`service_manager = openrc`; systemd cần kernel ≥5.4) trong USERDATA dạng subpartition (GPT sector 4096), `ui = none`
+- Kernel r8 = config k3 (k2 + NLS_ASCII, SYSVIPC, VT, DRM_FBDEV_EMULATION, USER_NS, FRAMEBUFFER_CONSOLE) + patches 0001–0004
+- cmdline phải có `loop.max_part=7`; boot.img đóng gói lại bằng `bootimg.py pack --like <boot LOS>`
+- Flash: `flash.sh --BOOT <boot.img> --USERDATA samsung-a70q.sparse.img` (USERDATA phải sparse: `img2simg`)
+
 ## Tiếp theo
 1. ~~Initramfs pmOS + USB networking~~ ✅
-2. Rootfs: chọn nơi đặt (microSD hay partition UFS) → boot pmOS thật, SSH
-3. Kernel cho rootfs: SYSVIPC, FHANDLE, PID_NS/USER_NS, VT (kiểm `pmbootstrap kconfig check`)
+2. ~~Rootfs trên USERDATA → boot pmOS thật, SSH~~ ✅
+3. Màn hình (fbcon/DRM), touch, WiFi (WCN3990), pin; đóng gói `reboot-mode` vào initramfs; sửa C30 (debug-shell mất IP)

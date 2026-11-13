@@ -20,9 +20,13 @@ cat > $W/pmbootstrap_v3.cfg <<CFG
 work = $W
 device = samsung-a70q
 ui = none
+service_manager = openrc
 user = user
 jobs = 10
 CFG
+# no udev in the container: create /dev/loopNpM nodes for partitioned loop devices
+( while true; do for d in /sys/block/loop*/loop*p*; do [ -e "$d/dev" ] || continue
+    n=/dev/$(basename $d); [ -b $n ] || sudo mknod $n b $(tr : " " < $d/dev); done; sleep 0.3; done ) &
 # sync our device packages into pmaports
 for d in /repo-pmos/pmaports/device/downstream/*/; do
   n=$(basename $d); rm -rf $W/cache_git/pmaports/device/downstream/$n

@@ -1,0 +1,4 @@
+#!/bin/sh
+# unudhcpd.ecm0 is shipped by this package; drop the generic usb0 instance if present
+rc-update -q del unudhcpd.usb0 boot 2>/dev/null || true
+exit 0

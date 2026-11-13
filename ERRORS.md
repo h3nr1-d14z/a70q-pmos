@@ -318,3 +318,32 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 
 ### Công cụ mới
 - `pmos/tools/src/reboot-mode.c` (static musl): `reboot-mode download` từ shell pmOS → vào Download Mode không cần bấm phím (đã kiểm chứng)
+
+## G. Boot rootfs pmOS từ userdata (UFS 4K) — 2026-11-14
+
+### C31. Rootfs mặc định là systemd — KHÔNG chạy được trên kernel 4.14
+- `pmaports.cfg`: `systemd_linux_min_version=5.4`. Phải dùng OpenRC: trong pmbootstrap_v3.cfg đặt **`service_manager = openrc`** (`systemd = never` KHÔNG có tác dụng — đã thử). Đổi xong phải `pmbootstrap zap` (zap -p không đủ)
+
+### C32. pmbootstrap install trong Docker: `File did not appear: /dev/loop0p2`
+- Container không có udev → node phân vùng loop không tự tạo. `pmos/pmb/run.sh` chạy vòng nền mknod từ `/sys/block/loop*/loop*p*/dev`
+
+### C33. heimdall flash USERDATA image thô chết ở 7% (`Failed to confirm end of file transfer sequence`)
+- sboot cần **Android sparse** cho partition lớn: `img2simg samsung-a70q.img samsung-a70q.sparse.img` (787MB → 153MB; simg2img ngược lại giống từng byte) → flash OK
+- Sau một phiên DM lỗi giữa chừng, DM không nhận phiên mới (`Protocol initialisation failed`) → phải vào DM lại
+
+### C34. Bỏ mất `loop.max_part=7` khỏi cmdline → loop không quét được partition (rc=-22)
+- dmesg `loop_reread_partitions: partition scan of loop0 failed (rc=-22)`; cmdline LOS có `loop.max_part=7` — mình đã lược đi khi viết deviceinfo. **Bài học: khi viết cmdline mới, diff với cmdline gốc từng tham số**
+
+### C35. ⭐⭐ Subpartition pmOS trên UFS 4K: 3 lỗi chồng nhau (2 cấu hình + 2 bug kernel)
+- UFS `logical_block_size=4096` → image phải dùng `deviceinfo_rootfs_image_sector_size="4096"` (với 512, fdisk trên sda29 không thấy 2 partition)
+- initramfs chạy `losetup -Pf --direct-io=on --sector-size 4096`, nhưng loop vẫn **512** → GPT 4K không thấy
+- Root cause (kiểm bằng `LOOPDEV_DEBUG=all losetup ...` → `LOOP_CONFIGURE: OK`): kernel có **backport LOOP_CONFIGURE của Android** nhưng chỉ đưa `block_size` vào `set_blocksize()`, KHÔNG đặt queue logical block size → **patch 0004** (đặt `blk_queue_logical_block_size` như upstream)
+- Đường cũ `LOOP_SET_BLOCK_SIZE` cũng hỏng: trả `EAGAIN` ("has still dirty pages (nrpages=2)") vì `invalidate_bdev()` không bỏ được page do partition scan để lại → **patch 0003** (invalidate_bh_lrus + truncate_inode_pages như upstream kill_bdev 5.3); **patch 0002** rescan partition sau khi đổi block size
+- Cách debug hiệu quả: boot `pmos.debug-shell`, tool C nhỏ gọi ioctl trực tiếp (`loopbs`) + `echo 3 > drop_caches` để tách từng giả thuyết
+- Kết quả: `/dev/loop0p2 on / type ext4`, tự resize 108GB, SSH `user@172.16.42.1` OK
+
+### C36. post-install của device package chạy TRƯỚC postmarketos-base-openrc
+- `ln -s unudhcpd unudhcpd.ecm0` + `rc-update` trong post-install không có hiệu lực → ship symlink service + runlevel trực tiếp trong package
+
+### C37. Upload qua serial: kiểm hash CẢ HAI đầu, không đếm dòng
+- `reboot-mode` upload hỏng (0 byte) nhưng kiểm tra lỏng (grep -c) báo OK → flash.sh chờ DM 180s vô ích. So sánh remote sha256 == local sha256 tường minh

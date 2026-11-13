@@ -1,0 +1,36 @@
+From 529a176d1e72433b2dd7522d38ac794f01f2cb22 Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Fri, 13 Nov 2026 22:36:17 +0000
+Subject: [PATCH] loop: rescan partitions after LOOP_SET_BLOCK_SIZE
+
+On 4.14 there is no LOOP_CONFIGURE, so util-linux losetup -P --sector-size
+falls back to LOOP_SET_FD + LOOP_SET_STATUS64 (LO_FLAGS_PARTSCAN, partitions
+scanned with 512-byte sectors) and only then LOOP_SET_BLOCK_SIZE. The block
+size change never triggered a rescan, so a GPT written with 4096-byte sectors
+(pmOS subpartitions on a 4K-native UFS userdata) showed no partitions.
+---
+ drivers/block/loop.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/block/loop.c b/drivers/block/loop.c
+index 6409c96a7..5a557be10 100755
+--- a/drivers/block/loop.c
++++ b/drivers/block/loop.c
+@@ -1472,6 +1472,14 @@ static int loop_set_block_size(struct loop_device *lo, unsigned long arg)
+ out_unfreeze:
+ 	blk_mq_unfreeze_queue(lo->lo_queue);
+ 
++	/*
++	 * Partitions were scanned with the old logical block size when
++	 * LO_FLAGS_PARTSCAN was set (LOOP_SET_FD/LOOP_SET_STATUS64 come first
++	 * on kernels without LOOP_CONFIGURE), so rescan with the new one.
++	 */
++	if (!err && (lo->lo_flags & LO_FLAGS_PARTSCAN))
++		loop_reread_partitions(lo, lo->lo_device);
++
+ 	return err;
+ }
+ 
+-- 
+2.43.0
+

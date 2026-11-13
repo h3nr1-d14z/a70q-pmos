@@ -1,0 +1,41 @@
+From ffc2ef4511eacbcbc959d9ae4431f7ce71daa4fa Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Fri, 13 Nov 2026 23:00:33 +0000
+Subject: [PATCH] loop: apply LOOP_CONFIGURE block_size to the request queue
+
+The Android backport of LOOP_CONFIGURE validates config->block_size but only
+passes it to set_blocksize(); the queue logical/physical block size stays at
+512 (or the backing bdev size for direct I/O). util-linux >= 2.36 uses
+LOOP_CONFIGURE, gets success and skips LOOP_SET_BLOCK_SIZE, so
+"losetup -P --sector-size 4096" silently creates a 512-byte loop and a GPT
+written with 4096-byte sectors shows no partitions (pmOS subpartitions on
+4K-native UFS). Set the queue limits like upstream loop_configure() does.
+---
+ drivers/block/loop.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/block/loop.c b/drivers/block/loop.c
+index 4a9b01bc4..3125efd8c 100755
+--- a/drivers/block/loop.c
++++ b/drivers/block/loop.c
+@@ -1075,6 +1075,17 @@ static int loop_configure(struct loop_device *lo, fmode_t mode,
+ 		blk_queue_io_min(lo->lo_queue, bsize);
+ 	}
+ 
++	/*
++	 * Honour the requested logical block size (upstream loop_configure()
++	 * does this); the backport only passed it to set_blocksize(), so the
++	 * queue stayed at 512 and a 4K-sector partition table was not found.
++	 */
++	if (config->block_size) {
++		blk_queue_logical_block_size(lo->lo_queue, config->block_size);
++		blk_queue_physical_block_size(lo->lo_queue, config->block_size);
++		blk_queue_io_min(lo->lo_queue, config->block_size);
++	}
++
+ 	loop_update_dio(lo);
+ 	loop_sysfs_init(lo);
+ 	loop_set_size(lo, size);
+-- 
+2.43.0
+

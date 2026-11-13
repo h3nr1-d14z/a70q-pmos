@@ -5,7 +5,7 @@
 maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=linux-samsung-a70q
 pkgver=4.14.190
-pkgrel=2
+pkgrel=8
 pkgdesc="Samsung Galaxy A70 kernel fork"
 arch="aarch64"
 _carch="arm64"
@@ -39,6 +39,9 @@ source="
 	$pkgname-$_commit.tar.gz::https://github.com/a70q-lineage/$_repository/archive/$_commit.tar.gz
 	$_config
 	0001-usb-gadget-u_ether-resubmit-rx-request.patch
+	0002-loop-rescan-partitions-after-LOOP_SET_BLOCK_SIZE.patch
+	0003-loop-drop-page-cache-before-LOOP_SET_BLOCK_SIZE.patch
+	0004-loop-apply-LOOP_CONFIGURE-block_size-to-the-request-queue.patch
 "
 builddir="$srcdir/$_repository-$_commit"
 _outdir="out"
@@ -88,6 +91,9 @@ package() {
 
 sha512sums="
 04c848a678ba1e5a99404691c2d3628ec995b037911986218e2c82e37b07d6b7aca37489250077f1f55906b105854da8c7a53cc5a1c39f9b1c922437ae6d24cc  linux-samsung-a70q-699d9d7da5b74952f7feb8b699199f12302db6e2.tar.gz
-b357627bb7e7d152d2dc84a5796b9b57d141738f35a5ddbcd4ba774d9063081bc0f98f5591e5460c9304eb2197e4ee5022554f1b237a6b749cabce9afc3daf8e  config-samsung-a70q.aarch64
+8f126d99862c64c3162135185ff74eeb4ad4a0c8f89e838d4f4f3f31f708b4d00957898b41a2efee859af9c28d13e6fff552a8f7847d201c23d1db1d2891a132  config-samsung-a70q.aarch64
 c5bcb103a51a3cbd35dd614aa52526232591b32bbf2759ab44029a10f64b44530526faebbcdc97d6e56d3be1d8e12e118cbd2cc12480c9dc9a47cba9cf690da9  0001-usb-gadget-u_ether-resubmit-rx-request.patch
+19bd3572b675b8cae7af962fae1e097f2213193b8c048b5aad6e8d71dd2ee1f3be6a1f8d18bb4c1c05421c9a362e7b52325c0a8a6f7f87894ddfa786b2b54ddd  0002-loop-rescan-partitions-after-LOOP_SET_BLOCK_SIZE.patch
+88d7962f2866ab452ac8ca807b7c3b46458274ce2fe1c2db23b8625223e3cfe4ccb789fa349f74aefbd2154ce081a260e1047a3be19e30c1860889ecbab9be2c  0003-loop-drop-page-cache-before-LOOP_SET_BLOCK_SIZE.patch
+d9474bcd5d792e678d1a8a9320dcec663663c86db0859c41db994045dfb7c374cdfa1eda41fd362e034e421b9e1ae46f15e1d8fbc357590ef8a57a61c5ed4e32  0004-loop-apply-LOOP_CONFIGURE-block_size-to-the-request-queue.patch
 "

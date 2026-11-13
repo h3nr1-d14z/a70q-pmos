@@ -200,3 +200,8 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - Initramfs pmOS + `pmos.debug-shell` boot OK: shell qua USB ACM serial; kernel `4.14.190-perf #3-postmarketOS`
 - Sửa 4 lỗi build (C26–C28) + BUG kernel u_ether RX (C29) → USB ECM: DHCP 172.16.42.2, ping, telnet, 8MB sha256 khớp
 - Không có microSD (mmc0: card not present); UFS sda 128GB — chưa đụng userdata/rootfs
+
+## 2026-11-14 sáng — ⭐ pmOS BOOT VÀO ROOTFS + SSH OK
+- Userdata xoá (theo lựa chọn user), rootfs OpenRC sparse-flash vào USERDATA; `/` = loop0p2 ext4 (4K), resize 108GB
+- Chuỗi lỗi: systemd≥5.4 (C31) → loop node Docker (C32) → heimdall cần sparse (C33) → thiếu loop.max_part (C34) → 2 bug kernel loop/4K (C35, patches 0002–0004)
+- `ssh user@172.16.42.1` — Nura (pmOS) edge, kernel 4.14.190-perf #9-postmarketOS, RAM 5.5GB
