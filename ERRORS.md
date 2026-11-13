@@ -259,3 +259,34 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 - **Triệu chứng**: watcher auto-flash + manual flash chạy cùng lúc → manual flash Thành công, watcher rớt `bulk transfer failed: no connection to an IOService` (hoặc ngược lại)
 - **Root cause**: hai process claim cùng USB interface của DM — một cái giữ, cái kia bị đá khỏi IOService
 - **Quy tắc**: kill mọi watcher/heimdall khác TRƯỚC khi chạy flash; một flash = một process duy nhất
+
+## F. Chuyển hướng pmOS (2026-11-13) — lỗi mới + đính chính ghi chú cũ
+
+> Mọi mục dưới đây đã được **tự kiểm chứng** (đọc binary/header/dmesg/ioreg trực tiếp), không chép từ ghi chú cũ.
+
+### C23. ⭐ Cổng USB front của Mac mini M4 giữ "node ma" Download Mode → máy chỉ báo sạc, không adb
+- **Triệu chứng**: sau một phiên heimdall, LOS boot xong cắm cáp chỉ báo "đang sạc", không có USB debugging prompt, `adb devices` rỗng; Wireless debugging cũng tự tắt (lỗi riêng, xem dưới)
+- **Bằng chứng**:
+  - Mac: `ioreg -p IOUSB` vẫn thấy `SM6150` 04e8:**685D** (CDC-ACM = Download Mode) dưới `AppleT8132USBXHCI@02000000 → USB2 Hub` với **cùng `sessionID`** cả sau khi rút cáp vật lý → host không xử lý attach mới
+  - Điện thoại (dmesg lúc cắm lại): CCIC `Turn On Device(UFP)`, APSD=CDP, `dwc3_otg_start_peripheral: turn on gadget`, `peripheral state` → **phía máy hoàn toàn đúng**, host không enumerate
+  - Phía Android: adbd running, gadget g1 `ffs.adb` idProduct 0x6860, UDC bound — không có lỗi
+- **Fix**: cắm vào **cổng USB-C phía SAU** (XHCI riêng, không qua hub) → `SAMSUNG_Android` enumerate, USB adb lên ngay. Node ma tự biến mất sau ~1h (reboot Mac cũng xoá được)
+- **Bài học**: khi USB "không làm gì", kiểm `ioreg -p IOUSB` tìm node SM6150 cũ TRƯỚC khi nghi kernel/userspace. A/B test (k0 vs kernel LOS gốc) đều "không adb" là dấu hiệu lỗi ngoài thiết bị
+
+### C24. ⭐ heimdall: lần flash ĐẦU TIÊN sau khi vào DM luôn chết ở handshake — retry ngay là được
+- **Triệu chứng**: `libusb ... pipe is stalled` → `no connection to an IOService` → `ERROR: Failed to send handshake!` — **chưa ghi byte nào**, máy vẫn ở DM (ioreg còn 685D)
+- **Tần suất**: 3/3 lần (2 lần cổng front, 1 lần cổng sau) → KHÔNG phải do hub; heimdall v2.2.2 apple-silicon trên macOS 26
+- **Fix**: chạy lại đúng lệnh flash một lần ngay lập tức → thành công 3/3. Đã tự động hoá trong `pmos/tools/flash.sh`: kill adb server → chờ DM bằng **ioreg (không `heimdall detect`)** → flash → nếu stall *trước khi bắt đầu Uploading* thì retry đúng 1 lần; từ chối node DM nằm trên hub front (nghi node ma C23)
+- Nguyên nhân gốc chưa xác định (nghi libusb claim interface lần đầu trên macOS)
+
+### C25. Wireless debugging tự tắt + không có hộp thoại "Allow USB debugging"
+- `/data/misc/adb/adb_keys` **rỗng** (mtime 2026-11-13 19:51) và SystemUI không hiện prompt → mọi kết nối adb đều `unauthorized`
+- **Fix (root, qua SSH Termux)**: append `~/.android/adbkey.pub` của Mac vào `/data/misc/adb/adb_keys`, `chown system:shell`, `chmod 640`, `restorecon` → `adb connect <ip>:5555` OK (adbd có `persist.adb.tcp.port=5555`)
+
+### Đính chính ghi chú cũ (đã kiểm chứng sai)
+- **`backups/full/boot.img` = `magisk_patched.img`** (cùng SHA1), KHÔNG phải boot LOS gốc. Boot LOS gốc: `a70-root/artifacts/boot/lineage-boot-orig.img`. Magisk không vá kernel (kernel 2 bản giống từng byte)
+- **Boot LOS không có footer `SEANDROIDENFORCE`** — sau payload là **AVB hash footer** (`AVB0`…`AVBf`). Boot tự đóng gói không có footer vẫn boot được khi flash kèm vbmeta flags=2. vbmeta trong zip LOS 22.2 có flags=3 (LOS vốn chạy với verification tắt)
+- **C20 sửa phần giải thích**: ramdisk LOS có thư mục `dev/` **rỗng** (không có node mknod sẵn) — Android first-stage init tự mount tmpfs lên /dev. Kết luận "halium/pmOS initramfs cần DEVTMPFS" vẫn đúng; lý do "LOS ramdisk chứa sẵn /dev nodes" là sai
+- **Blob LOS CÓ IKCONFIG** (`/proc/config.gz` + `IKCFG_ST` trong Image); config nhúng = `a70q_defconfig` của a70q-lineage `lineage-22.2` @ `699d9d7da` (trừ `CONFIG_SEC_R1Q_PROJECT` do commit r1q sau đó thêm)
+- **Toolchain không phải nguyên nhân chết sớm**: blob LOS boot được build bằng clang **19** (r536225); kernel tự build bằng Ubuntu clang 19.1.1 từ cây 4.14.190 boot OK (k0, k1). Các kernel chết sớm đều từ cây **4.14.261** (rtd1250 lineage-18.1) → nghi phạm là cây kernel, không phải clang-13/gcc
+- `WINDOWS.md`: `pip install mkbootimg` mâu thuẫn A2; dùng `pmos/tools/bootimg.py` (không phụ thuộc gì, đã kiểm chứng tái tạo từng byte header+payload boot LOS)

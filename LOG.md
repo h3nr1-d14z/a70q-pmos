@@ -188,3 +188,9 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 2. **adb fork-server ngâm**: giữ/quét USB, mở+đóng Samsung DM device khi có lệnh adb → heimdall bị đá khỏi IOService giữa transfer
 3. **Pin cạn sau nhiều giờ loop/flash**: DM transfer cần dòng lớn → sụt áp → rớt ngay handshake/bulk ("pipe is stalled" / "no connection to an IOService")
 4. **Quy tắc vàng cho lần flash tới**: (a) kill adb server TRƯỚC; (b) KHÔNG detect/poll gì cả; (c) pin ≥50% hoặc sạc wall trước; (d) user vào DM → chạy 1 lệnh flash duy nhất trong ~10 giây
+
+## 2026-11-13 tối — Chuyển hướng pmOS: kernel tự build BOOT ĐƯỢC (k0, k1)
+- Bỏ cây 4.14.261 (lineage-18.1); dùng a70q-lineage `lineage-22.2` @ 699d9d7da = source của blob LOS (config + DTB khớp 100%)
+- k0 (tái tạo) và k1 (+DEVTMPFS) đều boot LOS; k1 xác nhận qua adb: `a70q@pmos`, Ubuntu clang 19.1.1, devtmpfs có
+- Mất ~1h vì USB adb "không lên" → hoá ra node ma Download Mode kẹt ở hub cổng front Mac mini (C23), không phải kernel; heimdall stall lần đầu (C24) → `pmos/tools/flash.sh`
+- Chi tiết + đính chính ghi chú cũ: ERRORS.md mục F; quy trình: pmos/README.md
