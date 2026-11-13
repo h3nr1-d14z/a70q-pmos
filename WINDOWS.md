@@ -12,7 +12,19 @@ cd /Volumes/External/Projects/HieuLD/ubuntu-touch-a70  # hoặc đường dẫn 
 ```
 (trên Windows: dùng **heimdall-suite Windows binary** + Samsung USB driver, hoặc **Odin** với 3 file img — flashing qua DM)
 
-## Bước 1 — Đọc bằng chứng còn sót trong misc
+## Flash trên Windows
+
+**Odin (khuyến nghị chính trên Windows)**:
+- Tải Odin (samsungodin.com) + **Samsung USB Driver** (developer.samsung.com/mobile/android-usb-driver)
+- Máy vào Download Mode (force tắt → giữ 2 phím Volume → cắm cáp)
+- Custom boot.img: đóng gói thành tar (`tar -cf boot.tar boot.img`) → Odin **PDA** slot → Start
+- Full stock ROM: BL/AP/CP/CSC tars từ SamFw zip → 4 slot → Start (chỉ khi muốn về stock factory)
+
+**heimdall Windows binary (phương án 2)**:
+- heimdall-suite Windows từ GitLab Henrik Grimler + Samsung USB driver
+- Cùng lệnh như macOS: `heimdall flash --BOOT halium-boot.img --VBMETA vbmeta.img --DTBO dtbo.img`
+
+**Lưu ý Windows**: KHÔNG chạy `adb devices`/adb server khi Odin/heimdall đang flash (xung đột USB claim — C21/C22); tắt phần mềm diệt virus có chặn USB nếu flash fail vô lý
 LOS boot xong có adb:
 ```bash
 adb shell su -c 'dd if=/dev/block/by-name/misc of=/data/local/tmp/ma.dump bs=4096 count=240'
