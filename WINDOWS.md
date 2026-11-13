@@ -20,16 +20,16 @@ adb pull /data/local/tmp/ma.dump
 # strings ma.dump | grep init-stage — nếu có marker post-mount + dmesg → kernel gcc+devtmpfs đã chạy, đọc tiếp panic
 ```
 
-## Bước 2 — Build kernel trên WSL2 (Ubuntu 20.04)
-Kernel tree + patches đã có trong repo:
+## Bước 2 — Build kernel trên Windows
+
+**KHÔNG cần cài WSL2 riêng** — Docker Desktop đã dùng WSL2 backend:
 1. `git clone` repo này (private — cần GitHub credentials của bạn)
-2. WSL2 Ubuntu 20.04: `sudo apt install gcc-aarch64-linux-gnu bison flex libssl-dev bc python3`
-3. Giải nén kernel tree: repo **KHÔNG chứa tree** — tree nằm trong Docker volume Mac. 2 lựa chọn:
-   a. Truyền `patches/0006-kernel-full-diff-gcc9-ramoops-bt.patch` → clone `https://github.com/rtd1250/android_kernel_samsung_sm6150` branch `lineage-18.1` → `git apply` patch → dùng
-   b. HOẶC dùng `prebuilt/Image.gz-dtb-gcc94-ramoops-dtb.bin` (kernel blob đã build sẵn, 16.6MB) — mkbootimg package lại với cmdline mong muốn, không cần rebuild
-4. Build WSL2: `make O=out ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- a70q_defconfig && make O=... -j$(nproc) Image.gz-dtb`
-5. Package: mkbootimg (python3, pip install mkbootimg) — cmdline khuyến nghị: `console=tty0 androidboot.boot_devices=soc/1d84000.ufshc ramoops.mem_address=0xa1300000 ramoops.mem_size=0x100000 ramoops.console_size=0x40000 ramoops.record_size=0x40000 ramoops.dump_oops=1 panic=0`
-6. Flash qua DM (heimdall Windows) hoặc Odin (AP slot riêng lẻ không được — Odin cần full tar; dùng heimdall Windows binary ✓)
+2. Docker Desktop: `docker run -it ubuntu:20.04 bash` → `apt update && apt install gcc-aarch64-linux-gnu bison flex libssl-dev bc python3 git` → clone kernel rtd1250 + apply patch → build
+3. **HOẶC không build gì cả**: kernel blob đã build sẵn `prebuilt/Image.gz-dtb-gcc94-ramoops-dtb.bin` (16.6MB) — chỉ cần package lại nếu đổi cmdline:
+   - `pip install mkbootimg` (Windows python3)
+   - `mkbootimg --kernel prebuilt/Image.gz-dtb-gcc94-ramoops-dtb.bin --ramdisk patches/initramfs/initramfs-repaired-final.gz --base 0x00000000 --pagesize 4096 --kernel_offset 0x00008000 --ramdisk_offset 0x02000000 --tags_offset 0x01e00000 --second_offset 0x00f00000 --header_version 1 --board SRPRL06C005 --cmdline "console=tty0 androidboot.boot_devices=soc/1d84000.ufshc ramoops.mem_address=0xa1300000 ramoops.mem_size=0x100000 ramoops.console_size=0x40000 ramoops.record_size=0x40000 ramoops.dump_oops=1 panic=0" --os_version 15.0.0 --os_patch_level 2026-06 -o halium-boot.img`
+   - (cmdline khuyến nghị: console=tty0 + ramoops + panic=0 — console=tty0 để fbcon hiện log trên AMOLED)
+4. Native Windows kbuild KHÔNG hoạt động (kbuild cần POSIX) — dùng WSL2 hoặc Docker như trên
 
 ## Lưu ý quan trọng (đã học — chi tiết ERRORS.md)
 - `adb kill-server` TRƯỚC heimdall flash; KHÔNG chạy adb/detect trong lúc flash (C21/C22)
