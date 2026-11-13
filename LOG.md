@@ -182,3 +182,9 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - Flash kernel **gcc-9.4 + fbcon** qua DM sạch (sau Mac restart, adb server chết, không watcher): bootloop + **KHÔNG có gì trên màn hình** → kernel gcc cũng chết trước fbcon (~1-2s) → **cả clang-13 lẫn gcc-9.4 đều chết siêu sớm** → toolchain-independent → nghi vấn chính: kernel tree 4.14.261 (lineage-18.1 + SM6150 vendor) có early-boot issue với DTB/tree-state hiện tại, hoặc cần era-correct toolchain (clang r3441b/9.0 — era LOS 18.1 mà rtd1250 dùng)
 - LOS reader (LOS kernel gốc) + cmdline ramoops của ta: BOOT OK + ramoops attach 0.16s ✓ → cmdline vô hại với kernel proven
 - C20 DEVTMPFS fix = điều kiện cần (initramfs chạy) nhưng CHƯA chắc đủ — kernel chết trước cả khi initramfs kịp chạy ở các attempt mới nhất (pstore rỗng sau warm read, fbcon silent)
+
+### ⭐ Bài học LỚN NHẤT của phiên (cho mọi phiên sau): CHUỖI FLASH/DM KHÔNG ỔN ĐỊNH KHI PIN YẾU + ADB SERVER SỐNG + POLL DETECT
+1. **heimdall detect poll = tự đá máy khỏi DM**: mỗi detect mở+đóng USB interface → sboot xử lý close = máy THOÁT DM + reboot → bootloop → user vào DM lại → poll kill tiếp → vòng lặp vô tận ("dm rồi rồi mất")
+2. **adb fork-server ngâm**: giữ/quét USB, mở+đóng Samsung DM device khi có lệnh adb → heimdall bị đá khỏi IOService giữa transfer
+3. **Pin cạn sau nhiều giờ loop/flash**: DM transfer cần dòng lớn → sụt áp → rớt ngay handshake/bulk ("pipe is stalled" / "no connection to an IOService")
+4. **Quy tắc vàng cho lần flash tới**: (a) kill adb server TRƯỚC; (b) KHÔNG detect/poll gì cả; (c) pin ≥50% hoặc sạc wall trước; (d) user vào DM → chạy 1 lệnh flash duy nhất trong ~10 giây
