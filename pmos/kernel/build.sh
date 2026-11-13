@@ -7,15 +7,17 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 VARIANT="${1:?variant}"
 FRAG="${2:-}"
+NOPATCH="${NOPATCH:-0}"   # NOPATCH=1: build pristine source (k0/k1 were built without patches)
 COMMIT="${KCOMMIT:-699d9d7da}"   # == source of LOS 22.2 blob (HEAD f6d944f0 r1q adds CONFIG_SEC_R1Q_PROJECT absent in blob)
 OUT="$HERE/out/$VARIANT"; mkdir -p "$OUT"
 [ -n "$FRAG" ] && cp "$FRAG" "$OUT/fragment.config" || : > "$OUT/fragment.config"
 
-docker run --rm -v a70q-ksrc:/src -v "$OUT":/out a70q-kbuild bash -c "
+docker run --rm -e NOPATCH="$NOPATCH" -v a70q-ksrc:/src -v "$OUT":/out -v "$HERE/patches":/patches:ro a70q-kbuild bash -c "
 set -euo pipefail
 cd /src/sm6150
-git checkout -q $COMMIT
+git reset -q --hard && git checkout -q $COMMIT
 git log -1 --format='commit %h %s' | tee /out/commit.txt
+[ \"\${NOPATCH:-0}\" = 1 ] || for p in /patches/*.patch; do [ -e \"\$p\" ] && git apply \"\$p\" && echo \"applied \$(basename \$p)\" | tee -a /out/commit.txt; done
 O=/src/build-$VARIANT
 MK=(make -j\$(nproc) O=\$O ARCH=arm64 \
     CC=clang HOSTCC=clang HOSTCXX=clang++ LD=ld.lld AR=llvm-ar NM=llvm-nm OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip \
@@ -41,6 +43,7 @@ set -e
 grep -E '\\berror\\b|Error [0-9]+' /out/build.log | head -20 || true
 [ \$rc -eq 0 ] || { echo BUILD_FAILED rc=\$rc; exit \$rc; }
 cp \$O/arch/arm64/boot/Image.gz-dtb \$O/arch/arm64/boot/Image /out/
+git reset -q --hard
 echo BUILD_OK
 "
 ls -la "$OUT"

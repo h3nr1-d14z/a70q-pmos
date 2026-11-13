@@ -1,0 +1,29 @@
+# Reference: <https://postmarketos.org/devicepkg>
+maintainer="a70q pmOS port <noreply@example.org>"
+pkgname=device-samsung-a70q
+pkgdesc="Samsung Galaxy A70"
+pkgver=1
+pkgrel=1
+url="https://postmarketos.org"
+license="MIT"
+arch="aarch64"
+depends="
+	android-tools-mkbootimg
+	linux-samsung-a70q
+	postmarketos-base
+"
+makedepends="devicepkg-dev"
+source="deviceinfo"
+options="!archcheck !check"
+
+build() {
+	devicepkg_build $startdir $pkgname
+}
+
+package() {
+	devicepkg_package $startdir $pkgname
+}
+
+sha512sums="
+057077083418fd7141e24675ba3ba370c22837e563228e230e105260a03c6352146f3ba557a341fde2fb4c03c765295737717c251edc9661f4965b67972fd1f2  deviceinfo
+"

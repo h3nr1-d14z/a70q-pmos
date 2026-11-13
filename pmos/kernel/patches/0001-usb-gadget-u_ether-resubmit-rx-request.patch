@@ -1,0 +1,32 @@
+From 0d577c2929a8be20d97f19a3c4130eab6edfbbc4 Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Fri, 13 Nov 2026 17:12:36 +0000
+Subject: [PATCH] usb: gadget: u_ether: resubmit rx request after successful
+ completion
+
+The Samsung-modified rx_complete() processes frames inline in the
+"case 0" path but never sets queue=1, so the completed request is only
+parked on rx_reqs: it is not resubmitted and rx_work (rx_fill) is never
+scheduled. RX stops after the initial qlen requests (10 at high speed),
+observed on a70q with both NCM and ECM functions (rx_packets stuck at 10
+per ifup). Android is unaffected (adb/MTP use FunctionFS, tethering IPA).
+---
+ drivers/usb/gadget/function/u_ether.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/usb/gadget/function/u_ether.c b/drivers/usb/gadget/function/u_ether.c
+index b90d89251..0d9cb3e7c 100755
+--- a/drivers/usb/gadget/function/u_ether.c
++++ b/drivers/usb/gadget/function/u_ether.c
+@@ -407,6 +407,8 @@ static void rx_complete(struct usb_ep *ep, struct usb_request *req)
+ next_frame:
+ 			skb2 = skb_dequeue(&dev->rx_frames);
+ 		}
++		/* resubmit this request; without it RX stops after qlen packets */
++		queue = 1;
+ 		break;
+ 
+ 	/* software-driven interface shutdown */
+-- 
+2.43.0
+

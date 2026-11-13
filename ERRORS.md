@@ -278,6 +278,7 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 - **Tần suất**: 3/3 lần (2 lần cổng front, 1 lần cổng sau) → KHÔNG phải do hub; heimdall v2.2.2 apple-silicon trên macOS 26
 - **Fix**: chạy lại đúng lệnh flash một lần ngay lập tức → thành công 3/3. Đã tự động hoá trong `pmos/tools/flash.sh`: kill adb server → chờ DM bằng **ioreg (không `heimdall detect`)** → flash → nếu stall *trước khi bắt đầu Uploading* thì retry đúng 1 lần; từ chối node DM nằm trên hub front (nghi node ma C23)
 - Nguyên nhân gốc chưa xác định (nghi libusb claim interface lần đầu trên macOS)
+- **Cập nhật**: từ khi dùng `flash.sh` (chờ DM qua ioreg vài giây rồi mới flash) đã 4/4 lần flash thành công ngay lần đầu → nghi stall do chạy heimdall quá sớm khi DM vừa enumerate
 
 ### C25. Wireless debugging tự tắt + không có hộp thoại "Allow USB debugging"
 - `/data/misc/adb/adb_keys` **rỗng** (mtime 2026-11-13 19:51) và SystemUI không hiện prompt → mọi kết nối adb đều `unauthorized`
@@ -290,3 +291,30 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 - **Blob LOS CÓ IKCONFIG** (`/proc/config.gz` + `IKCFG_ST` trong Image); config nhúng = `a70q_defconfig` của a70q-lineage `lineage-22.2` @ `699d9d7da` (trừ `CONFIG_SEC_R1Q_PROJECT` do commit r1q sau đó thêm)
 - **Toolchain không phải nguyên nhân chết sớm**: blob LOS boot được build bằng clang **19** (r536225); kernel tự build bằng Ubuntu clang 19.1.1 từ cây 4.14.190 boot OK (k0, k1). Các kernel chết sớm đều từ cây **4.14.261** (rtd1250 lineage-18.1) → nghi phạm là cây kernel, không phải clang-13/gcc
 - `WINDOWS.md`: `pip install mkbootimg` mâu thuẫn A2; dùng `pmos/tools/bootimg.py` (không phụ thuộc gì, đã kiểm chứng tái tạo từng byte header+payload boot LOS)
+
+### C26. pmbootstrap build kernel: musl không có `__attribute_format_arg__`
+- `scripts/kconfig/lkc.h:15: expected declaration specifiers ... before numeric constant` khi `oldconfig` trong chroot Alpine (musl). Macro glibc-only trong nhánh `KBUILD_NO_NLS`
+- Fix (APKBUILD prepare): `sed -i '/^__attribute_format_arg__(1)$/d' scripts/kconfig/lkc.h`
+
+### C27. ⭐ GNU make 4.4: "prerequisites cannot be defined in recipes" (Makefile.lib:332) — và cái bẫy khi sửa
+- Alpine edge make 4.4.1 (Ubuntu 24.04 = 4.3 build OK). make 4.4 truyền biến exported vào `$(shell)`; các dòng `export` TRẦN trong 27 Kbuild của `techpack/audio` (đang ACTIVE) export mọi biến → parse `size_append` gãy
+- ❌ Fix sai (đã thử): xoá các dòng `export` → build OK nhưng **mất toàn bộ driver audio** (thiếu 212 chuỗi compatible, Image nhỏ ~2.5MB) — chỉ phát hiện nhờ so compatible-strings với k1
+- ✅ Fix đúng: thay bằng `export $(filter CONFIG_%,$(.VARIABLES))` → Image đúng 45,092,888 B, compatible 2757/2757 khớp k1, DTB giống từng byte LOS
+- **Bài học**: sau mọi "fix build", so sánh artifact (compatible strings / size / DTB) với bản đã biết tốt — build xanh ≠ kernel đúng
+
+### C28. busybox ash (abuild) không parse `$(` trong comment bên trong function
+- `APKBUILD: line 83: syntax error: unterminated quoted string` dù `bash -n` OK. Thủ phạm: comment chứa `$(shell)` trong `prepare()`. Kiểm APKBUILD bằng `ash -n`, không phải bash
+
+### C29. ⭐⭐ BUG KERNEL: `u_ether` RX chết sau đúng 10 gói (NCM lẫn ECM) → không có USB networking
+- **Triệu chứng**: Mac thấy interface, link active, nhưng DHCP/ping fail; NCM: Mac `Oerrs` tăng; ECM: Mac gửi OK nhưng máy không nhận. Phía máy `rx_packets` dừng ở **10** mỗi lần ifup (down/up → +10 rồi dừng)
+- **Root cause** (`drivers/usb/gadget/function/u_ether.c` `rx_complete()`, bản Samsung): nhánh `case 0` xử lý frame inline nhưng **không set `queue = 1`** → request chỉ bị trả về `rx_reqs`, không resubmit, `rx_work`/`rx_fill` không chạy → hết qlen (10 ở high-speed) là RX chết. Android không bị vì adb/MTP dùng FunctionFS, tethering dùng IPA/GSI
+- **Fix**: `pmos/kernel/patches/0001-usb-gadget-u_ether-resubmit-rx-request.patch` (thêm `queue = 1;`) → kiểm chứng: 8 MB Mac→máy sha256 khớp, 5894 gói, 0 lỗi, ~46 MB/s
+- Kèm theo: kernel bật thêm `CONFIG_USB_CONFIGFS_ECM=y` (k2); deviceinfo `ecm.usb0`. NCM có thể cũng chạy sau fix (chưa thử lại)
+
+### C30. pmOS initramfs `pmos.debug-shell`: thêm ACM → rebind UDC → netdev `ecm0` bị tạo lại, mất IP, telnetd/unudhcpd bind hụt
+- dmesg `ecm0 all refcnt has gone` lúc ~19s; `ecm0` DOWN không IP; telnetd không listen
+- Workaround qua serial ACM (`/dev/cu.usbmodempostmarketOS3`): `ifconfig ecm0 172.16.42.1 netmask 255.255.255.0 up; kill $(pidof unudhcpd); unudhcpd -i ecm0 -s 172.16.42.1 -c 172.16.42.2 &; telnetd -b 172.16.42.1:23 -l /sbin/pmos_getty`
+- Chưa sửa gốc (chỉ ảnh hưởng debug-shell)
+
+### Công cụ mới
+- `pmos/tools/src/reboot-mode.c` (static musl): `reboot-mode download` từ shell pmOS → vào Download Mode không cần bấm phím (đã kiểm chứng)

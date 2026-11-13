@@ -1,0 +1,93 @@
+# Reference: <https://postmarketos.org/vendorkernel>
+# Kernel config: a70q_defconfig (== IKCONFIG of LineageOS 22.2 boot.img) + DEVTMPFS
+# Source == kernel of LineageOS 22.2 unofficial (rtd1250) for a70q, verified:
+#   same .config, byte-identical DTB, same Image size.
+maintainer="a70q pmOS port <noreply@example.org>"
+pkgname=linux-samsung-a70q
+pkgver=4.14.190
+pkgrel=2
+pkgdesc="Samsung Galaxy A70 kernel fork"
+arch="aarch64"
+_carch="arm64"
+_flavor="samsung-a70q"
+url="https://github.com/a70q-lineage/android_kernel_samsung_sm6150"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps pmb:cross-native"
+makedepends="
+	bash
+	bc
+	bison
+	clang
+	devicepkg-dev
+	findutils
+	flex
+	linux-headers
+	lld
+	llvm
+	openssl-dev
+	perl
+	xz
+"
+
+export CC="clang"
+export HOSTCC="clang"
+
+_repository="android_kernel_samsung_sm6150"
+_commit="699d9d7da5b74952f7feb8b699199f12302db6e2"
+_config="config-$_flavor.$arch"
+source="
+	$pkgname-$_commit.tar.gz::https://github.com/a70q-lineage/$_repository/archive/$_commit.tar.gz
+	$_config
+	0001-usb-gadget-u_ether-resubmit-rx-request.patch
+"
+builddir="$srcdir/$_repository-$_commit"
+_outdir="out"
+
+_make() {
+	make O="$_outdir" ARCH="$_carch" \
+		CC=clang HOSTCC=clang HOSTCXX=clang++ LD=ld.lld AR=llvm-ar NM=llvm-nm \
+		OBJCOPY=llvm-objcopy OBJDUMP=llvm-objdump STRIP=llvm-strip \
+		DTC="$srcdir/dtc-host/dtc -H epapr" \
+		KBUILD_BUILD_VERSION="$((pkgrel + 1 ))-postmarketOS" "$@"
+}
+
+prepare() {
+	default_prepare
+	# musl has no glibc-only __attribute_format_arg__ (scripts/kconfig/lkc.h, KBUILD_NO_NLS path)
+	sed -i '/^__attribute_format_arg__(1)$/d' scripts/kconfig/lkc.h
+	# GNU make >= 4.4 passes exported vars to shell function calls. The bare
+	# 'export' lines in techpack/audio Kbuild files (active: they feed CONFIG_*
+	# from *auto.conf to sub-makes) export EVERY variable and break parsing of
+	# scripts/Makefile.lib ("prerequisites cannot be defined in recipes").
+	# Deleting them drops all audio drivers (verified), so export only CONFIG_*.
+	grep -rlE '^\s*export\s*$' techpack | xargs -r sed -i -E \
+		's/^(\s*)export\s*$/\1export $(filter CONFIG_%,$(.VARIABLES))/'
+	REPLACE_GCCH=0 . downstreamkernel_prepare
+
+	# The tree hard-codes DTC = tools/dtc (x86-64 prebuilt, DTC 1.4.4-Android) and
+	# scripts/dtc/Makefile has no 'always' target -> build the in-tree dtc 1.4.4 by hand.
+	local d="$srcdir/dtc-host"
+	mkdir -p "$d"
+	cp scripts/dtc/dtc-lexer.lex.c_shipped "$d"/dtc-lexer.lex.c
+	cp scripts/dtc/dtc-parser.tab.c_shipped "$d"/dtc-parser.tab.c
+	cp scripts/dtc/dtc-parser.tab.h_shipped "$d"/dtc-parser.tab.h
+	(cd scripts/dtc && clang -O2 -w -I. -Ilibfdt -I"$d" -o "$d"/dtc \
+		dtc.c flattree.c fstree.c data.c livetree.c treesource.c srcpos.c checks.c util.c \
+		"$d"/dtc-lexer.lex.c "$d"/dtc-parser.tab.c)
+}
+
+build() {
+	unset LDFLAGS
+	_make
+}
+
+package() {
+	downstreamkernel_package "$builddir" "$pkgdir" "$_carch" \
+		"$_flavor" "$_outdir"
+}
+
+sha512sums="
+04c848a678ba1e5a99404691c2d3628ec995b037911986218e2c82e37b07d6b7aca37489250077f1f55906b105854da8c7a53cc5a1c39f9b1c922437ae6d24cc  linux-samsung-a70q-699d9d7da5b74952f7feb8b699199f12302db6e2.tar.gz
+b357627bb7e7d152d2dc84a5796b9b57d141738f35a5ddbcd4ba774d9063081bc0f98f5591e5460c9304eb2197e4ee5022554f1b237a6b749cabce9afc3daf8e  config-samsung-a70q.aarch64
+c5bcb103a51a3cbd35dd614aa52526232591b32bbf2759ab44029a10f64b44530526faebbcdc97d6e56d3be1d8e12e118cbd2cc12480c9dc9a47cba9cf690da9  0001-usb-gadget-u_ether-resubmit-rx-request.patch
+"

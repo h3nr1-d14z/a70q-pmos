@@ -30,6 +30,21 @@ FROM_ADB=1 pmos/tools/flash.sh --BOOT pmos/out/k1-boot.img     # cắm cổng US
 Trên máy: vbmeta = `out/vbmeta-disabled.img` (flags=2), dtbo = `backups/full/dtbo.img` (== dtbo trong zip LOS).
 Rollback: `pmos/tools/flash.sh --BOOT backups/full/boot.img` (= magisk_patched, LOS + root).
 
+## pmOS (pmbootstrap) — initramfs chạy, USB networking OK
+- `pmb/run.sh <args>`: pmbootstrap 3.12.1 trong container arm64 (`pmb/Dockerfile`, volume `a70q-pmbwork`); đồng bộ `pmaports/device/downstream/*` vào pmaports clone mỗi lần chạy
+- `linux-samsung-a70q`: build từ source 699d9d7da + config k2 (k1 + ECM) + patch u_ether (ERRORS C29). Đã kiểm chứng tương đương k1: compatible strings 2757/2757, DTB == LOS
+- `device-samsung-a70q`: deviceinfo header v1 + offset LOS, `ecm.usb0`
+- boot.img của pmbootstrap có os_version 0 → đóng gói lại bằng `tools/bootimg.py pack --like <boot LOS>` (anti-rollback 15.0.0/2026-06)
+
+```sh
+pmos/pmb/run.sh build linux-samsung-a70q device-samsung-a70q
+pmos/pmb/run.sh install --no-image --password 147147      # rootfs chroot + initramfs, không đụng máy
+# lấy chroot_rootfs_samsung-a70q/boot/{vmlinuz,initramfs} → bootimg.py pack ... --cmdline "<deviceinfo cmdline> pmos.debug-shell"
+```
+Debug shell: serial `/dev/cu.usbmodempostmarketOS3` (115200), mạng ECM 172.16.42.1 (workaround C30), telnet :23.
+Về Download Mode từ shell: upload `tools/src/reboot-mode.c` (static) → `reboot-mode download`.
+
 ## Tiếp theo
-1. Initramfs pmOS (pmbootstrap, device `samsung-a70q` downstream) + kernel k1 (+ fragment cho pmOS: NCM đã có sẵn)
-2. USB networking → SSH vào pmOS lần đầu
+1. ~~Initramfs pmOS + USB networking~~ ✅
+2. Rootfs: chọn nơi đặt (microSD hay partition UFS) → boot pmOS thật, SSH
+3. Kernel cho rootfs: SYSVIPC, FHANDLE, PID_NS/USER_NS, VT (kiểm `pmbootstrap kconfig check`)

@@ -194,3 +194,9 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - k0 (tái tạo) và k1 (+DEVTMPFS) đều boot LOS; k1 xác nhận qua adb: `a70q@pmos`, Ubuntu clang 19.1.1, devtmpfs có
 - Mất ~1h vì USB adb "không lên" → hoá ra node ma Download Mode kẹt ở hub cổng front Mac mini (C23), không phải kernel; heimdall stall lần đầu (C24) → `pmos/tools/flash.sh`
 - Chi tiết + đính chính ghi chú cũ: ERRORS.md mục F; quy trình: pmos/README.md
+
+## 2026-11-14 rạng sáng — pmOS initramfs CHẠY trên A70 + USB networking OK
+- pmbootstrap 3.12.1 trong container arm64 (`pmos/pmb/`), pmaports `device-samsung-a70q` + `linux-samsung-a70q` (downstream, build từ source 699d9d7da, Alpine clang 23)
+- Initramfs pmOS + `pmos.debug-shell` boot OK: shell qua USB ACM serial; kernel `4.14.190-perf #3-postmarketOS`
+- Sửa 4 lỗi build (C26–C28) + BUG kernel u_ether RX (C29) → USB ECM: DHCP 172.16.42.2, ping, telnet, 8MB sha256 khớp
+- Không có microSD (mmc0: card not present); UFS sda 128GB — chưa đụng userdata/rootfs

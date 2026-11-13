@@ -41,7 +41,7 @@ if [ -z "${n:-}" ]; then
   fi
   exit 1
 fi
-echo "DM device: $(echo "$n" | sed 's/^[ |+-o]*//; s/ <class.*//')"
+echo "DM device: $(echo "$n" | sed -E 's/^[ |]*\+-o //; s/ <class.*//')"
 
 for attempt in 1 2; do
   log="$(mktemp)"
