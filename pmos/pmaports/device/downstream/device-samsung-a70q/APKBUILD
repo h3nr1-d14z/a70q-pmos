@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=20
+pkgrel=22
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -36,6 +36,11 @@ source="
 	50-a70q-sway.conf
 	sxmo_soundmonitor.sh
 	sxmo_soundmonitor.service
+	sxmo_vibrate.sh
+	sxmo_flashtoggle.sh
+	61-a70q-feedback.rules
+	sxmo_brightness.sh
+	brightnessctl-shim.sh
 "
 options="!archcheck !check"
 
@@ -64,6 +69,13 @@ package() {
 	install -Dm644 "$srcdir"/HiFi.conf "$pkgdir"/usr/share/alsa/ucm2/Samsung/a70q/HiFi.conf
 	install -Dm755 "$srcdir"/wlopm-retry.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/wlopm
 	install -Dm755 "$srcdir"/sxmo_hook_postwake.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_postwake.sh
+	# vibrator + torch for Sxmo (replacements found first in Sxmo's PATH, see deviceprofile)
+	install -Dm755 "$srcdir"/sxmo_vibrate.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_vibrate
+	install -Dm755 "$srcdir"/sxmo_flashtoggle.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_flashtoggle.sh
+	install -Dm644 "$srcdir"/61-a70q-feedback.rules "$pkgdir"/usr/lib/udev/rules.d/61-a70q-feedback.rules
+	# brightness: point Sxmo's brightnessctl calls at the AMOLED panel backlight
+	install -Dm755 "$srcdir"/sxmo_brightness.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_brightness.sh
+	install -Dm755 "$srcdir"/brightnessctl-shim.sh "$pkgdir"/usr/share/a70q/brightnessctl-shim/brightnessctl
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
 	install -Dm755 "$srcdir"/sxmo_soundmonitor.sh "$pkgdir"/usr/share/a70q/sxmo/sxmo_soundmonitor.sh
 	install -Dm644 "$srcdir"/sxmo_soundmonitor.service "$pkgdir"/etc/superd/services/sxmo_soundmonitor.service
@@ -81,7 +93,7 @@ c053c1c7be5f9758d43a664dda2238dd130e50af466f107296c49bb0e6c06cca28feda3532181117
 6e096c1f7b2353f3e1d14a09e00e44f796eb3a873760dd2bebf686ddddf3c51c9a82cca624f0d31a65b7985f51f41b62e1b652f2665fc1c88fea369d56c893db  a70q-modem.initd
 de65573bc143d45ee529bfb48c18a2960d29b45c94daed55a3939c837b11f62510432bdd8186e29144709109ea98abc0a96b1e3ce409db1fb61db3a14c31a7fd  a70q-wlroots.sh
 27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
-3b155cd642163bc55380359240e0f33c54cf2227b14b3534d23ed266c797a2dad13df9401babc59181aba8336e3d2ed737a9f9fdf5ad95ca9bc10dd16e90983e  sxmo_deviceprofile.sh
+5e3d9af24d0f66c49d49e8f5597fb97fba54cd69f3a912deb22a1f8e06e2df0baed3c6e3fe3d8ae73073b67a1ba027be628d1f5b0f88b784174275a0fa1e10af  sxmo_deviceprofile.sh
 c4b4dcdff43e2e1c2d710f0452661f2e57c936358326751558b081ef56877d185705e10f34d79444e3efc7f157bc734ce2650bfeaf62af6698030dd365688de8  60-a70q-gpu.rules
 d7c2b37f83cc210275ab705fd22c903ea522ae22146f4cd81a2f71bcff1e5ed88cd40af738149e43e82d6901832f2e1f2971a9aedf9207f0928f88ab3e98dbc4  a70q.conf
 fb95796f354e772dc6e7118838f0988f79562024ec0fa62a067eaf67a88189a7eee0c6460c4e62eecc275ccacc4e1c2d1b29598e3d15716c27af3a893e98e874  HiFi.conf
@@ -91,4 +103,9 @@ dac22437ce2187aed54057c7b5f349dfcfd03572fd164fc0542962c7b6d41ebe77bf80a2ee6e31c5
 2356e98ddc19709db481dba210dca533ac3e8fdac065bc9cac89310126fd5ff71bf2c6d6a3cc29f3ae7db1f23c17b6d82904b912c34e32d3782d5d29e1564e37  50-a70q-sway.conf
 778bf73f0ac657d8fa066d7723daaee22f5469ba98ff88d92be58b2782bdf00cafeab336a11ce3cc90b36991a6044c733a088dd4463457829046c85cb16a9fa1  sxmo_soundmonitor.sh
 0db24f9be0c900174a83c57eaa862eeab1b121f329673c284272ef0f19550f13ca52c1251db552de572400ff69085963018a897269ebec20619326a38a85c479  sxmo_soundmonitor.service
+aabcbe0882b222841f531b9eb514e5012c68ad97a53b7650df37bda878e72dc260b8f8414ad641aeace2be814167860593109ae122c27f705240bb1e1f2bbf9c  sxmo_vibrate.sh
+9daa2efba625be7d174ab410cffbb9b87ca0e3f213c42fd5ef86fbd00ecc153d8e82c2f32627801d06fe553f5a890d032fa9e7196f904224fc96d3926c92d6c5  sxmo_flashtoggle.sh
+7426bc64f2971fe18d270cc3109a31e48f972cdfed60ed38f354cbf25f9f7690fd7cc7c51937a95a131fa3ea6cb8b57790b5c5447607b9f287bf7ac7ca98c6a9  61-a70q-feedback.rules
+32b6e31ca4785a002b16ba200a8149c4815c8eddbcbc8c0c856e6f80dca9b1ec76b639d26a9c1ee5b6cb9d3259c427120957e557fab2e7efe06450d66ae22b97  sxmo_brightness.sh
+fcdffc1dd56723a2c69e99ecb93a720915ce21ee3f417411d08420c911f748166513f22535ae5ee9e69d0cff8e26de129568eab20a6efa7051360a60b1dbb441  brightnessctl-shim.sh
 "

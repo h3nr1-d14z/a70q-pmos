@@ -18,7 +18,8 @@ Hướng Ubuntu Touch/Halium ban đầu đã dừng (2026-11-13); tài liệu c�
 | GPU Adreno 612 | ✅ | turnip-kgsl (Vulkan 1.3) + Zink (GL/GLES); sway render bằng Vulkan (wlroots có patch) |
 | Âm thanh | ✅ | loa, tai nghe (tự chuyển theo jack, kernel r18), mic chính; PipeWire + UCM |
 | Suspend + nút nguồn | ✅ | ngủ khi tắt màn hình, nút nguồn đánh thức; WiFi giữ kết nối (ERRORS C51–C52) |
-| Xoay màn hình, đèn pin, rung, Bluetooth, gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
+| Đèn pin, rung, độ sáng | ✅ | qua Sxmo (ERRORS C56); máy không có LED thông báo |
+| Xoay màn hình, Bluetooth, gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
 
 ## Cấu trúc
 

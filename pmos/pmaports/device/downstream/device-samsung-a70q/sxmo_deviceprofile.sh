@@ -7,6 +7,8 @@ export SXMO_SWAY_SCALE="2.5"
 # the modem is not handled by ModemManager (no QMI/rmnet over the downstream IPA path yet);
 # without this Sxmo reports "Modem crashed!" and holds a 30 s wakelock after every resume
 export SXMO_NO_MODEM=1
+# no notification LED on the A70 (the red/green/blue LED class devices are unconnected PMIC channels)
+export SXMO_DISABLE_LEDS=1
 # device hooks/wrappers (wlopm retry, ERRORS C52): Sxmo builds its PATH from
 # $XDG_DATA_DIRS/sxmo/default_hooks after sourcing this file
 case ":${XDG_DATA_DIRS:-}:" in

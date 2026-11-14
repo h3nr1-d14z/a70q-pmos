@@ -1,0 +1,4 @@
+# Let the session user (group video) drive the vibrator and the rear flash used as a torch
+# (Sxmo: sxmo_vibrate, sxmo_flashtoggle.sh replacements in /usr/share/a70q/sxmo/default_hooks)
+SUBSYSTEM=="leds", KERNEL=="vibrator", RUN+="/bin/chgrp video /sys%p/duration /sys%p/activate", RUN+="/bin/chmod 0664 /sys%p/duration /sys%p/activate"
+SUBSYSTEM=="leds", KERNEL=="led:torch_0|led:switch_0", RUN+="/bin/chgrp video /sys%p/brightness", RUN+="/bin/chmod 0664 /sys%p/brightness"

@@ -488,3 +488,11 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - Đính chính một nhận định sai giữa chừng: `WSA_CDC_DMA_RX_0 Channels = 0` là mục `'One'` (enum One/Two), không phải "0 kênh"
 - Chưa tái hiện được: một lần sau boot kernel báo `Headphone Jack = on` dù người dùng nói chưa cắm; lần reboot sau (r20, không cắm) báo đúng `off`
 
+### C56. ✅ Đèn pin, rung, độ sáng trong Sxmo; máy không có LED thông báo
+- Đèn pin: Sxmo tìm LED `white:flash`/`white:torch`; A70 dùng driver flash Qualcomm: `led:torch_0` (mA, max 500) bật bằng `led:switch_0`. `sxmo_flashtoggle.sh` thay thế (200 mA)
+- Rung: `sxmo_vibrate` của Sxmo cần thiết bị input force-feedback; A70 rung qua `/sys/class/leds/vibrator` (`duration` + `activate`) → script thay thế
+- Độ sáng: 3 thiết bị backlight; `brightnessctl` mặc định chọn `backlight` (WLED, không nối với panel AMOLED). Đèn nền thật là `panel0-backlight` (max 365; Samsung >255 là HBM). `sxmo_brightness.sh` riêng gọi lại bản gốc với shim `brightnessctl` (`-d panel0-backlight` khi không chỉ định)
+- LED thông báo: A70 không có đèn; `red/green/blue` trong sysfs là kênh PMIC không nối → `SXMO_DISABLE_LEDS=1`
+- Quyền: udev `61-a70q-feedback.rules` (nhóm `video` ghi được vibrator/torch); các script nằm ở `/usr/share/a70q/sxmo/default_hooks/` (trước `/usr/sbin` trong PATH của Sxmo)
+- Bẫy khi thử qua SSH: thiếu PATH của phiên Sxmo → script gốc báo "can't open sxmo_hook_icons.sh"; lấy môi trường từ `/proc/$(pgrep -x superd)/environ`. `command -v X` rỗng làm `grep -v ... $F` đọc stdin và treo
+

@@ -12,7 +12,7 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r20 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r22 | `pmaports/device/downstream/` |
 | `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
 | `a70q-qcom-userspace` | r0 | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
@@ -128,6 +128,10 @@ bật màn hình. Các mảnh ghép trong `device-samsung-a70q`:
   bật màn hình khi máy được nút nguồn đánh thức)
 - Cắm USB thì không suspend được (wakelock `usb_notify`, `a600000.ssusb`)
 
+**Đèn pin, rung, độ sáng** (C56): script thay thế trong `/usr/share/a70q/sxmo/default_hooks/`
+(`sxmo_flashtoggle.sh`, `sxmo_vibrate`, `sxmo_brightness.sh` + shim `brightnessctl` → `panel0-backlight`),
+udev `61-a70q-feedback.rules`. Máy không có LED thông báo (`SXMO_DISABLE_LEDS=1`).
+
 ## 7. Việc còn lại
 
 Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
@@ -136,9 +140,6 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
 | Xoay màn hình | không có gia tốc kế dưới Linux: cảm biến nằm sau sensor hub của ADSP (SSC), `/sys/bus/iio` chỉ có ADC của PMIC | cần client SSC (kiểu `hexagonrpcd`/libssc của pmOS) hoặc xoay tay bằng `swaymsg output DSI-1 transform` |
-| Đèn pin | có `/sys/class/leds/led:torch_0`, `led:torch_1` (max 500), `led:switch_0..2` | ghi brightness + switch; nối vào Sxmo (deviceprofile/hook đèn pin) |
-| Rung | có `/sys/class/leds/vibrator` (`activate`, `duration`) | nối vào Sxmo (`sxmo_vibrate`) |
-| LED thông báo | có `red/green/blue`, Sxmo báo "Unable to find suitable status led" | đặt tên/đường dẫn LED cho Sxmo |
 | Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
 | Bluetooth (WCN3990) | không có `hci0` | `hci_uart`/btqca qua UART + firmware từ apnhlos |
 | Gọi điện / SMS / data di động | modem DSP chạy nhưng không có QMI/rmnet tới userspace (`SXMO_NO_MODEM=1`) | rmnet qua IPA downstream + ModemManager — khó |
