@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=37
+pkgrel=38
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -63,6 +63,8 @@ source="
 	a70q-power-up
 	a70q-power.initd
 	a70q-fcitx5.service
+	a70qosk.lua
+	a70qosk.conf
 "
 options="!archcheck !check"
 
@@ -112,6 +114,9 @@ package() {
 	install -Dm755 "$srcdir"/a70q-autobrightness.py "$pkgdir"/usr/libexec/a70q/a70q-autobrightness
 	install -Dm644 "$srcdir"/a70q-autobrightness.service "$pkgdir"/usr/share/superd/services/a70q-autobrightness.service
 	install -Dm644 "$srcdir"/a70q-fcitx5.service "$pkgdir"/usr/share/superd/services/a70q-fcitx5.service
+	# fcitx5 Lua addon: on-screen keyboard follows text field focus (needs fcitx5-lua)
+	install -Dm644 "$srcdir"/a70qosk.conf "$pkgdir"/usr/share/fcitx5/addon/a70qosk.conf
+	install -Dm644 "$srcdir"/a70qosk.lua "$pkgdir"/usr/share/fcitx5/lua/a70qosk/a70qosk.lua
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
 	# look: notifications like the menus, dark GTK/libadwaita; session env (WebKit sandbox, XDG dirs)
@@ -178,4 +183,6 @@ cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db7557
 53f6b045921395a2c1feec2f2f70ae56e532a40e13561737f9a750f028f2e747aa37695e1a6641683b773ed5661ad2b99374d3035e61e231edd166e99ce15c2a  a70q-power-up
 69fdb83d0de0f605b946cde9f367401e54ba0f17ef5e4ca89e700fecf2e8489ccc211c998b20f04b09bbf647a65e387c47b5bd91084379c83dea5883b9a62292  a70q-power.initd
 45789ed74072b6a77291d41cbf68c63afd8033c1eb1a4c9108ebf679bb914d5ec8b3f5a87d152c5160b073dff0c589d031486c5a79d75dde7d418b4f62a0c1a3  a70q-fcitx5.service
+e49cb890fe646b4caf9d529b0d573d045336d8d7edec6fcf7cce72e536393668e2a6c1e00dcd4748e6e7e962a4ab44556708866123cc49c77b0a745c058c34b5  a70qosk.lua
+ce5c975fd39b858f2adf57d49967071c180821f5b5b9bbad7263bfc1f62805907c0c91f4c1f6fa618aca57a14a1d63493203f33635ddd81fcfa9e78dd3afcb86  a70qosk.conf
 "

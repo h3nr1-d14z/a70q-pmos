@@ -111,8 +111,9 @@ máy thử nghiệm.
 - **WiFi**: menu Sxmo (chuột phải lên thanh trạng thái, hoặc vuốt/nút như mặc định của Sxmo) →
   Networks, hoặc `sudo nmcli device wifi connect '<SSID>' password '<mật khẩu WiFi>'`.
   Modem DSP và WiFi cần khoảng 30 giây sau khi boot mới lên.
-- **Gõ tiếng Việt** (tuỳ chọn): `sudo apk add fcitx5 fcitx5-unikey`, tạo `~/.config/fcitx5/profile` có nhóm
+- **Gõ tiếng Việt** (tuỳ chọn): `sudo apk add fcitx5 fcitx5-unikey fcitx5-lua`, tạo `~/.config/fcitx5/profile` có nhóm
   `keyboard-us` + `unikey` (xem `pmos/README.md` mục 6), đăng nhập lại; device package tự chạy fcitx5 khi có cài.
+  `fcitx5-lua` để bàn phím ảo tự hiện khi chạm vào ô nhập chữ.
 - **Nhận file Bluetooth (OBEX)**, bật một lần cho user: `superctl enable a70q-obexd && superctl start a70q-obexd`.
 
 Kiểm tra nhanh qua SSH:

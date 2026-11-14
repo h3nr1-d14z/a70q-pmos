@@ -186,6 +186,12 @@ chữ có dấu; GTK4 (Epiphany) và foot dùng `text-input-v3`, không cần `G
 "Tieengs Vieetj" vào foot → "Tiếng Việt". Bật/tắt bộ gõ: Ctrl+Space (wvkbd có phím Ctr) hoặc icon fcitx5
 trên thanh trạng thái.
 
+Bàn phím ảo theo ô nhập chữ: addon Lua `a70qosk` của fcitx5 (`/usr/share/fcitx5/addon/a70qosk.conf`, cần
+`fcitx5-lua`) theo dõi FocusIn/FocusOut của input context (= text-input-v3 enable/disable) và gọi
+`sxmo_keyboard.sh open/close`; FocusOut chỉ đóng sau 0,4 s nếu không có FocusIn mới. Không dùng cơ chế
+`org.fcitx.Fcitx5.VirtualKeyboard` của fcitx5: nó chỉ hoạt động ở chế độ OnScreenKeyboard, và fcitx5 tự chuyển
+về PhysicalKeyboard khi nhận phím không mang cờ Virtual (phím của wvkbd qua virtual-keyboard).
+
 ## 7. Việc còn lại
 
 Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
