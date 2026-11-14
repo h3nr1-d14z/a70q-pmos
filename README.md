@@ -3,9 +3,6 @@
 postmarketOS (Alpine, OpenRC) chạy trên Galaxy A70 với kernel downstream Samsung/LineageOS 4.14.190
 build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo.
 
-Hướng Ubuntu Touch/Halium ban đầu đã dừng (2026-11-13); tài liệu của giai đoạn đó ở
-`archive/ubuntu-touch/`.
-
 ## Trạng thái (2026-11-14)
 
 | Tính năng | Trạng thái | Ghi chú |
@@ -33,7 +30,7 @@ Hướng Ubuntu Touch/Halium ban đầu đã dừng (2026-11-13); tài liệu c�
 | `pmos/pmb/` | pmbootstrap trong Docker |
 | `pmos/tools/` | `mkboot.sh`, `bootimg.py`, `dtboimg.py`, `dtbo-drop-wb.sh`, `flash.sh` (heimdall an toàn trên macOS) |
 | `pmos/mesa/` | Build thử turnip-kgsl ngoài pmbootstrap |
-| `ERRORS.md` | Sổ lỗi: triệu chứng → nguyên nhân → cách sửa (mục F trở đi là pmOS) |
+| `ERRORS.md` | Sổ lỗi: triệu chứng → nguyên nhân → cách sửa |
 | `LOG.md` | Nhật ký theo ngày |
 | `backups/` | Backup phân vùng gốc của máy (MANIFEST + sha256) |
 

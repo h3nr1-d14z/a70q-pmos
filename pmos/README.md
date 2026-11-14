@@ -1,8 +1,8 @@
 # pmOS cho Galaxy A70 (a70q): hướng dẫn kỹ thuật
 
 Kernel downstream 4.14.190 (Samsung/LineageOS) build từ source, rootfs postmarketOS edge (OpenRC)
-trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nhân từng lỗi: `../ERRORS.md`
-(mục F trở đi), nhật ký: `../LOG.md`.
+trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nhân từng lỗi: `../ERRORS.md`,
+nhật ký: `../LOG.md`.
 
 ## 1. Trạng thái máy hiện tại (2026-11-14)
 
@@ -102,7 +102,7 @@ node nằm trong DTBO).
 `/var/log/a70q-modem.log`): mount firmware apnhlos/modem → qrtr-ns → rmtfs (EFS chỉ đọc), pd-mapper,
 tqftpserv → boot modem (`/dev/subsys_modem`) → gửi BDF WLAN qua QMI (`a70q-bdf`) → `boot_wlan` + `ON`
 → `wlan0`. Kernel 4.14 không có QRTR name service và remoteproc class nên các tool linux-msm được vá
-(`a70q-qcom-userspace`). Chi tiết: ERRORS mục I và C43.
+(`a70q-qcom-userspace`). Chi tiết: ERRORS mục E và C43.
 
 **Màn hình + Sxmo** (C38, C45, C49, C53): DRM/KMS của SDE (`card0-DSI-1`), wlroots render bằng pixman
 (trước đây; nay là Vulkan trên GPU, xem dưới). Device profile Sxmo cho compatible `qcom,sm6150p-idp`. Thanh bar chừa

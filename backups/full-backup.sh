@@ -8,7 +8,7 @@ mkdir -p "$DIR"
 
 PARTS="abl aop apdp apnhlos bksecapp bluetooth boot bota btd cmnlib cmnlib64 ddr debug devcfg devinfo dpo dqmdbg dsp dtbo efs fota fsc fsg hyp keymaster keystore limits logfs misc modem modemst1 modemst2 msadp param persist persistent pmic qupfw recovery sec_efs secdata ssd steady storsec tz uefisecapp vbmeta vk xbl xbl_config"
 
-# 0) full lshal dump (read-only reference for halium port)
+# 0) full lshal dump (read-only reference: Android HALs running on the vendor)
 $ADB shell su -c 'lshal' > backups/hals-lshal.txt 2>/dev/null
 echo "lshal lines: $(wc -l < backups/hals-lshal.txt | tr -d ' ')"
 
