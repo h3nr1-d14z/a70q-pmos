@@ -10,6 +10,9 @@ part() { blkid -t PARTLABEL="$1" -o device; }
 grep -q " /sys/kernel/debug " /proc/mounts || mount -t debugfs none /sys/kernel/debug
 mkdir -p /var/log
 for s in /sys/bus/msm_subsys/devices/*; do echo RELATED > "$s/restart_level"; done
+# the LOS cmdline boots with lpm_levels.sleep_disabled=1 and Android's init re-enables the
+# low-power modes after boot; without this, CPU idle stays shallow and suspend cannot work
+echo 0 > /sys/module/lpm_levels/parameters/sleep_disabled 2>/dev/null
 mkdir -p /vendor/firmware_mnt /vendor/firmware-modem
 grep -q " /vendor/firmware_mnt " /proc/mounts || mount -o ro "$(part apnhlos)" /vendor/firmware_mnt
 grep -q " /vendor/firmware-modem " /proc/mounts || mount -o ro "$(part modem)" /vendor/firmware-modem
@@ -60,6 +63,12 @@ services_ok && log "qrtr services: rmtfs(14) pd-mapper(64) tftp(4096) OK" || { l
 ( exec 3</dev/subsys_modem; exec sleep 2147483647 ) &
 echo $! > /run/a70q-subsys-modem.pid
 log "modem requested"
+
+# boot ADSP (audio DSP; the q6 ASoC card sm6150-idp-snd-card appears once APR is up)
+for f in "$FW"/adsp*; do ln -sf "$f" /lib/firmware/; done
+( exec 3</dev/subsys_adsp; exec sleep 2147483647 ) &
+echo $! > /run/a70q-subsys-adsp.pid
+log "adsp requested"
 
 # --- WLAN: WCN3990 firmware waits for the board data file over QMI (cnss-daemon's job on
 # Android; downstream icnss never sends it). Then start the built-in qcacld driver.

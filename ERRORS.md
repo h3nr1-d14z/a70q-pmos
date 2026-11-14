@@ -423,3 +423,27 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
 - Zink `failed to choose pdev`: EGL đưa major:minor của `renderD128` (SDE) và Zink tìm GPU Vulkan có DRM node khớp → không có. EGL tự rơi về đường swrast; với `GALLIUM_DRIVER=zink` đường đó chạy Zink trên turnip (thông báo lỗi lần thử đầu là vô hại)
 - Đo: glmark2-es2 Zink 73–77 vs llvmpipe 34; vkcube ~33 fps (giới hạn bởi copy wl_shm + compositor pixman)
 
+### C48. ✅ Âm thanh: ADSP + card q6 + UCM cho PipeWire
+- ADSP không tự boot (giống modem): link `adsp.*` từ apnhlos + giữ `/dev/subsys_adsp` mở → `apr_adsp_up: Q6 is Up` → card `sm6150-idp-snd-card` (WCD937x + 1 WSA881x)
+- Đường âm thanh lấy từ vendor `mixer_paths_idp.xml`: loa = MultiMedia1 → `WSA_CDC_DMA_RX_0` → `SpkrLeft`; tai nghe/loa thoại = `RX_CDC_DMA_RX_0`; mic = `TX_CDC_DMA_TX_3` (ADC1 mic chính, ADC2/INP2 mic tai nghe)
+- UCM: driver name bị cắt còn `sm6150-idp-snd-` → `ucm2/conf.d/sm6150-idp-snd-/sm6150-idp-snd-card.conf` → `Samsung/a70q/`; `File` trong UCM tính từ gốc ucm2
+- **ACP chỉ ra profile "off"**: PipeWire mở PCM để probe TRƯỚC khi bật device; với q6 DPCM, front end chưa nối back end nào → `snd_pcm_hw_params failed: Invalid argument`. Lần đầu chạy được chỉ vì route mình đặt tay còn sót → route MultiMedia1→WSA ở mức verb
+- Nhưng back end WSA khi amp tắt làm **treo cả front end chung** (pw-play đứng, speaker-test `I/O error`) → Headphones/Earpiece tắt route WSA khi bật, bật lại khi tắt
+- Jack: MBHC downstream chỉ báo qua input device (`SW_HEADPHONE_INSERT`), PipeWire chỉ đọc kcontrol → kernel patch 0008 thêm `Headphone Jack`/`Headset Mic Jack` (iface=CARD; `amixer cget` phải ghi `iface=CARD`)
+- Kiểm chứng sau reboot: card + profile tự lên, loa và tai nghe phát OK (người dùng nghe được), mic ghi được (peak 275 im lặng / 32767 khi phát tone)
+
+### C49. DTBO: tắt node wb-display → mất luôn màn hình (lỗi của mình)
+- Muốn bỏ connector writeback Virtual-1 nên thêm `status = "disabled"` cho `qcom,wb-display@0` trong 12 overlay → máy kẹt ở logo: không có DRM card nào; component master SDE chờ đủ mọi connector trong `connectors` mà wb không bao giờ probe
+- Đúng: giữ node, chỉ bỏ phandle wb khỏi `connectors` của mdss_mdp + sửa offset trong `__fixups__` (sde_dp `connectors:8`→`:4`) và `__local_fixups__` (`<0x4 0xc>`→`<0x8>`) → `pmos/tools/dtbo-drop-wb.sh`; overlay đang dùng: `androidboot.dtbo_idx=10`
+- Kết quả: chỉ còn `card0-DSI-1`; workaround `output Virtual-1 disable` của sway không còn cần
+
+### C50. Tự giết nhầm tiến trình của mình (lỗi quy trình, lặp nhiều lần)
+- `pkill -f susp.sh` / `pkill -f sshh.exp` / `kill $(pgrep -f Front_Left)` khớp luôn chính shell (hoặc task nền trên Mac) có chuỗi đó trong command line → mất lệnh flash/build đang chạy, phải làm lại
+- `ssh ... reboot-mode download` để phiên SSH treo tới khi expect hết giờ (900s) → flash.sh không bắt đầu dù máy đã ở DM
+- macOS không có `timeout`
+- Quy tắc: kill theo PID cụ thể (`pgrep -x` tên chính xác), lệnh reboot/DM chạy nền phía Mac rồi chờ thiết bị DM bằng ioreg
+
+### C51. Suspend: `lpm_levels.sleep_disabled=1` trong cmdline
+- Cmdline LOS có `lpm_levels.sleep_disabled=1`; Android init ghi lại `0` sau boot. pmOS không làm → CPU idle nông, suspend không vào được → `a70q-modem-up` ghi `0`
+- Suspend còn bị chặn bởi wakelock khi cắm USB (`usb_notify`, `a600000.ssusb`) và `sxmo_not_suspendable`; `power_supply/usb/online` báo 0 khi sạc PD — dùng `pc_port/online`
+

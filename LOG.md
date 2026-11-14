@@ -210,3 +210,7 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - turnip build với backend kgsl (package `mesa-vulkan-freedreno-kgsl`), firmware GPU từ vendor, udev rule, env trong profile.d
 - Sau reboot sạch: `zink Vulkan 1.3(Turnip Adreno (TM) 612)`, glmark2 73 (llvmpipe 34); chi tiết C47
 
+## 2026-11-14 chiều — Âm thanh chạy (loa, tai nghe, mic) + DTBO bỏ Virtual-1
+- ADSP boot từ service; UCM cho PipeWire; kernel r15 (patch 0008 jack kcontrol); device r11
+- DTBO lần 1 hỏng màn hình (C49), lần 2 đúng; mất thời gian vì tự kill nhầm tiến trình (C50)
+

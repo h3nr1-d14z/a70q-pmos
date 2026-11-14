@@ -18,7 +18,7 @@ start() {
 
 stop() {
 	ebegin "Stopping a70q modem services"
-	for p in /run/udhcpc.wlan0.pid /run/wpa_supplicant.wlan0.pid /run/a70q-subsys-modem.pid; do
+	for p in /run/udhcpc.wlan0.pid /run/wpa_supplicant.wlan0.pid /run/a70q-subsys-modem.pid /run/a70q-subsys-adsp.pid; do
 		[ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null
 	done
 	pkill -x pd-mapper; pkill -x tqftpserv; pkill -x rmtfs; pkill -x qrtr-ns

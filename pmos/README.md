@@ -64,8 +64,14 @@ Về Download Mode từ shell: upload `tools/src/reboot-mode.c` (static) → `re
 - Compositor (sway) vẫn render pixman: wlroots GLES/Vulkan cần GPU có DRM render node. Chi tiết lỗi: ERRORS.md C47
 - Build thử nhanh ngoài pmbootstrap: `pmos/mesa/build.sh` (Docker aarch64 native, ~1 phút)
 
+## ✅ Âm thanh + jack + DTBO bỏ Virtual-1 (2026-11-14)
+- `a70q-modem-up` boot ADSP (`/dev/subsys_adsp`) và ghi `lpm_levels sleep_disabled=0`; card q6 `sm6150-idp-snd-card`
+- UCM `Samsung/a70q/HiFi.conf` (device package r11): Speaker, Headphones, Earpiece, Mic, HeadsetMic; PipeWire tự chọn loa/tai nghe theo jack (kernel r15, patch 0008)
+- DTBO: `pmos/tools/dtbo-drop-wb.sh backups/dtbo.img out.img` rồi `flash.sh --DTBO out.img` (DTBO gốc = `backups/dtbo.img`, khớp với máy)
+- Chi tiết: ERRORS.md C48–C51
+
 ## Tiếp theo
 1. ~~Initramfs pmOS + USB networking~~ ✅
 2. ~~Rootfs trên USERDATA → boot pmOS thật, SSH~~ ✅
 3. ~~WiFi~~ ✅, ~~đóng gói service~~ ✅, ~~boot nhanh~~ ✅, ~~UI trên KMS + touch~~ ✅, ~~GPU cho app~~ ✅
-4. Còn: âm thanh (adsp), compositor dùng GPU (cần dmabuf giữa kgsl và SDE), tắt writeback Virtual-1 ở DTBO, pin/suspend, sửa C30
+4. ~~Âm thanh~~ ✅, ~~Virtual-1 ở DTBO~~ ✅. Còn: suspend (đang thử), compositor dùng GPU (cần dmabuf giữa kgsl và SDE), sửa C30

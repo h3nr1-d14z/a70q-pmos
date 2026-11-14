@@ -1,0 +1,33 @@
+From f32d7db379a6cd554d44cb4490d4e528e1ea8440 Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Sat, 14 Nov 2026 02:40:00 +0000
+Subject: [PATCH] ASoC: wcd-mbhc: expose headset jack state as ALSA kcontrols
+
+The downstream MBHC reports plug state only through the jack input device.
+PipeWire/PulseAudio (UCM JackControl) look for "... Jack" kcontrols, so add
+"Headphone Jack" and "Headset Mic Jack" to the existing headset jack.
+---
+ techpack/audio/asoc/codecs/wcd-mbhc-v2.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/techpack/audio/asoc/codecs/wcd-mbhc-v2.c b/techpack/audio/asoc/codecs/wcd-mbhc-v2.c
+index 4451fc8..4474020 100755
+--- a/techpack/audio/asoc/codecs/wcd-mbhc-v2.c
++++ b/techpack/audio/asoc/codecs/wcd-mbhc-v2.c
+@@ -2148,6 +2148,13 @@ int wcd_mbhc_init(struct wcd_mbhc *mbhc, struct snd_soc_codec *codec,
+ 			pr_err("%s: Failed to create new jack\n", __func__);
+ 			return ret;
+ 		}
++		/* expose the jack state as ALSA controls ("Headphone Jack",
++		 * "Headset Mic Jack") as well: userspace (PipeWire/PulseAudio UCM
++		 * JackControl) only reads kcontrols, not the input device */
++		snd_jack_add_new_kctl(mbhc->headset_jack.jack, "Headphone",
++				      SND_JACK_HEADPHONE);
++		snd_jack_add_new_kctl(mbhc->headset_jack.jack, "Headset Mic",
++				      SND_JACK_MICROPHONE);
+ 
+ 		ret = snd_soc_card_jack_new(codec->component.card,
+ 					    "Button Jack",
+-- 
+2.43.0
+

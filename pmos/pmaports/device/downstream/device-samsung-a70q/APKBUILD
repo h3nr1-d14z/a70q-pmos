@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=9
+pkgrel=11
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -28,6 +28,8 @@ source="
 	50-a70q.nm.conf
 	sxmo_deviceprofile.sh
 	60-a70q-gpu.rules
+	ucm/a70q.conf
+	ucm/HiFi.conf
 "
 options="!archcheck !check"
 
@@ -51,15 +53,23 @@ package() {
 	install -Dm644 "$srcdir"/50-a70q.nm.conf "$pkgdir"/etc/NetworkManager/conf.d/50-a70q.conf
 	install -Dm755 "$srcdir"/sxmo_deviceprofile.sh "$pkgdir"/usr/bin/sxmo_deviceprofile_qcom,sm6150p-idp.sh
 	install -Dm644 "$srcdir"/60-a70q-gpu.rules "$pkgdir"/usr/lib/udev/rules.d/60-a70q-gpu.rules
+	# ALSA UCM for the q6 card (driver name is truncated to "sm6150-idp-snd-")
+	install -Dm644 "$srcdir"/a70q.conf "$pkgdir"/usr/share/alsa/ucm2/Samsung/a70q/a70q.conf
+	install -Dm644 "$srcdir"/HiFi.conf "$pkgdir"/usr/share/alsa/ucm2/Samsung/a70q/HiFi.conf
+	mkdir -p "$pkgdir"/usr/share/alsa/ucm2/conf.d/sm6150-idp-snd-
+	ln -s ../../Samsung/a70q/a70q.conf \
+		"$pkgdir"/usr/share/alsa/ucm2/conf.d/sm6150-idp-snd-/sm6150-idp-snd-card.conf
 }
 
 sha512sums="
 0d751e1e72013f1f360d71dfbf123d3a7b7c75259b2c3e139e013d9458cdcfc94055fcde5b0282532fd7a3bd4c2956ab8d756bec7230778b111b56bb0ee726fc  deviceinfo
 a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824adfe19039cb54e98dd8b8384979421be0fa4822c5a1e1955  unudhcpd.ecm0.confd
-8a4ed6572ca9d9c1dc381c76fd86e66bcdb7d6e33159ab980becbabd2a14bce3e5da09a8f77e373ee78367de4910c10eb1200d340f400b8499a9b035809cd7ae  a70q-modem-up
-dbdb993845c92d371bd487dafe855c4336f93758242ccaa4bf25e61554841d4f23923561ee0e8495ce2828076de51aff495b747cc8ffe3d2419e851351def339  a70q-modem.initd
+13919a3b889c4bd6c130c875c4cab912277cc3bfeb3eea97a28cd3dcd51a82b2326f9eacb20af35e5d13e104cc97e2d50d8fdccf8f8872d33eba9ce2ae7724e1  a70q-modem-up
+6e096c1f7b2353f3e1d14a09e00e44f796eb3a873760dd2bebf686ddddf3c51c9a82cca624f0d31a65b7985f51f41b62e1b652f2665fc1c88fea369d56c893db  a70q-modem.initd
 f8fc338bbaa73dbf60add22d7b1d90423d59117e6c7d8f47851c11329336d4a8398bfcde2a767d1f13e7677c05063cd42fadebfb46afacdbf2d06be06747aaa0  a70q-wlroots.sh
 27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
 43369eee4dfb17810b8059a103afe2493db7788bbd072501be999eacc65b78f8a375e76636646d8a690e2464adf5c135e5b37472baa2e8422d85196bc2e1d4cb  sxmo_deviceprofile.sh
 c4b4dcdff43e2e1c2d710f0452661f2e57c936358326751558b081ef56877d185705e10f34d79444e3efc7f157bc734ce2650bfeaf62af6698030dd365688de8  60-a70q-gpu.rules
+d7c2b37f83cc210275ab705fd22c903ea522ae22146f4cd81a2f71bcff1e5ed88cd40af738149e43e82d6901832f2e1f2971a9aedf9207f0928f88ab3e98dbc4  a70q.conf
+7bd38ee98e147db9d78dcf1985c0529b5ea2ea420a1d41f62f1c82f013f7c0b36c7a7b0542e184d97a18336af507d1999fa84658c0f43f07432c5688e1423267  HiFi.conf
 "
