@@ -10,6 +10,10 @@
 #  - first handshake after entering DM often stalls ("pipe is stalled", nothing
 #    written): retries exactly once, only if no partition upload had started
 set -uo pipefail
+# always keep a log: callers often pipe/filter our output
+LOG="${FLASH_LOG:-/tmp/a70q-flash-$(date +%Y%m%d-%H%M%S).log}"
+exec > >(tee -a "$LOG") 2>&1
+echo "log: $LOG"
 HEIMDALL="${HEIMDALL:-$HOME/bin/heimdall}"
 [ $# -gt 0 ] || { sed -n 2,4p "$0"; exit 2; }
 for a in "$@"; do case "$a" in --*) ;; *) [ -f "$a" ] || { echo "missing file: $a"; exit 2; };; esac; done

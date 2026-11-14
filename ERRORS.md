@@ -405,3 +405,9 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
 - Cảm ứng mất khi boot từ màn hình sạc: cmdline `androidboot.mode=charger` → sec_battery đặt `lpcharge=1` → `ist40xx_init: Do not load driver due to : lpm 1` → patch kernel 0006 (luôn lpcharge=0)
 - Sxmo báo `No deviceprofile found qcom,sm6150p-idp` (DT dùng compatible bo mạch tham chiếu) → device package ship `/usr/bin/sxmo_deviceprofile_qcom,sm6150p-idp.sh`
 - CPU không bị khoá: governor performance, max 1.7/2.0 GHz; chậm là do render CPU (pixman) + boot chờ firmware venus
+
+### C46. ✅ Boot nhanh 3x: tắt CONFIG_FW_LOADER_USER_HELPER_FALLBACK
+- Android dùng ueventd nạp firmware qua user-helper; trên pmOS không ai trả lời → kernel chờ 60s mỗi firmware thiếu (venus lúc v4l_id trong initramfs: `firmware state wait timeout`)
+- Tắt FALLBACK (kernel r14) → firmware thiếu báo lỗi ngay; modem/WLAN nạp file trực tiếp nên không ảnh hưởng
+- Đo: SSH USB 41s, WiFi 53s sau flash (trước: ~100–190s / ~3 phút); 0 timeout
+- flash.sh giờ luôn ghi log `/tmp/a70q-flash-*.log` (lần trước thoát sớm mà output bị pipe nuốt)
