@@ -307,3 +307,11 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - La bàn "crash" trước đó là hệ quả dây chuyền (daemon vừa bị tiệm cận làm sập); sau vá: cả 4 cảm biến (gia tốc, ánh sáng, tiệm cận, la bàn) chạy cùng lúc
 - Lại mắc C50 một lần: `pkill -f /usr/libexec/iio-sensor-proxy` giết chính shell đang chạy → dùng `pkill -x iio-sensor-prox` (tên comm bị cắt 15 ký tự)
 
+### C62. Venus (giải mã video phần cứng): firmware sửa được, nhưng client chuẩn không dùng được driver downstream
+- **Triệu chứng**: mở `/dev/video32` (`msm_vidc_vdec`) báo "Out of memory"; dmesg `subsys-pil-tz aae0000.qcom,venus: Failed to locate venus.mdt(rc:-2)`
+- **Sửa firmware**: symlink `venus.*` từ `apnhlos` (`/vendor/firmware_mnt/image`) vào `/lib/firmware` (`a70q-modem-up`) → venus "Brought out of reset", decoder nhận MPEG-2/H.264/HEVC/VP8/VP9, capture NV12/UBWC
+- **Chưa dùng được với ffmpeg/GStreamer/mpv**:
+  1. `msm_vidc` không có `VIDIOC_TRY_FMT` (ENOTTY), mà ffmpeg dùng nó để dò thiết bị: "Could not find a valid device". Shim LD_PRELOAD giả lập TRY_FMT qua ENUM_FMT thì vượt qua bước này
+  2. Bước tiếp `VIDIOC_REQBUFS` (MMAP) → EINVAL: `vb2_mem_ops` của driver chỉ có `get_userptr`/`put_userptr`; buffer thật là fd ION trong `planes[].reserved[]` (giao thức OMX của Qualcomm). Client V4L2 chuẩn dùng MMAP/DMABUF
+- **Kết luận**: muốn dùng phải viết lại quản lý buffer của driver (vb2 dma-contig/dmabuf) hoặc tự viết client kiểu OMX → không đáng: CPU giải mã H.264 1080p 269 fps (9×), HEVC 1080p 212 fps (7×) (`ffmpeg -benchmark`)
+

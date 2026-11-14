@@ -27,6 +27,8 @@ for f in "$FWM"/*; do ln -sf "$f" /lib/firmware/; done        # modem.mdt etc. f
 #    (the zap shader a612_zap.* lives on apnhlos and is linked below)
 mkdir -p /lib/firmware/wlan/qca_cld
 for f in "$FW"/a612_zap.*; do ln -sf "$f" /lib/firmware/; done
+# venus (video codec) firmware: loaded by PIL only when /dev/video32/33 is opened (ERRORS C62)
+for f in "$FW"/venus.*; do ln -sf "$f" /lib/firmware/; done
 VEND=$(part vendor)
 if { [ ! -e /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ] || [ ! -e /lib/firmware/a630_sqe.fw ] ||
 		[ ! -e /lib/firmware/qca/apnv11.bin ]; } && [ -n "$VEND" ]; then
