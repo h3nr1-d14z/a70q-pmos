@@ -391,3 +391,8 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
 
 ### C42. Bộ lọc grep tự gây hiểu nhầm
 - `grep -v 4097` để bỏ log DIAG đã xoá luôn các dòng `add server [4097:..]` → tưởng ns từ chối mọi server. Lọc theo nội dung cần tìm, không lọc ngược quá rộng
+
+### C43. ✅ Kết nối WiFi + internet
+- `wpa_passphrase` → `/etc/wpa_supplicant/wpa_supplicant.conf` (chỉ PSK băm, 600) → `wpa_supplicant -D nl80211 -i wlan0 -c ...` → WPA2 CCMP OK → `udhcpc -i wlan0` → IP 192.168.1.x, ping internet, `apk update` OK, SSH qua WiFi OK
+- Bẫy: wpa_supplicant của Alpine KHÔNG hỗ trợ `-f <logfile>` (in usage rồi thoát) → dùng redirect stdout
+- Bẫy: `/etc/resolv.conf` trong rootfs là file Docker sinh lúc pmbootstrap build (nameserver 0.250.250.200) — DHCP ghi đè; nên xoá khi đóng gói image
