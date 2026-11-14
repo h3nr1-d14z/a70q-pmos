@@ -28,8 +28,8 @@ Hướng Ubuntu Touch/Halium ban đầu đã dừng (2026-11-13); tài liệu c�
 | `pmos/pmaports/device/downstream/` | Package: `device-samsung-a70q`, `linux-samsung-a70q`, `a70q-qcom-userspace`, `mesa-vulkan-freedreno-kgsl` |
 | `pmos/kernel/` | Build kernel nhanh bằng Docker + các patch (`patches/`) |
 | `pmos/pmb/` | pmbootstrap trong Docker |
-| `pmos/tools/` | `bootimg.py`, `dtboimg.py`, `dtbo-drop-wb.sh`, `flash.sh` (heimdall an toàn trên macOS) |
-| `pmos/userspace/`, `pmos/mesa/` | Mã nguồn tool riêng (BDF loader WLAN), build thử turnip |
+| `pmos/tools/` | `mkboot.sh`, `bootimg.py`, `dtboimg.py`, `dtbo-drop-wb.sh`, `flash.sh` (heimdall an toàn trên macOS) |
+| `pmos/mesa/` | Build thử turnip-kgsl ngoài pmbootstrap |
 | `ERRORS.md` | Sổ lỗi: triệu chứng → nguyên nhân → cách sửa (mục F trở đi là pmOS) |
 | `LOG.md` | Nhật ký theo ngày |
 | `backups/` | Backup phân vùng gốc của máy (MANIFEST + sha256) |

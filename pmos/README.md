@@ -1,77 +1,123 @@
-# pmOS cho Galaxy A70 (a70q) — kernel downstream 4.14.190
+# pmOS cho Galaxy A70 (a70q): hướng dẫn kỹ thuật
 
-Chuyển hướng từ Ubuntu Touch/Halium sang postmarketOS (2026-11-13). Mọi số liệu dưới đây tự kiểm chứng.
+Kernel downstream 4.14.190 (Samsung/LineageOS) build từ source, rootfs postmarketOS edge (OpenRC)
+trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nhân từng lỗi: `../ERRORS.md`
+(mục F trở đi), nhật ký: `../LOG.md`.
 
-## Kernel: tái tạo đúng kernel LOS 22.2 đang boot được
-- Source: `a70q-lineage/android_kernel_samsung_sm6150` branch `lineage-22.2` @ **`699d9d7da`** (HEAD `f6d944f0` "r1q support" thêm `CONFIG_SEC_R1Q_PROJECT` — không có trong blob LOS)
-- Defconfig `a70q_defconfig` == IKCONFIG nhúng trong blob LOS (100%, trừ symbol r1q)
-- Build arm64 native (Mac mini M4 → container ubuntu:24.04, clang/lld 19.1.1), volume ext4 `a70q-ksrc`
-- dtc: tree hard-code `tools/dtc` (binary x86-64, DTC 1.4.4-Android) → build dtc 1.4.4 từ `scripts/dtc` bằng tay, `-H epapr` → **DTB giống từng byte DTB của blob LOS**
-- Image k0 = 45,092,888 B (đúng bằng blob LOS)
+## 1. Trạng thái máy hiện tại (2026-11-14)
 
-| Biến thể | Thay đổi | Kết quả trên máy |
+| Thành phần | Phiên bản đang chạy | Nguồn |
 |---|---|---|
-| `k0-los-repro` | không | ✅ boot LOS |
-| `k1-devtmpfs` | `DEVTMPFS=y` + `DEVTMPFS_MOUNT=y` | ✅ boot LOS, `/proc/version` = `a70q@pmos`, USB adb OK, devtmpfs có |
+| BOOT | kernel `linux-samsung-a70q` r15 + initramfs pmOS | `tools/mkboot.sh 15 ...` |
+| DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
+| VBMETA | flags=2 (tắt verify) | xem mục 4 |
+| USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
+| `device-samsung-a70q` | r11 | `pmaports/device/downstream/` |
+| `a70q-qcom-userspace` | r0 | như trên |
+| `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
+| UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
 
-## Công cụ
-- `kernel/Dockerfile`, `kernel/build.sh <variant> [fragment]` → `kernel/out/<variant>/Image.gz-dtb`
-- `tools/bootimg.py info|unpack|pack` — boot header v1, không phụ thuộc; `pack --like <boot gốc>` giữ addr/board/cmdline/os_version (anti-rollback 15.0.0/2026-06)
-- `tools/flash.sh --BOOT x.img [...]` — heimdall an toàn (ERRORS C23/C24); `FROM_ADB=1` để tự `adb reboot download`
+Package tự build được cài trên máy bằng `apk add --allow-untrusted <file>.apk` (không flash lại rootfs).
 
-## Quy trình test một kernel
+## 2. Truy cập
+
+- USB (cổng USB-C **phía sau** Mac; cổng trước để lại node Download Mode "ma", ERRORS C23): mạng ECM,
+  `ssh user@172.16.42.1`
+- WiFi: NetworkManager quản lý `wlan0` (`nmcli`); máy tự kết nối mạng đã lưu khi boot
+- Mật khẩu tạm của `user`: `147147` (đặt lúc `pmbootstrap install`, nên đổi)
+- Về Download Mode từ xa: `sudo reboot-mode download`. Gọi qua SSH thì phiên SSH treo vì máy reboot
+  giữa chừng → chạy lệnh ở nền phía Mac rồi chờ thiết bị DM (ERRORS C44, C50)
+
+## 3. Build
+
+Mọi thứ chạy trong Docker trên Mac Apple Silicon (aarch64 native, không cần cross-compile).
+
 ```sh
-pmos/kernel/build.sh k1-devtmpfs pmos/kernel/fragments/k1-devtmpfs.config
-python3 pmos/tools/bootimg.py unpack ../a70-root/artifacts/boot/magisk_patched.img /tmp/mag
-python3 pmos/tools/bootimg.py pack --kernel pmos/kernel/out/k1-devtmpfs/Image.gz-dtb \
-    --ramdisk /tmp/mag/ramdisk --like ../a70-root/artifacts/boot/magisk_patched.img -o pmos/out/k1-boot.img
-FROM_ADB=1 pmos/tools/flash.sh --BOOT pmos/out/k1-boot.img     # cắm cổng USB-C phía SAU
-```
-Trên máy: vbmeta = `out/vbmeta-disabled.img` (flags=2), dtbo = `backups/full/dtbo.img` (== dtbo trong zip LOS).
-Rollback: `pmos/tools/flash.sh --BOOT backups/full/boot.img` (= magisk_patched, LOS + root).
+# package (pmbootstrap 3.12.1 trong container; volume a70q-pmbwork)
+pmos/pmb/run.sh build --arch aarch64 linux-samsung-a70q device-samsung-a70q
+# sha512sums: `pmb/run.sh checksum` chỉ sửa bản trong work volume, không sửa repo -> tự cập nhật trong APKBUILD
 
-## pmOS (pmbootstrap) — initramfs chạy, USB networking OK
-- `pmb/run.sh <args>`: pmbootstrap 3.12.1 trong container arm64 (`pmb/Dockerfile`, volume `a70q-pmbwork`); đồng bộ `pmaports/device/downstream/*` vào pmaports clone mỗi lần chạy
-- `linux-samsung-a70q`: build từ source 699d9d7da + config k2 (k1 + ECM) + patch u_ether (ERRORS C29). Đã kiểm chứng tương đương k1: compatible strings 2757/2757, DTB == LOS
-- `device-samsung-a70q`: deviceinfo header v1 + offset LOS, `ecm.usb0`
-- boot.img của pmbootstrap có os_version 0 → đóng gói lại bằng `tools/bootimg.py pack --like <boot LOS>` (anti-rollback 15.0.0/2026-06)
+# boot.img từ package kernel r<N>
+pmos/tools/mkboot.sh <N> pmos/out/boot-r<N>.img
+
+# DTBO không có writeback connector
+pmos/tools/dtbo-drop-wb.sh backups/dtbo.img pmos/out/dtbo-nowb.img
+```
+
+- `pmb/run.sh`: tạo config pmbootstrap (device samsung-a70q, `service_manager = openrc` vì systemd cần
+  kernel ≥5.4, `ui = none`), chạy vòng mknod cho loop partition (container không có udev), đồng bộ
+  `pmaports/device/downstream/*` vào pmaports trong work volume
+- `kernel/build.sh <variant> [fragment]`: build kernel nhanh ngoài pmbootstrap (volume `a70q-ksrc`,
+  clang 19, dtc 1.4.4 `-H epapr` cho DTB giống từng byte bản LOS); `NOPATCH=1` để build source gốc
+- `mesa/build.sh`: build thử turnip-kgsl (~1 phút)
+- `tools/mkboot.sh`: kernel từ apk + initramfs + cmdline (deviceinfo + UUID phân vùng rootfs) + header
+  copy từ boot LOS (`--like`) để qua anti-rollback của Samsung (os_version 15.0.0, SPL 2026-06).
+  Initramfs mặc định là `pmos/out/pmos-r1/initramfs` (lấy từ `chroot_rootfs_samsung-a70q/boot/` sau lần
+  install đầu; `out/` không nằm trong git). Cài lại rootfs thì UUID đổi → đặt `PMOS_UUIDS`
+
+## 4. Flash
+
+`tools/flash.sh` bọc heimdall: chờ Download Mode bằng IORegistry (không dùng `heimdall detect`), thử lại
+khi lần bắt tay đầu bị treo, luôn ghi log `/tmp/a70q-flash-*.log`.
 
 ```sh
-pmos/pmb/run.sh build linux-samsung-a70q device-samsung-a70q
-pmos/pmb/run.sh install --no-image --password 147147      # rootfs chroot + initramfs, không đụng máy
-# lấy chroot_rootfs_samsung-a70q/boot/{vmlinuz,initramfs} → bootimg.py pack ... --cmdline "<deviceinfo cmdline> pmos.debug-shell"
+pmos/tools/flash.sh --BOOT pmos/out/boot-r15.img                 # cập nhật kernel
+pmos/tools/flash.sh --DTBO pmos/out/dtbo-nowb.img                # DTBO
 ```
-Debug shell: serial `/dev/cu.usbmodempostmarketOS3` (115200), mạng ECM 172.16.42.1 (workaround C30), telnet :23.
-Về Download Mode từ shell: upload `tools/src/reboot-mode.c` (static) → `reboot-mode download`.
 
-## ✅ pmOS BOOT HOÀN CHỈNH (2026-11-14) — SSH `user@172.16.42.1` (mật khẩu tạm 147147 — đổi ngay)
-- Rootfs OpenRC (`service_manager = openrc`; systemd cần kernel ≥5.4) trong USERDATA dạng subpartition (GPT sector 4096), `ui = none`
-- Kernel r8 = config k3 (k2 + NLS_ASCII, SYSVIPC, VT, DRM_FBDEV_EMULATION, USER_NS, FRAMEBUFFER_CONSOLE) + patches 0001–0004
-- cmdline phải có `loop.max_part=7`; boot.img đóng gói lại bằng `bootimg.py pack --like <boot LOS>`
-- Flash: `flash.sh --BOOT <boot.img> --USERDATA samsung-a70q.sparse.img` (USERDATA phải sparse: `img2simg`)
+Cài mới từ đầu (xoá dữ liệu):
+1. `pmos/pmb/run.sh install --password <pw>` → `samsung-a70q.img`; `img2simg` thành sparse (heimdall
+   chết ở 7% với image thô, ERRORS C33)
+2. vbmeta tắt verify: `avbtool make_vbmeta_image --flags 2 --output vbmeta-disabled.img`
+3. `flash.sh --BOOT <boot.img> --DTBO <dtbo.img> --VBMETA vbmeta-disabled.img --USERDATA samsung-a70q.sparse.img`
+4. Sau khi boot: `apk add postmarketos-ui-sxmo-de-sway`, cài các package tự build, cấu hình WiFi bằng `nmcli`
 
-## ✅ Modem + WiFi tự chạy khi boot (2026-11-14)
-- `a70q-qcom-userspace` (pmaports): qrtr-ns, qrtr-lookup, pd-mapper, tqftpserv (build từ linux-msm tại commit cố định + patch), `a70q-bdf`, `reboot-mode` → `/usr/libexec/a70q/`
-- `device-samsung-a70q` r6: service OpenRC `a70q-modem` (runlevel default) chạy `/usr/libexec/a70q/a70q-modem-up`: mount firmware → qrtr-ns → rmtfs(-P -r)/pd-mapper/tqftpserv → modem → BDF+CAL_REPORT → boot_wlan/ON → wlan0 → wpa_supplicant + udhcpc nếu có `/etc/wpa_supplicant/wpa_supplicant.conf`
-- Log: `/var/log/a70q-modem.log`. Cấu hình WiFi: `wpa_passphrase SSID PASS >> /etc/wpa_supplicant/wpa_supplicant.conf` (chmod 600)
-- Kiểm chứng: reboot → SSH qua WiFi sau ~3 phút (boot chậm do kernel chờ firmware venus timeout 60s — cần sửa)
+Quay về LineageOS: flash `../a70-root/artifacts/boot/lineage-boot-orig.img` và `backups/dtbo.img`
+(USERDATA đã bị pmOS chiếm, cần format lại trong recovery).
 
-## ✅ GPU Adreno 612: Vulkan (turnip-kgsl) + OpenGL/GLES (Zink) (2026-11-14)
-- Kernel downstream dùng **kgsl** (`/dev/kgsl-3d0`), không phải msm DRM; `renderD128` là node của driver hiển thị SDE, không có GPU
-- `mesa-vulkan-freedreno-kgsl` (pmaports): turnip của Mesa 26.2.6 build với `-Dfreedreno-kmds=msm,kgsl` (Alpine chỉ build `msm,virtio`), SONAME + ICD riêng (`freedreno_kgsl_icd.aarch64.json`) nên chạy song song với mesa-vulkan-freedreno
-- `device-samsung-a70q` r9: udev `60-a70q-gpu.rules` (kgsl-3d0 + ion 0666); `a70q-modem-up` chép `a630_sqe.fw` + `a612_rgmu.bin` từ partition vendor, link `a612_zap.*` từ apnhlos; `/etc/profile.d/a70q-wlroots.sh` đặt `TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw GALLIUM_DRIVER=zink`
-- Kết quả: `eglinfo` → `zink Vulkan 1.3(Turnip Adreno (TM) 612)`; glmark2-es2-wayland 540x960: **73–77** (llvmpipe: 34); vkcube ~33 fps
-- Compositor (sway) vẫn render pixman: wlroots GLES/Vulkan cần GPU có DRM render node. Chi tiết lỗi: ERRORS.md C47
-- Build thử nhanh ngoài pmbootstrap: `pmos/mesa/build.sh` (Docker aarch64 native, ~1 phút)
+## 5. Kernel
 
-## ✅ Âm thanh + jack + DTBO bỏ Virtual-1 (2026-11-14)
-- `a70q-modem-up` boot ADSP (`/dev/subsys_adsp`) và ghi `lpm_levels sleep_disabled=0`; card q6 `sm6150-idp-snd-card`
-- UCM `Samsung/a70q/HiFi.conf` (device package r11): Speaker, Headphones, Earpiece, Mic, HeadsetMic; PipeWire tự chọn loa/tai nghe theo jack (kernel r15, patch 0008)
-- DTBO: `pmos/tools/dtbo-drop-wb.sh backups/dtbo.img out.img` rồi `flash.sh --DTBO out.img` (DTBO gốc = `backups/dtbo.img`, khớp với máy)
-- Chi tiết: ERRORS.md C48–C51
+Source `a70q-lineage/android_kernel_samsung_sm6150` nhánh `lineage-22.2` @ `699d9d7da` (trùng với blob
+LOS: defconfig == IKCONFIG, DTB giống từng byte). Config = `a70q_defconfig` + fragment k1 (devtmpfs),
+k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HELPER_FALLBACK`).
 
-## Tiếp theo
-1. ~~Initramfs pmOS + USB networking~~ ✅
-2. ~~Rootfs trên USERDATA → boot pmOS thật, SSH~~ ✅
-3. ~~WiFi~~ ✅, ~~đóng gói service~~ ✅, ~~boot nhanh~~ ✅, ~~UI trên KMS + touch~~ ✅, ~~GPU cho app~~ ✅
-4. ~~Âm thanh~~ ✅, ~~Virtual-1 ở DTBO~~ ✅. Còn: suspend (đang thử), compositor dùng GPU (cần dmabuf giữa kgsl và SDE), sửa C30
+| Patch | Sửa gì |
+|---|---|
+| 0001 | `u_ether`: gửi lại RX request → USB ECM không đứng sau ~10 gói (C29) |
+| 0002–0004 | loop device: block size 4K cho rootfs trên UFS (rescan, xoá page cache, `LOOP_CONFIGURE` đặt queue block size) (C35) |
+| 0006 | `sec_battery`: không vào chế độ LPM khi boot từ màn hình sạc (mất cảm ứng) (C45) |
+| 0008 | MBHC: thêm kcontrol `Headphone Jack` / `Headset Mic Jack` cho PipeWire (C48) |
+
+`kernel/patches/disabled/`: 0005 (fbdev → bootloop), 0007 (writeback trong DT gốc, không có tác dụng vì
+node nằm trong DTBO).
+
+## 6. Các thành phần
+
+**Modem + WiFi** (service OpenRC `a70q-modem` → `/usr/libexec/a70q/a70q-modem-up`, log
+`/var/log/a70q-modem.log`): mount firmware apnhlos/modem → qrtr-ns → rmtfs (EFS chỉ đọc), pd-mapper,
+tqftpserv → boot modem (`/dev/subsys_modem`) → gửi BDF WLAN qua QMI (`a70q-bdf`) → `boot_wlan` + `ON`
+→ `wlan0`. Kernel 4.14 không có QRTR name service và remoteproc class nên các tool linux-msm được vá
+(`a70q-qcom-userspace`). Chi tiết: ERRORS mục I và C43.
+
+**Màn hình + Sxmo** (C38, C45, C49): DRM/KMS của SDE (`card0-DSI-1`), wlroots render bằng pixman
+(`/etc/profile.d/a70q-wlroots.sh`). Device profile Sxmo cho compatible `qcom,sm6150p-idp`.
+
+**GPU** (C47): driver kgsl (`/dev/kgsl-3d0`), không có DRM render node. `mesa-vulkan-freedreno-kgsl`
+(turnip `-Dfreedreno-kmds=msm,kgsl`) cho Vulkan; OpenGL/GLES qua Zink. Biến môi trường trong
+`a70q-wlroots.sh`: `TU_DEBUG=noconform` (A612 không có multiview → chỉ Vulkan 1.0), `MESA_VK_WSI_DEBUG=sw`
+(compositor pixman không có linux-dmabuf), `GALLIUM_DRIVER=zink`. Firmware GPU (`a630_sqe.fw`,
+`a612_rgmu.bin`) chép từ phân vùng vendor lúc boot. Compositor chưa dùng GPU.
+
+**Âm thanh** (C48): `a70q-modem-up` boot ADSP → card q6 `sm6150-idp-snd-card` (WCD937x + WSA881x).
+UCM `/usr/share/alsa/ucm2/Samsung/a70q/` (thiết bị Speaker, Headphones, Earpiece, Mic, HeadsetMic);
+PipeWire chọn loa/tai nghe theo jack.
+
+**Suspend** (C51): `a70q-modem-up` bật lại low-power mode (`lpm_levels sleep_disabled=0`). Khi cắm USB,
+wakelock `usb_notify`/`a600000.ssusb` chặn suspend. Đang kiểm tra suspend/resume khi rút cáp.
+
+## 7. Việc còn lại
+
+- Suspend/resume (đang thử)
+- Compositor dùng GPU (cần chia sẻ buffer giữa kgsl và SDE)
+- C30: debug-shell mất IP ECM
+- Chưa làm: gọi điện/SMS, camera, Bluetooth, cảm biến

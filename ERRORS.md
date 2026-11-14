@@ -223,7 +223,7 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 
 ---
 
-## E. Trạng thái hiện tại (2026-11-11)
+## E. Trạng thái giai đoạn Ubuntu Touch (2026-11-11, đã dừng)
 
 - Soong parse sạch: vendor/samsung, vendor/apn pruned; device common chỉ giữ `init/`
 - `breakfast a70q` PASS: `TARGET_PRODUCT=lineage_a70q`, Android 11, HOST_ARCH=x86_64 (Rosetta)
@@ -369,9 +369,9 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 - `apnhlos` = sda17 (vfat, có a612_zap, adsp, bdwlan.*...), `modem` = sda18 (vfat), `dsp` = sda19 (ext4)
 - ~~WiFi: `CONFIG_QCA_CLD_WLAN` chưa bật~~ **SAI (đính chính)**: `CONFIG_QCA_CLD_WLAN=y` (profile default) có sẵn trong config (giống LOS), module `wlan` + `icnss` đã nạp
 
-## I. Modem + WLAN bring-up (2026-11-14) — đang dở: firmware WLAN chạy, chờ FW_READY
+## I. Modem + WLAN (2026-11-14) — ✅ WiFi chạy (C43)
 
-Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-modem-up.sh`):
+Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a70q-modem-up` trong `device-samsung-a70q`):
 - ✅ Firmware: mount `apnhlos`(sda17)→/vendor/firmware_mnt, `modem`(sda18)→/vendor/firmware-modem; symlink modem.* vào /lib/firmware cho PIL
 - ✅ `restart_level=RELATED` cho mọi subsystem (mặc định SYSTEM → modem crash = reboot cả máy)
 - ✅ Modem boot qua `/dev/subsys_modem` (giữ fd mở) → ONLINE ổn định khi đủ dịch vụ
@@ -383,7 +383,7 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
   - ⭐ Bẫy: phải CHỜ qrtr-ns trả lời (lookup thấy service 52) rồi mới chạy dịch vụ — publish quá sớm thì gói NEW_SERVER mất im lặng → thiếu rmtfs → modem fatal sau ~40s
 - ✅ icnss: QMI WLFW connected, msa_info/msa_ready/cap OK — chip_id 0x140 (WCN3990), fw 0x301a82cf (2019-08-21)
 - ✅ **WiFi CHẠY** (scan thấy mạng xung quanh): mảnh thiếu là BDF — icnss downstream KHÔNG gửi board data; Android do cnss-daemon (độc quyền) làm
-  - `pmos/userspace/src/a70q-bdf.c`: QMI WLFW (service 0x45) `BDF_DOWNLOAD` (msg 0x25, đoạn 6144B, file `apnhlos/image/bdwlan.bin` vì board_id 0xff) + `CAL_REPORT` rỗng (msg 0x26) → firmware gửi `FW_READY` ngay (`icnss: WLAN FW is ready`)
+  - `a70q-qcom-userspace/a70q-bdf.c`: QMI WLFW (service 0x45) `BDF_DOWNLOAD` (msg 0x25, đoạn 6144B, file `apnhlos/image/bdwlan.bin` vì board_id 0xff) + `CAL_REPORT` rỗng (msg 0x26) → firmware gửi `FW_READY` ngay (`icnss: WLAN FW is ready`)
   - qcacld built-in hoãn khởi tạo: `echo 1 > /sys/kernel/boot_wlan/boot_wlan`, rồi `echo ON > /dev/wlan` (việc của wifi HAL Android) → tạo `wlan0` + `p2p0`
   - Cần `WCNSS_qcom_cfg.ini` (+regdb.bin) từ partition vendor ở `/lib/firmware/wlan/qca_cld/`
   - Toàn bộ đã gom vào `a70q-modem-up.sh`
@@ -396,6 +396,8 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
 - `wpa_passphrase` → `/etc/wpa_supplicant/wpa_supplicant.conf` (chỉ PSK băm, 600) → `wpa_supplicant -D nl80211 -i wlan0 -c ...` → WPA2 CCMP OK → `udhcpc -i wlan0` → IP 192.168.1.x, ping internet, `apk update` OK, SSH qua WiFi OK
 - Bẫy: wpa_supplicant của Alpine KHÔNG hỗ trợ `-f <logfile>` (in usage rồi thoát) → dùng redirect stdout
 - Bẫy: `/etc/resolv.conf` trong rootfs là file Docker sinh lúc pmbootstrap build (nameserver 0.250.250.200) — DHCP ghi đè; nên xoá khi đóng gói image
+
+## J. Giao diện, GPU, âm thanh, suspend (2026-11-14)
 
 ### C44. Flash từ xa: `reboot-mode` gửi qua SSH chạy trễ → flash.sh hết giờ chờ
 - `ssh ... 'sudo sh -c "(sleep 1; reboot-mode download) &"'`: tiến trình nền gắn phiên SSH, máy vào DM sau khi flash.sh (chờ 180s) đã bỏ cuộc; bộ lọc grep của mình còn giấu dòng "no Download Mode device"
