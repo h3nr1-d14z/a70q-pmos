@@ -166,6 +166,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
 | Tự chỉnh độ sáng, tắt màn khi gọi | cảm biến ánh sáng/tiệm cận đã đọc được (C61) | nối vào Sxmo |
+| Giảm RAM của OS | đo 2026-11-15 (PSS): OS ~275 MB userspace + ~200 MB kernel, Epiphany 1 trang ~660 MB. Có thể bớt ~35–50 MB: ModemManager (chưa SIM, C58), sleep-inhibitor (17 MB, chưa rõ Sxmo có dùng), xdg-desktop-portal(-gtk) (~16 MB), gộp 3 daemon Python a70q, gỡ a70q-batlog | **tạm hoãn** (người dùng: không đáng so với công sức) |
 | Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | **tạm hoãn: chưa có SIM**; debug MM với QRTR; data cần rmnet/IPA |
 | GPS | QMI LOC chạy, NMEA 1 Hz nhưng chưa thấy vệ tinh (thử trong nhà) — `gnss/README.md` | thử ngoài trời, XTRA, nối geoclue |
 | Camera | kernel có stack CAMX (`cam-isp`, `cam-icp`, `cam-sensor-driver` ×5, `media0/1`); không có userspace mở, ISP chỉ lập trình được bằng HAL Android `camera.qcom` + tuning Samsung | **không khả thi** trên pmOS thuần (cần libhybris/HAL Android) |
