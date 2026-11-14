@@ -85,6 +85,10 @@ for i in $(seq 1 30); do [ -e /dev/wlan ] && break; sleep 0.5; done
 echo ON > /dev/wlan
 for i in $(seq 1 120); do [ -e /sys/class/net/wlan0 ] && break; sleep 0.5; done   # takes ~20 s
 [ -e /sys/class/net/wlan0 ] && log "wlan0 up ($(cat /sys/class/net/wlan0/address))" || log "ERROR: no wlan0"
+# suspend with WiFi connected: without a WoWLAN config cfg80211 disconnects on suspend and the
+# resulting event aborts it. With the "disconnect" trigger too the firmware woke the AP at once
+# in our test (WLAN_CE_2), magic-packet only lets it sleep (ERRORS C51)
+[ -e /sys/class/net/wlan0 ] && iw phy "$(cat /sys/class/net/wlan0/phy80211/name)" wowlan enable magic-packet
 
 # --- connect to WiFi if the user configured wpa_supplicant (hashed psk via wpa_passphrase)
 CONF=/etc/wpa_supplicant/wpa_supplicant.conf

@@ -448,4 +448,17 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 ### C51. Suspend: `lpm_levels.sleep_disabled=1` trong cmdline
 - Cmdline LOS có `lpm_levels.sleep_disabled=1`; Android init ghi lại `0` sau boot. pmOS không làm → CPU idle nông, suspend không vào được → `a70q-modem-up` ghi `0`
 - Suspend còn bị chặn bởi wakelock khi cắm USB (`usb_notify`, `a600000.ssusb`) và `sxmo_not_suspendable`; `power_supply/usb/online` báo 0 khi sạc PD — dùng `pc_port/online`
+- WiFi: không có cấu hình WoWLAN thì cfg80211 ngắt kết nối khi suspend (`DEAUTH_LEAVING`) và sự kiện đó huỷ suspend ("Some devices failed to suspend"). `wowlan enable disconnect magic-packet` → firmware đánh thức ngay (`WLAN_CE_2`, icnss `suspend_noirq` -11); chỉ `magic-packet` → ngủ được, WiFi vẫn kết nối sau resume → `a70q-modem-up` đặt WoWLAN magic-packet
+- `qcom_rx_wakelock` (gói WiFi vừa nhận, ví dụ chính phiên SSH) chặn suspend vài giây — thử lại sau
+- Kết quả: rtcwake 20 s ngủ đủ, dậy bằng `qpnp_rtc_alarm`; tắt màn hình trước rồi suspend cũng OK
 
+### C52. ✅ "Bấm nút nguồn là máy tắt" + màn hình không sáng lại sau khi bấm nguồn
+- **elogind** chạy với mặc định `HandlePowerKey=poweroff` và không ai giữ inhibitor `handle-power-key` → mỗi lần bấm nguồn (cả lần đánh thức từ suspend) elogind tắt máy: PMIC báo `Power-off reason: PS_HOLD (MSM Controlled Shutdown)`, Sxmo log "gracefully exiting (on signal)". Cắm sạc thì thấy biểu tượng pin rồi máy tự boot → trông như crash. Suspend không có lỗi
+  - Fix: `/etc/elogind/logind.conf.d/50-a70q.conf` (`HandlePowerKey=ignore`, lid/hall `ignore`); nạp nóng bằng `kill -HUP $(cat /run/elogind.pid)`, kiểm bằng D-Bus `org.freedesktop.login1.Manager.HandlePowerKey`
+- **Lần bật màn hình đầu tiên sau khi tắt luôn thất bại**: atomic check của SDE từ chối âm thầm (sway: `Backend commit failed`), lần thứ hai OK. Sau lần thất bại, wlroots bỏ object wlr-output-power của output → `wlopm` không liệt kê output nữa và `wlopm --on` không làm gì (trạng thái wlopm báo cũng không tin được)
+  - Fix: `/usr/share/a70q/sxmo/default_hooks/wlopm` thay `wlopm` trong PATH của Sxmo: bật/tắt qua `swaymsg output * power`, thử lại tối đa 5 s, đọc trạng thái thật ở `/sys/class/drm/card0-DSI-1/dpms`. Thư mục được đưa vào PATH bằng `XDG_DATA_DIRS` trong deviceprofile (Sxmo dựng PATH từ `$XDG_DATA_DIRS/sxmo/default_hooks` sau khi nạp deviceprofile)
+- **Lần bấm nguồn đánh thức máy bị nuốt**: phím được nhấn khi kernel đang resume nên sway không nhận → Sxmo vẫn ở `screenoff`, cần bấm thêm. Fix: hook `sxmo_hook_postwake.sh` riêng đọc `Resume caused by IRQ .., pon_kpdpwr` trong dmesg của lần resume cuối → `sxmo_state.sh set lock`; RTC/WiFi wake vẫn giữ màn hình tắt
+- `SXMO_NO_MODEM=1`: modem không qua ModemManager → postwake gốc báo "Modem crashed!" và giữ wakelock 30 s mỗi lần resume
+- `~/.cache/sxmo/sxmo.nosuspend` (và `sxmo.noidle`) được Sxmo tạo ở lần đăng nhập đầu khi chưa có deviceprofile → phải xoá để Sxmo tự suspend; cài mới có deviceprofile từ đầu thì không bị
+- Kiểm chứng (device r16, rút cáp): bấm nguồn → màn hình tắt → 3 s sau suspend → 28 s sau bấm nguồn → dậy, màn hình sáng sau 0,7 s → bấm lần nữa → mở khoá, cảm ứng chạy
+- Quy trình debug khi máy "chết" không để lại log: stream `dmesg -c` về Mac qua SSH; đọc `Power-on/Power-off reason` của qpnp-power-on ở lần boot sau; BusyBox `dmesg` không có `-w`, `grep` không có `--line-buffered`, `cat /dev/kmsg` chạy nền tự thoát (EPIPE)

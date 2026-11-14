@@ -12,7 +12,7 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r11 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r16 | `pmaports/device/downstream/` |
 | `a70q-qcom-userspace` | r0 | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
@@ -112,12 +112,17 @@ tqftpserv → boot modem (`/dev/subsys_modem`) → gửi BDF WLAN qua QMI (`a70q
 UCM `/usr/share/alsa/ucm2/Samsung/a70q/` (thiết bị Speaker, Headphones, Earpiece, Mic, HeadsetMic);
 PipeWire chọn loa/tai nghe theo jack.
 
-**Suspend** (C51): `a70q-modem-up` bật lại low-power mode (`lpm_levels sleep_disabled=0`). Khi cắm USB,
-wakelock `usb_notify`/`a600000.ssusb` chặn suspend. Đang kiểm tra suspend/resume khi rút cáp.
+**Suspend + nút nguồn** (C51, C52): Sxmo tự suspend 3 s sau khi tắt màn hình; nút nguồn đánh thức và
+bật màn hình. Các mảnh ghép trong `device-samsung-a70q`:
+- `a70q-modem-up`: `lpm_levels sleep_disabled=0`, WiFi WoWLAN `magic-packet` (WiFi giữ kết nối khi ngủ)
+- `/etc/elogind/logind.conf.d/50-a70q.conf`: elogind bỏ qua phím nguồn/nắp (mặc định nó tắt máy)
+- deviceprofile Sxmo: `SXMO_NO_MODEM=1`, thêm `/usr/share/a70q` vào `XDG_DATA_DIRS` để Sxmo dùng
+  `/usr/share/a70q/sxmo/default_hooks/{wlopm,sxmo_hook_postwake.sh}` (bật màn hình có thử lại;
+  bật màn hình khi máy được nút nguồn đánh thức)
+- Cắm USB thì không suspend được (wakelock `usb_notify`, `a600000.ssusb`)
 
 ## 7. Việc còn lại
 
-- Suspend/resume (đang thử)
 - Compositor dùng GPU (cần chia sẻ buffer giữa kgsl và SDE)
 - C30: debug-shell mất IP ECM
 - Chưa làm: gọi điện/SMS, camera, Bluetooth, cảm biến
