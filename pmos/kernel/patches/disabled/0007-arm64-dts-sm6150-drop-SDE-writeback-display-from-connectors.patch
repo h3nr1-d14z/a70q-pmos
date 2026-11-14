@@ -1,0 +1,33 @@
+From 2219b6f4175ab11b04c673f969e28999ac96d3ea Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Sat, 14 Nov 2026 01:24:55 +0000
+Subject: [PATCH] arm64: dts: sm6150: drop the SDE writeback display from
+ connectors
+
+The writeback connector shows up as "Virtual-1". Generic compositors
+(wlroots) allocate CRTC 102 to it and give DSI-1 the second CRTC, which
+cannot drive the DSI interface ("enc27 intf1 pp0 encoder is disabled",
+black panel). Writeback is only used by Android composition; leave it out
+of the msm_drm component list (status=disabled alone would make the
+component master wait forever).
+---
+ arch/arm64/boot/dts/qcom/sm6150-sde-display.dtsi | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/qcom/sm6150-sde-display.dtsi b/arch/arm64/boot/dts/qcom/sm6150-sde-display.dtsi
+index 077a3155a..767d54da5 100755
+--- a/arch/arm64/boot/dts/qcom/sm6150-sde-display.dtsi
++++ b/arch/arm64/boot/dts/qcom/sm6150-sde-display.dtsi
+@@ -282,7 +282,8 @@
+ };
+ 
+ &mdss_mdp {
+-	connectors = <&sde_rscc &sde_wb &sde_dp &sde_dsi>;
++	/* no &sde_wb: its Virtual-1 connector grabs CRTC 102, the only one driving DSI */
++	connectors = <&sde_rscc &sde_dp &sde_dsi>;
+ };
+ 
+ &dsi_sim_vid {
+-- 
+2.43.0
+

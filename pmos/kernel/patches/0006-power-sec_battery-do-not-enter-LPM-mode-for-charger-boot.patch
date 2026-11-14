@@ -1,0 +1,40 @@
+From c83a9157d4275b14e6f92bafa2ea9422b9d9e880 Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Sat, 14 Nov 2026 01:24:54 +0000
+Subject: [PATCH] power: sec_battery: do not enter LPM mode for
+ androidboot.mode=charger
+
+When the device is off with a charger attached the Samsung bootloader boots
+the kernel with androidboot.mode=charger and sec_battery sets lpcharge=1.
+Many Samsung drivers then disable themselves (ist40xx: "Do not load driver
+due to : lpm 1"), leaving postmarketOS without a touchscreen. pmOS has no
+Android charger UI, so keep lpcharge=0 and boot normally.
+---
+ drivers/battery/common/sec_battery.c | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/battery/common/sec_battery.c b/drivers/battery/common/sec_battery.c
+index 7f4d0dd31..87a9af30a 100755
+--- a/drivers/battery/common/sec_battery.c
++++ b/drivers/battery/common/sec_battery.c
+@@ -220,10 +220,13 @@ __setup("androidboot.sales_code=", sales_code_setup);
+ 
+ static int sec_bat_is_lpm_check(char *str)
+ {
+-	if (strncmp(str, "charger", 7) == 0)
+-		lpcharge = 1;
+-	else
+-		lpcharge = 0;
++	/*
++	 * postmarketOS has no Android charger UI: when the bootloader starts the
++	 * kernel with androidboot.mode=charger (device off + cable plugged in),
++	 * still bring up every driver normally (touchscreen drivers refuse to
++	 * load when lpcharge is set). Charging works the same in normal mode.
++	 */
++	lpcharge = 0;
+ 	pr_info("%s: Low power charging mode: %d\n", __func__, lpcharge);
+ 
+ 	return lpcharge;
+-- 
+2.43.0
+

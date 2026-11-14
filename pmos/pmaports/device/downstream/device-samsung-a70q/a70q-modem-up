@@ -71,7 +71,9 @@ for i in $(seq 1 120); do [ -e /sys/class/net/wlan0 ] && break; sleep 0.5; done 
 
 # --- connect to WiFi if the user configured wpa_supplicant (hashed psk via wpa_passphrase)
 CONF=/etc/wpa_supplicant/wpa_supplicant.conf
-if [ -e /sys/class/net/wlan0 ] && [ -s "$CONF" ]; then
+if rc-update show default 2>/dev/null | grep -qE "^ *networkmanager "; then
+	log "NetworkManager enabled: leaving wlan0 to it"
+elif [ -e /sys/class/net/wlan0 ] && [ -s "$CONF" ]; then
 	ip link set wlan0 up
 	wpa_supplicant -B -D nl80211 -i wlan0 -c "$CONF" -P /run/wpa_supplicant.wlan0.pid
 	udhcpc -b -i wlan0 -p /run/udhcpc.wlan0.pid -x hostname:"$(hostname)" >/dev/null 2>&1

@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=6
+pkgrel=8
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -23,6 +23,9 @@ source="
 	unudhcpd.ecm0.confd
 	a70q-modem-up
 	a70q-modem.initd
+	a70q-wlroots.sh
+	50-a70q.nm.conf
+	sxmo_deviceprofile.sh
 "
 options="!archcheck !check"
 
@@ -42,11 +45,17 @@ package() {
 	install -Dm755 "$srcdir"/a70q-modem.initd "$pkgdir"/etc/init.d/a70q-modem
 	mkdir -p "$pkgdir"/etc/runlevels/default
 	ln -s /etc/init.d/a70q-modem "$pkgdir"/etc/runlevels/default/a70q-modem
+	install -Dm644 "$srcdir"/a70q-wlroots.sh "$pkgdir"/etc/profile.d/a70q-wlroots.sh
+	install -Dm644 "$srcdir"/50-a70q.nm.conf "$pkgdir"/etc/NetworkManager/conf.d/50-a70q.conf
+	install -Dm755 "$srcdir"/sxmo_deviceprofile.sh "$pkgdir"/usr/bin/sxmo_deviceprofile_qcom,sm6150p-idp.sh
 }
 
 sha512sums="
 0d751e1e72013f1f360d71dfbf123d3a7b7c75259b2c3e139e013d9458cdcfc94055fcde5b0282532fd7a3bd4c2956ab8d756bec7230778b111b56bb0ee726fc  deviceinfo
 a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824adfe19039cb54e98dd8b8384979421be0fa4822c5a1e1955  unudhcpd.ecm0.confd
-f6285995610b6d673ab9695610ceb261525161eebee0eff283e8054968c0a29894c2b6f34a0fcab1c3f9831ca0d7ee5f9ccd785083d7b394ca39208fbceda8d1  a70q-modem-up
+e7b96c57c0fb49d4df9ae8b5a5df335e39b6831161e5883c3ec588e6620d3bd7824764fe5a731635f05f4e02c0ba45541b88fc66ca6326b6ae0cad37e154c7e1  a70q-modem-up
 dbdb993845c92d371bd487dafe855c4336f93758242ccaa4bf25e61554841d4f23923561ee0e8495ce2828076de51aff495b747cc8ffe3d2419e851351def339  a70q-modem.initd
+601470cf10e22f6c68bc689fcd648beb0dd3a5fd92dc18e5c72e4910d0f48287560a2b53bb0c80367b2b4cbc0a89d111178e98cb3d79aeb0e64a1a0936906fe6  a70q-wlroots.sh
+27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
+43369eee4dfb17810b8059a103afe2493db7788bbd072501be999eacc65b78f8a375e76636646d8a690e2464adf5c135e5b37472baa2e8422d85196bc2e1d4cb  sxmo_deviceprofile.sh
 "
