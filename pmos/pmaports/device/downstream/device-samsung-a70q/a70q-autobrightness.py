@@ -21,6 +21,9 @@ BL = '/sys/class/backlight/panel0-backlight/'
 FLAG = os.path.expanduser('~/.config/a70q/autobrightness-off')
 STATE = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()), 'sxmo.state')
 MIN_PCT, MAX_PCT = 3.0, 100.0
+SAVER_FLAG = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()),
+                          'a70q-battery-saver')
+SAVER_PCT = 50.0     # brightness cap while a70q-battery-saver is on
 HYSTERESIS = 4.0     # % change of the target needed before moving
 SERVICE = 'a70q-autobrightness'
 
@@ -105,7 +108,8 @@ class Daemon:
             return
         if self.lux is None:
             return
-        want = max(MIN_PCT, min(MAX_PCT, curve(self.lux) + self.bias))
+        top = SAVER_PCT if os.path.exists(SAVER_FLAG) else MAX_PCT   # battery saver cap
+        want = max(MIN_PCT, min(top, curve(self.lux) + self.bias))
         if self.target is None or abs(want - self.target) >= HYSTERESIS:
             self.target = want
         goal = round(MAX_RAW * self.target / 100.0)

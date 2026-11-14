@@ -7,6 +7,7 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 
 | Tính năng | Trạng thái | Ghi chú |
 |---|---|---|
+| Tiết kiệm pin tự động | ✅ | pin ≤ 20% khi đang xả: nhân lớn tối đa 1,2 GHz, độ sáng tối đa 50%, chữ "eco" trên thanh; tắt khi sạc hoặc ≥ 25% |
 | Quản lý xung CPU/bus | ✅ | schedutil + bw_hwmon/mem_latency như Android (trước đó luôn xung tối đa, C68) |
 | Boot pmOS từ UFS | ✅ | kernel 1,9 s; SSH USB ~16 s, Sxmo ~15 s, WiFi ~31 s (kernel r22, C66) |
 | USB networking (ECM) | ✅ | `ssh user@172.16.42.1` |

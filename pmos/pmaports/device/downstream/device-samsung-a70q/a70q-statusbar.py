@@ -10,7 +10,8 @@
 #
 # Extra blocks computed here over D-Bus (no helper processes), merged into Sxmo's line:
 #   WiFi signal % (NetworkManager, after the WiFi icon), Bluetooth icon while a device is
-#   connected (BlueZ), CPU temperature (thermal zones), VI/EN of the fcitx5 input method.
+#   connected (BlueZ), CPU temperature (thermal zones), VI/EN of the fcitx5 input method,
+#   "eco" while a70q-battery-saver is on.
 # Polled every 3 s while the screen is unlocked (VI/EN), the rest every 15 s; slower when locked.
 import json
 import os
@@ -27,6 +28,7 @@ except (ImportError, ValueError):
     Gio = None
 
 DEFAULT_COLOUR = '#FDFDFD'
+SAVER = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()), 'a70q-battery-saver')
 STATE = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()), 'sxmo.state')
 
 lock = threading.Lock()
@@ -136,6 +138,7 @@ def poll():
         new = dict(extra)
         st = fcitx_state(sessbus)
         new['a70q-vi'] = {2: 'VI', 1: 'EN'}.get(st, '')
+        new['a70q-saver'] = 'eco' if os.path.exists(SAVER) else ''
         if n % 5 == 0:
             s = wifi_strength(sysbus)
             new['a70q-wifi'] = f'{s}%' if s is not None else ''
@@ -219,7 +222,7 @@ def on_click(ev):
         spawn('sxmo_networks.sh')
     elif name.startswith(('bluetooth', 'a70q-bt')):
         spawn('sxmo_bluetoothmenu.sh')
-    elif name.startswith('battery'):
+    elif name.startswith(('battery', 'a70q-saver')):
         battery_info()
     elif name == 'time':
         date_info()
@@ -271,6 +274,8 @@ def render():
                     if extra.get(e):
                         blocks.append(block(e, extra[e]))
             blocks.append(b)
+            if n == 'battery-status-battery' and extra.get('a70q-saver'):
+                blocks.append(dict(block('a70q-saver', extra['a70q-saver']), color='#7fd17f'))
             if n == 'wifi-status':
                 for e in ('a70q-wifi', 'a70q-bt'):
                     if extra.get(e):

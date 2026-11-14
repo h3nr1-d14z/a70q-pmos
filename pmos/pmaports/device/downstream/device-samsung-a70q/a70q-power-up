@@ -79,6 +79,10 @@ for d in /sys/devices/platform/soc/*cpu*-ddr-latfloor*/devfreq/*cpu-ddr-latfloor
 	w compute $d/governor; w 10 $d/polling_interval
 done
 
+# battery saver (a70q-battery-saver, runs as the session user) caps the gold cluster
+chgrp video /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+chmod 664 /sys/devices/system/cpu/cpufreq/policy6/scaling_max_freq 2>/dev/null
+
 w 0 /proc/sys/kernel/sched_boost
 w 0 /sys/module/lpm_levels/parameters/sleep_disabled
 exit 0
