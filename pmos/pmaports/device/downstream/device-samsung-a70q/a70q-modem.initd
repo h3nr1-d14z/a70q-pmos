@@ -1,0 +1,26 @@
+#!/sbin/openrc-run
+# Galaxy A70: boot modem with QRTR userspace services, load WCN3990 board data,
+# start the built-in qcacld WLAN driver and (if configured) connect WiFi.
+description="a70q modem / QRTR services / WLAN bring-up"
+
+depend() {
+	need localmount
+	after udev-settle
+}
+
+start() {
+	ebegin "Starting a70q modem and WLAN bring-up (log: /var/log/a70q-modem.log)"
+	# takes ~30 s (modem boot + WLAN firmware); run in background so boot is not blocked
+	# one-shot script that spawns the daemons; not supervised
+	setsid /bin/sh -c '/usr/libexec/a70q/a70q-modem-up >/var/log/a70q-modem.log 2>&1' &
+	eend 0
+}
+
+stop() {
+	ebegin "Stopping a70q modem services"
+	for p in /run/udhcpc.wlan0.pid /run/wpa_supplicant.wlan0.pid /run/a70q-subsys-modem.pid; do
+		[ -f "$p" ] && kill "$(cat "$p")" 2>/dev/null
+	done
+	pkill -x pd-mapper; pkill -x tqftpserv; pkill -x rmtfs; pkill -x qrtr-ns
+	eend 0
+}

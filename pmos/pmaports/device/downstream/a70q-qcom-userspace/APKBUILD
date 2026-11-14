@@ -1,0 +1,72 @@
+# Qualcomm remote-processor userspace for a70q (SM6150, downstream 4.14 kernel).
+# The downstream kernel has no in-kernel QRTR name service and no remoteproc
+# class, so we build qrtr-ns from the last qrtr commit that still had it and
+# patch pd-mapper/tqftpserv to find firmware without /sys/class/remoteproc.
+# a70q-bdf replaces Android's proprietary cnss-daemon for the WCN3990 board data.
+maintainer="a70q pmOS port <noreply@example.org>"
+pkgname=a70q-qcom-userspace
+pkgver=1
+pkgrel=0
+pkgdesc="QRTR name service, pd-mapper, tqftpserv, BDF loader and reboot-mode for Galaxy A70"
+url="https://github.com/linux-msm"
+arch="aarch64"
+license="BSD-3-Clause AND GPL-2.0-or-later"
+makedepends="linux-headers xz-dev"
+options="!check"
+_qrtr=6d950d26e50d9ea3607510308fdd653bccc54400
+_pdm=5ecd2fe926aca7abfe40724177f63b942cff3947
+_tftp=b31de6db4f31d09119293203d39636b827f16321
+source="
+	qrtr-$_qrtr.tar.gz::https://github.com/linux-msm/qrtr/archive/$_qrtr.tar.gz
+	pd-mapper-$_pdm.tar.gz::https://github.com/linux-msm/pd-mapper/archive/$_pdm.tar.gz
+	tqftpserv-$_tftp.tar.gz::https://github.com/linux-msm/tqftpserv/archive/$_tftp.tar.gz
+	qrtr-ns-0001-trust-configured-node.diff
+	pd-mapper-0001-PD_MAPPER_JSON_DIRS.diff
+	tqftpserv-0001-fallback-without-remoteproc.diff
+	a70q-bdf.c
+	reboot-mode.c
+"
+builddir="$srcdir"
+
+prepare() {
+	default_prepare
+	(cd qrtr-$_qrtr && patch -p1 < "$srcdir"/qrtr-ns-0001-trust-configured-node.diff)
+	(cd pd-mapper-$_pdm && patch -p1 < "$srcdir"/pd-mapper-0001-PD_MAPPER_JSON_DIRS.diff)
+	(cd tqftpserv-$_tftp && patch -p1 < "$srcdir"/tqftpserv-0001-fallback-without-remoteproc.diff)
+}
+
+build() {
+	local q="$srcdir/qrtr-$_qrtr"
+	mkdir -p out
+	$CC $CFLAGS -I$q/include -I$q/lib -o out/qrtr-ns $q/src/ns.c $q/src/addr.c \
+		$q/src/hash.c $q/src/map.c $q/src/util.c $q/src/waiter.c $q/lib/*.c $LDFLAGS
+	$CC $CFLAGS -I$q/include -I$q/lib -o out/qrtr-lookup $q/src/lookup.c $q/src/util.c \
+		$q/lib/*.c $LDFLAGS
+	(cd pd-mapper-$_pdm && $CC $CFLAGS -I$q/include -o ../out/pd-mapper pd-mapper.c assoc.c \
+		json.c lzma_decomp.c servreg_loc.c $q/lib/*.c $LDFLAGS -llzma)
+	(cd tqftpserv-$_tftp && $CC $CFLAGS -I$q/include -o ../out/tqftpserv tqftpserv.c \
+		translate.c $q/lib/*.c $LDFLAGS)
+	$CC $CFLAGS -o out/a70q-bdf a70q-bdf.c $LDFLAGS
+	$CC $CFLAGS -o out/reboot-mode reboot-mode.c $LDFLAGS
+}
+
+package() {
+	local f
+	for f in qrtr-ns qrtr-lookup pd-mapper tqftpserv a70q-bdf reboot-mode; do
+		install -Dm755 out/$f "$pkgdir"/usr/libexec/a70q/$f
+	done
+	install -d "$pkgdir"/usr/bin
+	ln -s /usr/libexec/a70q/reboot-mode "$pkgdir"/usr/bin/reboot-mode
+	ln -s /usr/libexec/a70q/qrtr-lookup "$pkgdir"/usr/bin/qrtr-lookup
+}
+
+sha512sums="
+e0bd063565931175e17c7976058b88de9bf6cea83a339f60ace7b898cb675c6e85b7df0ebae7389d8709fec5c3a4fd5f576da52278ce39f7fd466f609a0f50b4  qrtr-6d950d26e50d9ea3607510308fdd653bccc54400.tar.gz
+d8dda67fac505141fc021e66c563672e76dc8202358a2b493db8c4a6034dac27db1a0dcda04406ef001bb62cfcafe7c8f8343a3846c935525407d53551c9f6c4  pd-mapper-5ecd2fe926aca7abfe40724177f63b942cff3947.tar.gz
+268acea14b6082e280adbfcd502d7b2db4377ed927214f7aa97669fd999a28ee85b8bcbe69057874a4bdbb019013f5ef2cfce611aac60db5e877e7c8d680f57a  tqftpserv-b31de6db4f31d09119293203d39636b827f16321.tar.gz
+0b3bcff9db1accc32da48df9c8b8da81462acc66149afc2dd7742947c5c8e9af3a26225ab55a2188a32684f036db7d27a3df0b05b4454d2882c6c6bc59161bd7  qrtr-ns-0001-trust-configured-node.diff
+419baf420f8dc4556a6b2634e6715e09b65dfad2fc54f02183265f2af902d9c3be8674c8733251883cf78ff306d3e5a99d6d7c0a65124d836ce5a570606cfa81  pd-mapper-0001-PD_MAPPER_JSON_DIRS.diff
+32826e233a38e30de07ca1ebec63adad043954aa8b045775cd2a34907e8711b816a35a7c0626e112ca48559676b21528ac1edcd77520851826b9e32462919eef  tqftpserv-0001-fallback-without-remoteproc.diff
+71d026e15dfa64f3c10c818b70f366ffd41eaafbbafdba7a1547db96ca8922e9b173c03caeaa152196cc25fb95b3591299892f21fe75041aad760e791275bb54  a70q-bdf.c
+e22935cf3024837d7f15f0cced9e538eb17f7e7ced75b11cc928418ca692a206a540f4c1d6d71c68170a01eafe5d3ed913bf975dc48a1035cbe6400026017141  reboot-mode.c
+"

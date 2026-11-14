@@ -50,7 +50,13 @@ Về Download Mode từ shell: upload `tools/src/reboot-mode.c` (static) → `re
 - cmdline phải có `loop.max_part=7`; boot.img đóng gói lại bằng `bootimg.py pack --like <boot LOS>`
 - Flash: `flash.sh --BOOT <boot.img> --USERDATA samsung-a70q.sparse.img` (USERDATA phải sparse: `img2simg`)
 
+## ✅ Modem + WiFi tự chạy khi boot (2026-11-14)
+- `a70q-qcom-userspace` (pmaports): qrtr-ns, qrtr-lookup, pd-mapper, tqftpserv (build từ linux-msm tại commit cố định + patch), `a70q-bdf`, `reboot-mode` → `/usr/libexec/a70q/`
+- `device-samsung-a70q` r6: service OpenRC `a70q-modem` (runlevel default) chạy `/usr/libexec/a70q/a70q-modem-up`: mount firmware → qrtr-ns → rmtfs(-P -r)/pd-mapper/tqftpserv → modem → BDF+CAL_REPORT → boot_wlan/ON → wlan0 → wpa_supplicant + udhcpc nếu có `/etc/wpa_supplicant/wpa_supplicant.conf`
+- Log: `/var/log/a70q-modem.log`. Cấu hình WiFi: `wpa_passphrase SSID PASS >> /etc/wpa_supplicant/wpa_supplicant.conf` (chmod 600)
+- Kiểm chứng: reboot → SSH qua WiFi sau ~3 phút (boot chậm do kernel chờ firmware venus timeout 60s — cần sửa)
+
 ## Tiếp theo
 1. ~~Initramfs pmOS + USB networking~~ ✅
 2. ~~Rootfs trên USERDATA → boot pmOS thật, SSH~~ ✅
-3. Màn hình (fbcon/DRM), touch, WiFi (WCN3990), pin; đóng gói `reboot-mode` vào initramfs; sửa C30 (debug-shell mất IP)
+3. ~~WiFi~~ ✅, ~~đóng gói service~~ ✅; còn: boot nhanh (firmware sớm), UI trên KMS (màn hình đã chạy qua DRM), touch, âm thanh (adsp), pin; sửa C30

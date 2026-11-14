@@ -3,12 +3,16 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=3
+pkgrel=6
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
 depends="
+	a70q-qcom-userspace
 	android-tools-mkbootimg
+	iw
+	rmtfs
+	wpa_supplicant
 	linux-samsung-a70q
 	postmarketos-base
 "
@@ -17,6 +21,8 @@ install="$pkgname.post-install"
 source="
 	deviceinfo
 	unudhcpd.ecm0.confd
+	a70q-modem-up
+	a70q-modem.initd
 "
 options="!archcheck !check"
 
@@ -32,9 +38,15 @@ package() {
 	mkdir -p "$pkgdir"/etc/init.d "$pkgdir"/etc/runlevels/boot
 	ln -s unudhcpd "$pkgdir"/etc/init.d/unudhcpd.ecm0
 	ln -s /etc/init.d/unudhcpd.ecm0 "$pkgdir"/etc/runlevels/boot/unudhcpd.ecm0
+	install -Dm755 "$srcdir"/a70q-modem-up "$pkgdir"/usr/libexec/a70q/a70q-modem-up
+	install -Dm755 "$srcdir"/a70q-modem.initd "$pkgdir"/etc/init.d/a70q-modem
+	mkdir -p "$pkgdir"/etc/runlevels/default
+	ln -s /etc/init.d/a70q-modem "$pkgdir"/etc/runlevels/default/a70q-modem
 }
 
 sha512sums="
-d19efec4223215c418ab2e423bf32e2dff5118a82f986deeeb73d8e0a896875c93d5a3e91efc5b52a8117c72303326d5d08bc52aa2c8b3aeccb1704943a5599c  deviceinfo
+0d751e1e72013f1f360d71dfbf123d3a7b7c75259b2c3e139e013d9458cdcfc94055fcde5b0282532fd7a3bd4c2956ab8d756bec7230778b111b56bb0ee726fc  deviceinfo
 a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824adfe19039cb54e98dd8b8384979421be0fa4822c5a1e1955  unudhcpd.ecm0.confd
+f6285995610b6d673ab9695610ceb261525161eebee0eff283e8054968c0a29894c2b6f34a0fcab1c3f9831ca0d7ee5f9ccd785083d7b394ca39208fbceda8d1  a70q-modem-up
+dbdb993845c92d371bd487dafe855c4336f93758242ccaa4bf25e61554841d4f23923561ee0e8495ce2828076de51aff495b747cc8ffe3d2419e851351def339  a70q-modem.initd
 "
