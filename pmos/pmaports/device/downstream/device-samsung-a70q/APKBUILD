@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=30
+pkgrel=31
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -47,6 +47,8 @@ source="
 	51-a70q-alsa.conf
 	a70q-obexd.service
 	80-a70q-ssc.rules
+	90-a70q-automount.rules
+	a70q-automount
 "
 options="!archcheck !check"
 
@@ -86,6 +88,9 @@ package() {
 	install -Dm644 "$srcdir"/51-a70q-alsa.conf "$pkgdir"/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf
 	# sensors (SSC via libssc in iio-sensor-proxy)
 	install -Dm644 "$srcdir"/80-a70q-ssc.rules "$pkgdir"/usr/lib/udev/rules.d/80-a70q-ssc.rules
+	# microSD / USB storage auto-mount at /media/<label>
+	install -Dm644 "$srcdir"/90-a70q-automount.rules "$pkgdir"/usr/lib/udev/rules.d/90-a70q-automount.rules
+	install -Dm755 "$srcdir"/a70q-automount "$pkgdir"/usr/libexec/a70q/a70q-automount
 	# Bluetooth file receive (OBEX) in the user session
 	install -Dm644 "$srcdir"/a70q-obexd.service "$pkgdir"/usr/share/superd/services/a70q-obexd.service
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
@@ -123,4 +128,6 @@ fcdffc1dd56723a2c69e99ecb93a720915ce21ee3f417411d08420c911f748166513f22535ae5ee9
 8a0782315617ad6a883d95ea50cfbfffb0def3c4c8ad592801f1d098ea9f674de8006cd85d2e5e1ab8b6ace45b7986a7d47f74b77310228dd274cd7a2302d28d  51-a70q-alsa.conf
 69f963daf9043567449571607d767a9e6e5c36d396a34d7d3b033a4172240605e286e3f7711799c96daf587f82ffe102a05f245c905e6010698481f73c6ac118  a70q-obexd.service
 ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd092898925bf4b8b887f612256a0b8ad9168247172c72363f41bfabb9  80-a70q-ssc.rules
+67f47c7b6cbf8c2351a6e6a332f7df9ebe08e91f9a06e0433b66e42139295290f04fe8e08f9ef8246c93e9704175ab129c4daab51839c51a6c197f8e5ee2a99b  90-a70q-automount.rules
+344ea26853ee0bd0d647a8e07da69fa26892ad2750dc209e5b4935553ecab44abf8419daa5823a7afc98797bc84e537c4cf414e69a6c8772fc9115c7618a12fe  a70q-automount
 "

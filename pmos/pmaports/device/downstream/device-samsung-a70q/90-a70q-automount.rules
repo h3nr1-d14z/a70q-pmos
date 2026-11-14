@@ -1,0 +1,5 @@
+# Auto-mount removable storage (microSD on sdhci@8804000 = mmcblk*, USB mass storage over OTG)
+# at /media/<label>. UFS is also sd* (sda..sdf), so sd* devices are only taken when ID_BUS is usb.
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="mmcblk[0-9]*", ENV{ID_FS_USAGE}=="filesystem", RUN+="/usr/libexec/a70q/a70q-automount add %k"
+ACTION=="add", SUBSYSTEM=="block", KERNEL=="sd*", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", RUN+="/usr/libexec/a70q/a70q-automount add %k"
+ACTION=="remove", SUBSYSTEM=="block", KERNEL=="mmcblk[0-9]*|sd*", RUN+="/usr/libexec/a70q/a70q-automount remove %k"

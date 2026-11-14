@@ -1,0 +1,32 @@
+#!/bin/sh
+# a70q-automount add|remove <kernel name>: called from 90-a70q-automount.rules.
+# Mounts at /media/<filesystem label or kernel name>, files owned by the default user (uid 10000).
+act="$1"; dev="/dev/$2"
+log() { logger -t a70q-automount "$*"; }
+
+if [ "$act" = remove ]; then
+	mp="$(awk -v d="$dev" '$1 == d { print $2; exit }' /proc/mounts)"
+	[ -n "$mp" ] || exit 0
+	umount -l "$mp" && rmdir "$mp" 2>/dev/null
+	log "removed $dev from $mp"
+	exit 0
+fi
+
+grep -q "^$dev " /proc/mounts && exit 0
+type="${ID_FS_TYPE:-$(blkid -o value -s TYPE "$dev")}"
+name="$(printf '%s' "${ID_FS_LABEL:-$2}" | tr -c 'A-Za-z0-9._-' '_')"
+mp="/media/$name"
+[ -e "$mp" ] && ! grep -q " $mp " /proc/mounts && rmdir "$mp" 2>/dev/null
+[ -e "$mp" ] && mp="/media/$2"
+mkdir -p "$mp"
+case "$type" in
+	vfat) opts="rw,noatime,flush,uid=10000,gid=10000,fmask=0022,dmask=0022" ;;
+	exfat) opts="rw,noatime,uid=10000,gid=10000,fmask=0022,dmask=0022" ;;
+	ext4|ext3|ext2|btrfs|f2fs) opts="rw,noatime" ;;
+	*) log "skip $dev: filesystem '$type' not handled"; rmdir "$mp"; exit 0 ;;
+esac
+if mount -t "$type" -o "$opts" "$dev" "$mp"; then
+	log "mounted $dev ($type) at $mp"
+else
+	log "mount $dev ($type) failed"; rmdir "$mp"
+fi
