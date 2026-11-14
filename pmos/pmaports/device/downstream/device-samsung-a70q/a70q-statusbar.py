@@ -304,6 +304,11 @@ def on_sxmobar(line):
                 del b[k]
         b['separator'] = False
         b['separator_block_width'] = 8
+        # the volume icon's second glyph is drawn past its box and touched the state circle
+        if b.get('name') == 'volume':
+            b['separator_block_width'] = 16
+        if b.get('name') == 'state':
+            b['separator_block_width'] = 12
     with lock:
         base[:] = blocks
     render()
