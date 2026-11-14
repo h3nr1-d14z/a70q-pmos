@@ -396,3 +396,12 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
 - `wpa_passphrase` → `/etc/wpa_supplicant/wpa_supplicant.conf` (chỉ PSK băm, 600) → `wpa_supplicant -D nl80211 -i wlan0 -c ...` → WPA2 CCMP OK → `udhcpc -i wlan0` → IP 192.168.1.x, ping internet, `apk update` OK, SSH qua WiFi OK
 - Bẫy: wpa_supplicant của Alpine KHÔNG hỗ trợ `-f <logfile>` (in usage rồi thoát) → dùng redirect stdout
 - Bẫy: `/etc/resolv.conf` trong rootfs là file Docker sinh lúc pmbootstrap build (nameserver 0.250.250.200) — DHCP ghi đè; nên xoá khi đóng gói image
+
+### C44. Flash từ xa: `reboot-mode` gửi qua SSH chạy trễ → flash.sh hết giờ chờ
+- `ssh ... 'sudo sh -c "(sleep 1; reboot-mode download) &"'`: tiến trình nền gắn phiên SSH, máy vào DM sau khi flash.sh (chờ 180s) đã bỏ cuộc; bộ lọc grep của mình còn giấu dòng "no Download Mode device"
+- Fix: flash.sh chờ 300s; gọi `sudo setsid -f reboot-mode download` (tách khỏi phiên); không lọc output flash.sh bằng whitelist
+
+### C45. ✅ Giao diện Sxmo + cảm ứng
+- Cảm ứng mất khi boot từ màn hình sạc: cmdline `androidboot.mode=charger` → sec_battery đặt `lpcharge=1` → `ist40xx_init: Do not load driver due to : lpm 1` → patch kernel 0006 (luôn lpcharge=0)
+- Sxmo báo `No deviceprofile found qcom,sm6150p-idp` (DT dùng compatible bo mạch tham chiếu) → device package ship `/usr/bin/sxmo_deviceprofile_qcom,sm6150p-idp.sh`
+- CPU không bị khoá: governor performance, max 1.7/2.0 GHz; chậm là do render CPU (pixman) + boot chờ firmware venus

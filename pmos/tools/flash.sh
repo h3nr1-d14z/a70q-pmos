@@ -27,7 +27,7 @@ dm_node() {  # prints IORegistry node line of each Samsung DM device (04e8:685d)
     END{flush()}'
 }
 echo "waiting for Download Mode (IORegistry only, no detect)..."
-for i in $(seq 1 90); do
+for i in $(seq 1 150); do
   n="$(dm_node | grep -v '@021' | head -1)"   # @021xxxxx = front-port hub (ghost-prone)
   [ -n "$n" ] && break
   sleep 2
@@ -37,7 +37,7 @@ if [ -z "${n:-}" ]; then
     echo "only a DM node on the FRONT hub found — likely a stale ghost (C23)."
     echo "use a REAR USB-C port (or reboot the Mac to reset the front hub)."
   else
-    echo "no Download Mode device after 180s"
+    echo "no Download Mode device after 300s"
   fi
   exit 1
 fi
