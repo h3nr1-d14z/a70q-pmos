@@ -3,7 +3,9 @@
 postmarketOS (Alpine, OpenRC) chạy trên Galaxy A70 với kernel downstream Samsung/LineageOS 4.14.190
 build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo.
 
-## Trạng thái (2026-11-14)
+English: [README.en.md](README.en.md), [INSTALL.en.md](INSTALL.en.md).
+
+## Trạng thái (2026-11-15)
 
 | Tính năng | Trạng thái | Ghi chú |
 |---|---|---|
@@ -12,7 +14,7 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 | Boot pmOS từ UFS | ✅ | kernel 1,9 s; SSH USB ~16 s, Sxmo ~15 s, WiFi ~31 s (kernel r22, C66) |
 | USB networking (ECM) | ✅ | `ssh user@172.16.42.1` |
 | Modem DSP + WiFi (WCN3990) | ✅ | NetworkManager, tự kết nối khi boot |
-| Màn hình (DRM/KMS) + Sxmo | ✅ | sway render pixman; DTBO đã bỏ connector writeback |
+| Màn hình (DRM/KMS) + Sxmo | ✅ | sway render bằng Vulkan (C54); DTBO đã bỏ connector writeback |
 | Cảm ứng, phím, nút nguồn | ✅ | |
 | GPU Adreno 612 | ✅ | turnip-kgsl (Vulkan 1.3) + Zink (GL/GLES); sway render bằng Vulkan (wlroots có patch) |
 | Âm thanh | ✅ | loa, tai nghe (tự chuyển theo jack, kernel r18), mic chính; PipeWire + UCM |
@@ -46,7 +48,8 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 
 | Đường dẫn | Nội dung |
 |---|---|
-| `INSTALL.md` | **Cài từ đầu** (cho người khác): chuẩn bị, build, flash, lần boot đầu |
+| `INSTALL.md` / `INSTALL.en.md` | **Cài từ đầu** (cho người khác): chuẩn bị, build, flash, lần boot đầu (tiếng Việt / tiếng Anh) |
+| `pmos/research/` | Ghi chú nghiên cứu (vd. khả năng chạy kernel mainline) |
 | `pmos/README.md` | Hướng dẫn chi tiết: build, flash, quy trình test từng thành phần |
 | `pmos/pmaports/device/downstream/` | Package: `device-samsung-a70q`, `linux-samsung-a70q`, `a70q-qcom-userspace`, `mesa-vulkan-freedreno-kgsl`, `wlroots0.20`, `libssc` |
 | `pmos/kernel/` | Build kernel nhanh bằng Docker + các patch (`patches/`) |

@@ -41,7 +41,7 @@ Ký hiệu: ✅ đã làm trên máy thật, 🧪 đã chạy lại trên một 
 ## 2. Build package và image
 
 ```sh
-git clone <url repo này> a70q-pmos && cd a70q-pmos
+git clone https://github.com/h3nr1-d14z/a70q-pmos && cd a70q-pmos
 
 # 1) 6 package của máy: kernel, firmware loader/modem, turnip-kgsl, wlroots có patch, libssc có patch,
 #    device package. Lần đầu tự build image Docker a70q-pmb (pmbootstrap 3.12.1) và clone pmaports.

@@ -26,7 +26,7 @@ Package tự build được cài trên máy bằng `apk add --allow-untrusted <f
 - USB (cổng USB-C **phía sau** Mac; cổng trước để lại node Download Mode "ma", ERRORS C23): mạng ECM,
   `ssh user@172.16.42.1`
 - WiFi: NetworkManager quản lý `wlan0` (`nmcli`); máy tự kết nối mạng đã lưu khi boot
-- Mật khẩu tạm của `user`: `147147` (đặt lúc `pmbootstrap install`, nên đổi)
+- Mật khẩu của `user`: đặt lúc `pmbootstrap install --password`, đổi bằng `passwd` trên máy
 - Về Download Mode từ xa: `sudo reboot-mode download`. Gọi qua SSH thì phiên SSH treo vì máy reboot
   giữa chừng → chạy lệnh ở nền phía Mac rồi chờ thiết bị DM (ERRORS C44, C50)
 
@@ -192,6 +192,24 @@ Bàn phím ảo theo ô nhập chữ: addon Lua `a70qosk` của fcitx5 (`/usr/sh
 `org.fcitx.Fcitx5.VirtualKeyboard` của fcitx5: nó chỉ hoạt động ở chế độ OnScreenKeyboard, và fcitx5 tự chuyển
 về PhysicalKeyboard khi nhận phím không mang cờ Virtual (phím của wvkbd qua virtual-keyboard).
 
+### Công cụ AI lập trình (Claude Code, OpenCode, herdr) — đã thử 2026-11-15
+
+Chạy được trên máy (aarch64 musl), cài vào thư mục người dùng:
+
+```sh
+sudo apk add nodejs npm ripgrep libgcc libstdc++ git
+npm config set prefix ~/.npm-global
+# npm mới chặn postinstall: hai gói cần nó để chọn binary aarch64-musl
+npm install -g --allow-scripts=@anthropic-ai/claude-code,opencode-ai @anthropic-ai/claude-code opencode-ai
+mkdir -p ~/.local/bin && wget -O ~/.local/bin/herdr \
+  https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-aarch64 && chmod +x ~/.local/bin/herdr
+# ~/.config/sxmo/profile và ~/.profile:
+#   export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$PATH"; export USE_BUILTIN_RIPGREP=0
+```
+
+Đã chạy: `claude --version` 2.1.325, `opencode --version` 1.19.5, `herdr --version` 0.9.5 (binary tĩnh).
+Thiếu `--allow-scripts` thì cả hai báo `Exec format error` (binary chưa được chọn). Chiếm ~770 MB.
+
 ## 7. Việc còn lại
 
 Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
@@ -200,6 +218,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
 | Tự chỉnh độ sáng, tắt màn khi gọi | cảm biến ánh sáng/tiệm cận đã đọc được (C61) | nối vào Sxmo |
+| Kernel mainline | SoC SM6150 ("talos") đã có upstream gồm GPU A612; thiếu panel/cảm ứng/modem/âm thanh riêng của Samsung — `research/mainline.md` | dự án lớn; bước đầu: DTS tối thiểu (simplefb + USB) |
 | Giảm RAM của OS | đo 2026-11-15 (PSS): OS ~275 MB userspace + ~200 MB kernel, Epiphany 1 trang ~660 MB. Có thể bớt ~35–50 MB: ModemManager (chưa SIM, C58), sleep-inhibitor (17 MB, chưa rõ Sxmo có dùng), xdg-desktop-portal(-gtk) (~16 MB), gộp 3 daemon Python a70q, gỡ a70q-batlog | **tạm hoãn** (người dùng: không đáng so với công sức) |
 | Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | **tạm hoãn: chưa có SIM**; debug MM với QRTR; data cần rmnet/IPA |
 | GPS | QMI LOC chạy, NMEA 1 Hz nhưng chưa thấy vệ tinh (thử trong nhà) — `gnss/README.md` | thử ngoài trời, XTRA, nối geoclue |

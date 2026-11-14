@@ -52,7 +52,7 @@ done
 {
   echo "# Manifest backup FULL a70q - $(date -u +%Y-%m-%dT%H:%M:%SZ)"
   echo ""
-  echo "Device: SM-A705F/DS XXV ([serial removed]), LineageOS 22.2, vendor A11 DXD2"
+  echo "Device: SM-A705F/DS XXV, LineageOS 22.2, vendor A11 DXD2"
   echo "Phuong thuc: dd | base64 qua su (adb wireless), verify size + sha256"
   echo "Skip (reinstall duoc): system, vendor, product, userdata, cache, hidden, omr, pad"
   echo ""

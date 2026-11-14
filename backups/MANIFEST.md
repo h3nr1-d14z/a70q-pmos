@@ -1,6 +1,6 @@
 # Manifest backup FULL a70q - 2026-11-10T15:48:03Z
 
-Device: SM-A705F/DS XXV ([serial removed]), LineageOS 22.2, vendor A11 DXD2
+Device: SM-A705F/DS XXV, LineageOS 22.2, vendor A11 DXD2
 Phuong thuc: dd | base64 qua su (adb wireless), verify size + sha256
 Skip (reinstall duoc): system, vendor, product, userdata, cache, hidden, omr, pad
 
