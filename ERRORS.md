@@ -496,3 +496,14 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - Quyền: udev `61-a70q-feedback.rules` (nhóm `video` ghi được vibrator/torch); các script nằm ở `/usr/share/a70q/sxmo/default_hooks/` (trước `/usr/sbin` trong PATH của Sxmo)
 - Bẫy khi thử qua SSH: thiếu PATH của phiên Sxmo → script gốc báo "can't open sxmo_hook_icons.sh"; lấy môi trường từ `/proc/$(pgrep -x superd)/environ`. `command -v X` rỗng làm `grep -v ... $F` đọc stdin và treo
 
+### C57. Xoay màn hình: tay ✅, tự động ❌ (cảm biến sau SSC của ADSP)
+- Không có gia tốc kế dạng IIO; cảm biến nằm trong Sensor Core của ADSP. Dịch vụ QMI `400 Snapdragon Sensor Core` có trên QRTR (node 5)
+- `iio-sensor-proxy` 3.9 của Alpine có backend SSC (libssc); kích hoạt khi udev gắn `IIO_SENSOR_PROXY_TYPE=ssc-accel ...` cho một thiết bị trong subsystem nó duyệt (`/dev/adsprpc-smd` thuộc subsystem `fastrpc` → không được duyệt; gắn vào platform `62400000.qcom,lpass` thì được)
+- libssc kết nối SSC, đăng ký client QMI, nhưng sensor `registry` "unavailable" mãi: framework cảm biến trên ADSP cần HLOS phục vụ sensor registry qua FastRPC (Android: sscrpcd; pmOS mainline: `hexagonrpcd`). `hexagonrpcd` chỉ hỗ trợ driver FastRPC upstream (`/dev/fastrpc-adsp`); downstream có `/dev/adsprpc-smd` với ABI ioctl khác → cần port
+- Xoay tay: `sxmo_rotate.sh rotright|rotnormal` (menu Sxmo) chạy, cảm ứng xoay theo đúng
+- Đã gỡ udev rule thử nghiệm (chưa đóng gói)
+
+### C58. Modem: dịch vụ QMI có trên QRTR, ModemManager chưa nhận (đang điều tra)
+- `qrtr-lookup`: node 0 (modem) công bố WDS(1), DMS(2), NAS(3), QOS(4), WMS(5), VOICE(9), UIM(11), PBM(12)... → điều khiển gọi điện/SMS qua QMI về nguyên tắc khả thi; data cần thêm rmnet/IPA
+- ModemManager 1.25.95 có QRTR (`qrtr devices allowed: yes`) nhưng `mmcli -L`: không có modem. NetworkManager tự kích hoạt MM qua D-Bus ngay khi nó thoát → không chạy được bản `--debug` riêng (thua giành tên `org.freedesktop.ModemManager1`); cần dừng NM hoặc chặn activation khi debug
+

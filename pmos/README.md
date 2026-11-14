@@ -139,10 +139,10 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 | Tính năng | Hiện trạng | Hướng làm |
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
-| Xoay màn hình | không có gia tốc kế dưới Linux: cảm biến nằm sau sensor hub của ADSP (SSC), `/sys/bus/iio` chỉ có ADC của PMIC | cần client SSC (kiểu `hexagonrpcd`/libssc của pmOS) hoặc xoay tay bằng `swaymsg output DSI-1 transform` |
+| Xoay màn hình tự động | xoay tay chạy (menu Sxmo, `sxmo_rotate.sh`); SSC trả lời nhưng sensor registry chưa nạp (C57) | port `hexagonrpcd` sang FastRPC downstream (`/dev/adsprpc-smd`) |
 | Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
 | Bluetooth (WCN3990) | không có `hci0` | `hci_uart`/btqca qua UART + firmware từ apnhlos |
-| Gọi điện / SMS / data di động | modem DSP chạy nhưng không có QMI/rmnet tới userspace (`SXMO_NO_MODEM=1`) | rmnet qua IPA downstream + ModemManager — khó |
+| Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | debug MM với QRTR; data cần rmnet/IPA |
 | GPS | qua modem (QMI LOC) | sau khi có QMI |
 | Camera | `/dev/video*` chỉ là venus (codec) và SDE rotator; camera cần stack CAMX độc quyền | rất khó |
 | NFC (NXP NQx), vân tay (etspi) | chưa thử | driver/HAL độc quyền |
