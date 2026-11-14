@@ -151,11 +151,11 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
 | Tự chỉnh độ sáng, tắt màn khi gọi | cảm biến ánh sáng/tiệm cận đã đọc được (C61) | nối vào Sxmo |
-| Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
 | Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | **tạm hoãn: chưa có SIM**; debug MM với QRTR; data cần rmnet/IPA |
-| GPS | qua modem (QMI LOC) | sau khi có QMI |
-| Camera | `/dev/video*` chỉ là venus (codec) và SDE rotator; camera cần stack CAMX độc quyền | rất khó |
-| NFC (NXP NQx), vân tay (etspi) | chưa thử | driver/HAL độc quyền |
+| GPS | QMI LOC chạy, NMEA 1 Hz nhưng chưa thấy vệ tinh (thử trong nhà) — `gnss/README.md` | thử ngoài trời, XTRA, nối geoclue |
+| Camera | kernel có stack CAMX (`cam-isp`, `cam-icp`, `cam-sensor-driver` ×5, `media0/1`); không có userspace mở, ISP chỉ lập trình được bằng HAL Android `camera.qcom` + tuning Samsung | **không khả thi** trên pmOS thuần (cần libhybris/HAL Android) |
+| Vân tay | Egis `etspi` dưới màn hình, `tz: 1`: SPI thuộc TrustZone, so khớp trong trustlet Samsung qua `qseecom` | **không khả thi** (chỉ HAL Android gọi được trustlet) |
+| NFC (NXP NQx) | chưa thử | |
 | Âm thanh qua Bluetooth/USB, mic tai nghe | chưa thử thực tế | |
 | C30 | debug-shell mất IP ECM | |
 
