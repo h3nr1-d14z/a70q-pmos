@@ -1,6 +1,6 @@
 # Nhật ký nghiên cứu (LOG.md)
 
-Mục đích: ghi lại mọi phát hiện theo thời gian để không quên. Chi tiết tổng hợp nằm ở RESEARCH.md (ma trận tính năng) và PLAN.md (kế hoạch phase).
+Mục đích: ghi lại mọi phát hiện theo thời gian để không quên. Các mục trước 2026-11-13 thuộc giai đoạn Ubuntu Touch (RESEARCH.md/PLAN.md nay ở `archive/ubuntu-touch/`).
 
 ## 2026-11-10 — Nghiên cứu mở đầu
 - Kết nối ADB wireless thành công (SM-A705F, a70q)

@@ -2,7 +2,7 @@
 
 Mục đích: không mắc lại lỗi nào hai lần, và ai tiếp nhận repo sau này không phảiDebug lại từ đầu. Format: **Triệu chứng → Root cause → Fix → Bài học**.
 
-Ngày lập: 2026-11-11. Nguồn: Phase 0–3 thực chiến trên Mac mini M4 (OrbStack, container amd64/Rosetta).
+Ngày lập: 2026-11-11. Mục A–E: giai đoạn Ubuntu Touch/Halium (đã dừng; file liên quan ở `archive/ubuntu-touch/`). Từ mục F: postmarketOS.
 
 ---
 
