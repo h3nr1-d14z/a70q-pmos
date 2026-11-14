@@ -320,3 +320,14 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - **Nguyên nhân**: `sxmo_dmenu.sh close` = `pkill "$SXMO_MENU"`; trong phiên SSH không có `SXMO_WM`/`SXMO_MENU` → `pkill ""` khớp **mọi** tiến trình của user (sway, superd, pipewire, chính shell SSH)
 - **Quy tắc**: từ SSH không gọi `sxmo_dmenu.sh close`; đóng menu bằng `kill $(pgrep -x bemenu)` (tên chính xác). Cùng họ lỗi với C50
 
+### C64. Epiphany/WebKitGTK chết ngay: bubblewrap cần `openat2` (Linux 5.6)
+- **Triệu chứng**: `bwrap: Creating new namespace failed…`, `Failed to fully launch dbus-proxy`; `bwrap --ro-bind / / true` → `Can't open source /`
+- **Nguyên nhân**: strace: `openat2(…) = -1 ENOSYS`; bubblewrap 0.13 dùng `openat2` không có đường lùi. Kernel cũng thiếu `CONFIG_PID_NS` (`unshare -p` → EINVAL), nhưng bật nó không đủ
+- **Cách sửa**: `WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1` trong `/etc/profile.d/a70q-session.sh` (người dùng đã chọn Epiphany nhẹ thay Firefox; nội dung web chạy không cách ly). Firefox thì chạy được với sandbox seccomp riêng
+- **Bẫy**: Epiphany một instance; `epiphany URL` qua D-Bus được `dbus-daemon` khởi động bằng env của nó → biến chỉ có hiệu lực sau khi đăng nhập lại/reboot
+
+### C65. Cấu hình hệ thống bị bỏ qua / apk không nâng cấp
+- **dunst** của Alpine build với `SYSCONFDIR=/usr/local/etc/xdg`, chỉ tìm `/etc/xdg/dunst/dunstrc` khi có `XDG_CONFIG_DIRS` (strace `newfstatat`) → đặt `XDG_CONFIG_DIRS=/etc/xdg` trong `a70q-session.sh`. Trước đó dunst chạy cấu hình mặc định build sẵn
+- **apk upgrade không lên bản mới**: package từng cài bằng `apk add file.apk` bị ghim trong `/etc/apk/world` (`tên><Q1checksum`) → bỏ phần `><Q1…` rồi `apk upgrade -s` xem trước. Từ khi có kho riêng (`tools/repo.sh`) không cài từ file nữa
+- **Sxmo đã có `sxmo_adaptivebrightness.sh`** nhưng không chạy trên máy này (source wrapper `sxmo_brightness.sh` có `exec`, brightnessctl nhầm thiết bị C56, so sánh lux số thực bằng `-lt`) → `a70q-autobrightness` thay vào mục menu "Adaptive Brightness"
+

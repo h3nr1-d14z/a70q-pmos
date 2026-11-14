@@ -1,0 +1,8 @@
+[Unit]
+Description=a70q: panel brightness from the ambient light sensor
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/libexec/a70q/a70q-autobrightness
+RestartSec=5s

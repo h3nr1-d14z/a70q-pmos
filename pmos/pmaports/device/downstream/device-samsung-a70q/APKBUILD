@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=32
+pkgrel=33
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -51,6 +51,13 @@ source="
 	a70q-automount
 	a70q-statusbar.py
 	sxmo_dmenu_back.sh
+	a70q-autobrightness.py
+	a70q-autobrightness.service
+	sxmo_hook_start.sh
+	sxmo_hook_contextmenu.sh
+	a70q-dunstrc
+	a70q-session.sh
+	a70q-gtk3-settings.ini
 "
 options="!archcheck !check"
 
@@ -96,6 +103,15 @@ package() {
 	# clickable status bar (status_command in 50-a70q-sway.conf) and "Back" in Sxmo menus
 	install -Dm755 "$srcdir"/a70q-statusbar.py "$pkgdir"/usr/libexec/a70q/a70q-statusbar.py
 	install -Dm755 "$srcdir"/sxmo_dmenu_back.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_dmenu.sh
+	# adaptive brightness (Config menu entry replaced in the context menu hook, started by the start hook)
+	install -Dm755 "$srcdir"/a70q-autobrightness.py "$pkgdir"/usr/libexec/a70q/a70q-autobrightness
+	install -Dm644 "$srcdir"/a70q-autobrightness.service "$pkgdir"/usr/share/superd/services/a70q-autobrightness.service
+	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
+	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
+	# look: notifications like the menus, dark GTK/libadwaita; session env (WebKit sandbox, XDG dirs)
+	install -Dm644 "$srcdir"/a70q-dunstrc "$pkgdir"/etc/xdg/dunst/dunstrc
+	install -Dm644 "$srcdir"/a70q-gtk3-settings.ini "$pkgdir"/etc/gtk-3.0/settings.ini
+	install -Dm644 "$srcdir"/a70q-session.sh "$pkgdir"/etc/profile.d/a70q-session.sh
 	# Bluetooth file receive (OBEX) in the user session
 	install -Dm644 "$srcdir"/a70q-obexd.service "$pkgdir"/usr/share/superd/services/a70q-obexd.service
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
@@ -115,7 +131,7 @@ a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824
 b89de3d533c99d54bbe0477aa19bf78617018152fdd80673f1dd81d7b4f26269ee536c897fe0825df47b080f65146313e70561bf609ebc803e31faa647dedf23  a70q-modem.initd
 de65573bc143d45ee529bfb48c18a2960d29b45c94daed55a3939c837b11f62510432bdd8186e29144709109ea98abc0a96b1e3ce409db1fb61db3a14c31a7fd  a70q-wlroots.sh
 27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
-417319ae6d479445aaea1e90ea6f7b946724ecd7ae45ffcc610d6d5a54a06a33b10d8c8cf3f581f5c3401819717b31a4c718293a01124be0668529500eb5aa17  sxmo_deviceprofile.sh
+ee5db262b7727be998c183c9ea4e1ac01176b7f18869080d18ddc57e4957c9458a0ef36cee4b8dfe51c6f41c5f6784c7223632ada971d46136f0ffc2ebe9f7fc  sxmo_deviceprofile.sh
 c4b4dcdff43e2e1c2d710f0452661f2e57c936358326751558b081ef56877d185705e10f34d79444e3efc7f157bc734ce2650bfeaf62af6698030dd365688de8  60-a70q-gpu.rules
 d7c2b37f83cc210275ab705fd22c903ea522ae22146f4cd81a2f71bcff1e5ed88cd40af738149e43e82d6901832f2e1f2971a9aedf9207f0928f88ab3e98dbc4  a70q.conf
 fb95796f354e772dc6e7118838f0988f79562024ec0fa62a067eaf67a88189a7eee0c6460c4e62eecc275ccacc4e1c2d1b29598e3d15716c27af3a893e98e874  HiFi.conf
@@ -137,4 +153,11 @@ ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd09289892
 344ea26853ee0bd0d647a8e07da69fa26892ad2750dc209e5b4935553ecab44abf8419daa5823a7afc98797bc84e537c4cf414e69a6c8772fc9115c7618a12fe  a70q-automount
 c193a2a8d69c63fa8c59bfbea04c7114b6a5e1b2d3da794cd7f530b0491702126f676b0f405bbdea60ce7f48ebd40552794f758e7aea1304e71b47b27d3ba511  a70q-statusbar.py
 cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b252e23555914eb2c1dd6afffdff5382356b85ecb13ce7cf233  sxmo_dmenu_back.sh
+b05fb5253e39a2c0b530abfa895b1c25cf32cbe470d073741ac308ebdfa202cabb59b4d53708eaf1f9604546090dfd396e4000820ac6ef2f51f6247483181867  a70q-autobrightness.py
+674e6a7199596135be7a7afac240b757a0912eb5ea9b6fc6e571a447c56993cead7cdd55417b3f9744841a3f538119bd2a40f8b2f95b560bbf62d9919010dec6  a70q-autobrightness.service
+648d134f4b5cf99eb6c8e21cab6fc43df6d3768e7c1454550689653280d4ee15ab76bad4b53d5480dc5ac081fd345e099756ddc4d95b65909d7188305f06a3bf  sxmo_hook_start.sh
+f0aa9d3cd644a1089f8062f07e4b5f3d75fb1e6c0a546726655909d02390065a37645b7db54988fa4b3379f0485bc7d5c1db662f0eba1688b65cd871cb5a6e61  sxmo_hook_contextmenu.sh
+cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db755777ea51050827a637c5c2006a4a0e31009418370f94b1eb80  a70q-dunstrc
+69b09a3c84af80bce0a174b66d22093c52b3ac23c907758609a98a8ac4888cfceb3e491376df918e400275ae6324d2e1ca74e214e277ab3db92210c51b279604  a70q-session.sh
+599087e5c958c334523c9ee1856417cb239f60bf2bea4aaf487cac5fbda231d9b6726b42218b344af7ac9b805ab6280ca01eea6cbc38e6c23d1fbe58d4ccce05  a70q-gtk3-settings.ini
 "

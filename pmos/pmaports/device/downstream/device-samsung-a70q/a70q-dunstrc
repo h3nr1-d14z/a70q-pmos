@@ -1,0 +1,51 @@
+# a70q: dunst (Sxmo's notification daemon). Sxmo ships no system dunstrc, so dunst ran with its
+# built-in defaults. Behaviour as Sxmo's appcfg/dunst.conf; look matched to the menus
+# (BEMENU_OPTS in sxmo_deviceprofile.sh): top centre below the 31 px bar, nearly full width
+# of the 432 px (scale 2.5) screen, rounded, Sxmo font.
+[global]
+    origin = top-center
+    offset = (0, 38)
+    width = 404
+    height = (0, 220)
+    notification_limit = 4
+    gap_size = 6
+    padding = 10
+    horizontal_padding = 12
+    text_icon_padding = 10
+    frame_width = 2
+    frame_color = "#2b5f9e"
+    separator_color = frame
+    corner_radius = 14
+    font = Sxmo 13
+    markup = full
+    format = "<b>%s</b>\n%b"
+    alignment = left
+    word_wrap = yes
+    ellipsize = end
+    show_age_threshold = 60
+    max_icon_size = 32
+    idle_threshold = 120
+    dmenu = sxmo_dmenu.sh -p dunst:
+    follow = none
+    mouse_left_click = do_action, close_current
+    mouse_middle_click = close_all
+    mouse_right_click = close_current
+
+[shortcuts]
+    close_all = ctrl+shift+space
+
+[urgency_low]
+    background = "#20242b"
+    foreground = "#9aa3ad"
+    timeout = 8
+
+[urgency_normal]
+    background = "#20242b"
+    foreground = "#e6e9ef"
+    timeout = 10
+
+[urgency_critical]
+    background = "#5c1d1d"
+    foreground = "#ffffff"
+    frame_color = "#e04f4f"
+    timeout = 0
