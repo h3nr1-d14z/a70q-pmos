@@ -12,9 +12,9 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r25 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r28 | `pmaports/device/downstream/` |
 | `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
-| `a70q-qcom-userspace` | r2 (`a70q-btinit`) | như trên |
+| `a70q-qcom-userspace` | r3 (`a70q-btinit`, shim FastRPC) | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
 
@@ -139,6 +139,9 @@ firmware từ vendor và gắn HCI UART (H4), chạy nền từ `a70q-modem-up` 
 BlueZ (`bluetoothd`) dùng `hci0`; ghép đôi, A2DP (điện thoại làm loa cho Mac) và nhận file OBEX (superd `a70q-obexd`, C60) đã thử. PipeWire dùng quantum
 2048 cho card q6 (`/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf`).
 
+**Cảm biến / xoay tự động** (C61, `sensors/README.md`): `hexagonrpcd` + shim FastRPC downstream phục vụ
+registry cho Sensor Core của ADSP; iio-sensor-proxy (libssc) đọc gia tốc kế (Sxmo Autorotate) và ánh sáng.
+
 ## 7. Việc còn lại
 
 Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
@@ -146,7 +149,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 | Tính năng | Hiện trạng | Hướng làm |
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
-| Xoay màn hình tự động | xoay tay chạy (menu Sxmo, `sxmo_rotate.sh`); SSC trả lời nhưng sensor registry chưa nạp (C57) | port `hexagonrpcd` sang FastRPC downstream (`/dev/adsprpc-smd`) |
+| Cảm biến tiệm cận, la bàn | iio-sensor-proxy crash khi dùng (libssc assert, C61) | vá libssc theo định dạng báo cáo của Samsung |
 | Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
 | Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | **tạm hoãn: chưa có SIM**; debug MM với QRTR; data cần rmnet/IPA |
 | GPS | qua modem (QMI LOC) | sau khi có QMI |

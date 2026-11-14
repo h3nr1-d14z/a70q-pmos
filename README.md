@@ -20,7 +20,8 @@ Hướng Ubuntu Touch/Halium ban đầu đã dừng (2026-11-13); tài liệu c�
 | Suspend + nút nguồn | ✅ | ngủ khi tắt màn hình, nút nguồn đánh thức; WiFi giữ kết nối (ERRORS C51–C52) |
 | Đèn pin, rung, độ sáng | ✅ | qua Sxmo (ERRORS C56); máy không có LED thông báo |
 | Bluetooth | ✅ | WCN3988, BlueZ; quét/bật OK (ERRORS C59) |
-| Xoay tự động, gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
+| Xoay tự động, cảm biến ánh sáng | ✅ | qua Sensor Core ADSP + iio-sensor-proxy (ERRORS C61) |
+| Tiệm cận, la bàn, gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
 
 ## Cấu trúc
 

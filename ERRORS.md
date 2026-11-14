@@ -528,3 +528,11 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - `obexd` chạy trong phiên Sxmo qua superd (`a70q-obexd`, `-a` tự nhận); cài mới cần `superctl enable a70q-obexd` một lần (trạng thái enable nằm trong `~/.config/services/enabled/`)
 - Khi thay đổi dịch vụ, Mac giữ danh sách cũ: Forget rồi ghép lại (phía điện thoại cũng `bluetoothctl remove`)
 
+### C61. ✅ Xoay tự động: hexagonrpcd trên FastRPC downstream qua shim — xem `pmos/sensors/README.md`
+- `hexagonrpcd` (ABI upstream) + shim `LD_PRELOAD` dịch ioctl sang `adsprpc` downstream
+- Lỗi lần lượt: `kernel session not initialized yet` (thiếu `GETINFO(domain)` sau open) → `EACCES` trên `/dev/adsprpc-smd` (kênh ADSP secure-only → `-secure`) → chạy; ADSP đọc config/registry qua đường hầm ngược, sensor `registry` "available", iio-sensor-proxy thấy gia tốc kế
+- Lúc boot: attach ngay khi QMI 400 xuất hiện thì `hexagonrpcd` thoát (kênh FastRPC ADSP mở vài giây sau) → chờ log `opened rpmsg channel for adsp`, thử lại tối đa 5 lần, rồi restart iio-sensor-proxy
+- Hướng bị ngược hết: `ACCEL_MOUNT_MATRIX="-1, 0, 0; 0, -1, 0; 0, 0, 1"` trong udev
+- `iio-sensor-proxy` 3.9 có sẵn backend libssc; cần tag udev trên thiết bị thuộc subsystem nó duyệt (platform `62400000.qcom,lpass`)
+- Ánh sáng chạy; tiệm cận + la bàn làm iio-sensor-proxy abort (`libssc-sensor-proximity.c:98 report_received: code should not be reached`) — chưa xong
+

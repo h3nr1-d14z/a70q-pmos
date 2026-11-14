@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=25
+pkgrel=28
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -14,6 +14,8 @@ depends="
 	rmtfs
 	wpa_supplicant
 	bluez-obexd
+	hexagonrpcd
+	iio-sensor-proxy
 	linux-samsung-a70q
 	mesa-vulkan-freedreno-kgsl
 	postmarketos-base
@@ -44,6 +46,7 @@ source="
 	brightnessctl-shim.sh
 	51-a70q-alsa.conf
 	a70q-obexd.service
+	80-a70q-ssc.rules
 "
 options="!archcheck !check"
 
@@ -81,6 +84,8 @@ package() {
 	install -Dm755 "$srcdir"/brightnessctl-shim.sh "$pkgdir"/usr/share/a70q/brightnessctl-shim/brightnessctl
 	# PipeWire: larger quantum for the q6 card (xruns at 512 frames)
 	install -Dm644 "$srcdir"/51-a70q-alsa.conf "$pkgdir"/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf
+	# sensors (SSC via libssc in iio-sensor-proxy)
+	install -Dm644 "$srcdir"/80-a70q-ssc.rules "$pkgdir"/usr/lib/udev/rules.d/80-a70q-ssc.rules
 	# Bluetooth file receive (OBEX) in the user session
 	install -Dm644 "$srcdir"/a70q-obexd.service "$pkgdir"/usr/share/superd/services/a70q-obexd.service
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
@@ -96,8 +101,8 @@ package() {
 sha512sums="
 0d751e1e72013f1f360d71dfbf123d3a7b7c75259b2c3e139e013d9458cdcfc94055fcde5b0282532fd7a3bd4c2956ab8d756bec7230778b111b56bb0ee726fc  deviceinfo
 a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824adfe19039cb54e98dd8b8384979421be0fa4822c5a1e1955  unudhcpd.ecm0.confd
-aadb6a962fa910da2c69a6dfd3fb32c856ae84b93d1b26fe09db2cfdf2f9513f2090dbc021002ed4e0331e1e32f5ddb37917d8b38201426f4dd797b669849b82  a70q-modem-up
-5610dd66cfddd2f1b2e73846dbabb40f38a33efd24aeea169316e1afa6e56be99557c6bf54e80717982eeb282988b4cc98bdb5b654372ea612f11156999843c7  a70q-modem.initd
+fdea9ecc4716fe9ab545cfefb23009e96ee594145b243d1bcdd92459ecd8470c0651f24a8ca48cdb8d1a658f6460fe9eeb7315f9f1858718001ca720c56bef49  a70q-modem-up
+b89de3d533c99d54bbe0477aa19bf78617018152fdd80673f1dd81d7b4f26269ee536c897fe0825df47b080f65146313e70561bf609ebc803e31faa647dedf23  a70q-modem.initd
 de65573bc143d45ee529bfb48c18a2960d29b45c94daed55a3939c837b11f62510432bdd8186e29144709109ea98abc0a96b1e3ce409db1fb61db3a14c31a7fd  a70q-wlroots.sh
 27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
 5e3d9af24d0f66c49d49e8f5597fb97fba54cd69f3a912deb22a1f8e06e2df0baed3c6e3fe3d8ae73073b67a1ba027be628d1f5b0f88b784174275a0fa1e10af  sxmo_deviceprofile.sh
@@ -117,4 +122,5 @@ aabcbe0882b222841f531b9eb514e5012c68ad97a53b7650df37bda878e72dc260b8f8414ad641ae
 fcdffc1dd56723a2c69e99ecb93a720915ce21ee3f417411d08420c911f748166513f22535ae5ee9e69d0cff8e26de129568eab20a6efa7051360a60b1dbb441  brightnessctl-shim.sh
 8a0782315617ad6a883d95ea50cfbfffb0def3c4c8ad592801f1d098ea9f674de8006cd85d2e5e1ab8b6ace45b7986a7d47f74b77310228dd274cd7a2302d28d  51-a70q-alsa.conf
 69f963daf9043567449571607d767a9e6e5c36d396a34d7d3b033a4172240605e286e3f7711799c96daf587f82ffe102a05f245c905e6010698481f73c6ac118  a70q-obexd.service
+ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd092898925bf4b8b887f612256a0b8ad9168247172c72363f41bfabb9  80-a70q-ssc.rules
 "
