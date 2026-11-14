@@ -315,3 +315,8 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
   2. Bước tiếp `VIDIOC_REQBUFS` (MMAP) → EINVAL: `vb2_mem_ops` của driver chỉ có `get_userptr`/`put_userptr`; buffer thật là fd ION trong `planes[].reserved[]` (giao thức OMX của Qualcomm). Client V4L2 chuẩn dùng MMAP/DMABUF
 - **Kết luận**: muốn dùng phải viết lại quản lý buffer của driver (vb2 dma-contig/dmabuf) hoặc tự viết client kiểu OMX → không đáng: CPU giải mã H.264 1080p 269 fps (9×), HEVC 1080p 212 fps (7×) (`ffmpeg -benchmark`)
 
+### C63. `sxmo_dmenu.sh close` chạy qua SSH giết cả phiên giao diện
+- **Triệu chứng**: SSH bị "Connection closed by remote host"; sau đó sway/swaybar không còn, `superd` không lên lại sau `rc-service tinydm restart` (log: "some processes failed to stop after 10s") → phải reboot
+- **Nguyên nhân**: `sxmo_dmenu.sh close` = `pkill "$SXMO_MENU"`; trong phiên SSH không có `SXMO_WM`/`SXMO_MENU` → `pkill ""` khớp **mọi** tiến trình của user (sway, superd, pipewire, chính shell SSH)
+- **Quy tắc**: từ SSH không gọi `sxmo_dmenu.sh close`; đóng menu bằng `kill $(pgrep -x bemenu)` (tên chính xác). Cùng họ lỗi với C50
+

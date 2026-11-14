@@ -21,6 +21,7 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 | % pin trên thanh trạng thái | ✅ | `SXMO_BAR_SHOW_BAT_PER=1` (device r29) |
 | Bàn phím ảo | ✅ | wvkbd: vuốt từ mép dưới lên, hoặc Volume Down khi không mở menu |
 | Phát WiFi (hotspot) | ✅ | menu Sxmo Networks → Create Wifi Hotspot (wlan0 chuyển sang AP, 10.42.0.1); chưa thể vừa phát vừa nối WiFi |
+| Menu + thanh trạng thái | ✅ | menu rộng, dòng cao dễ chạm; mục **Back** trong menu con; bấm icon trên thanh (loa = Audio, lăn chuột = âm lượng, wifi = Networks, pin = chi tiết, giờ = lịch, ○ = System); chuột phải lên thanh / phím Menu / Super+P = menu chính (device r32) |
 | Thẻ nhớ microSD | ✅ | nhận khi lắp nóng (SDXC UHS SDR104), đọc ~36 MB/s, ghi ~51 MB/s; tự mount `/media/<nhãn>` (device r31) |
 | USB OTG | ✅ | tự chuyển vai host (typec); đã thử chuột, hub, LAN USB (`cdc_ether`); USB storage cũng tự mount vào `/media/<nhãn>` |
 | Giải mã video phần cứng (venus) | ❌ | firmware nạp được, nhưng driver downstream không hợp với ffmpeg/GStreamer (C62); CPU giải mã 1080p nhanh gấp 7–9 lần thời gian thực nên không cần |

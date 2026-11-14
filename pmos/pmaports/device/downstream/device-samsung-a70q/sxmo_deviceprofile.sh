@@ -17,3 +17,8 @@ case ":${XDG_DATA_DIRS:-}:" in
 	*:/usr/share/a70q:*) ;;
 	*) export XDG_DATA_DIRS="/usr/share/a70q:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" ;;
 esac
+# menus (bemenu): Sxmo's default is a narrow box with 20 px lines (labels cut off, small touch
+# targets); wider, taller lines, bigger font, rounded border
+export BEMENU_OPTS="--center --width-factor 0.94 --line-height 34 --fn 'Sxmo 15' --border 2 --border-radius 14 --no-spacing --fixed-height --wrap --scrollbar autohide --tb #2b5f9e --tf #ffffff --fb #20242b --ff #e6e9ef --cb #20242b --cf #e6e9ef --nb #20242b --nf #dce1e8 --ab #252a32 --af #dce1e8 --hb #2b5f9e --hf #ffffff --fbb #e6e9ef --fbf #20242b --sb #2b5f9e --sf #ffffff --scb #2b5f9e --scf #e6e9ef --bdr #2b5f9e"
+export SXMO_BEMENU_PORTRAIT_LINES=18
+export SXMO_BEMENU_LANDSCAPE_LINES=8

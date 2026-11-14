@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=31
+pkgrel=32
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -49,6 +49,8 @@ source="
 	80-a70q-ssc.rules
 	90-a70q-automount.rules
 	a70q-automount
+	a70q-statusbar.py
+	sxmo_dmenu_back.sh
 "
 options="!archcheck !check"
 
@@ -91,6 +93,9 @@ package() {
 	# microSD / USB storage auto-mount at /media/<label>
 	install -Dm644 "$srcdir"/90-a70q-automount.rules "$pkgdir"/usr/lib/udev/rules.d/90-a70q-automount.rules
 	install -Dm755 "$srcdir"/a70q-automount "$pkgdir"/usr/libexec/a70q/a70q-automount
+	# clickable status bar (status_command in 50-a70q-sway.conf) and "Back" in Sxmo menus
+	install -Dm755 "$srcdir"/a70q-statusbar.py "$pkgdir"/usr/libexec/a70q/a70q-statusbar.py
+	install -Dm755 "$srcdir"/sxmo_dmenu_back.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_dmenu.sh
 	# Bluetooth file receive (OBEX) in the user session
 	install -Dm644 "$srcdir"/a70q-obexd.service "$pkgdir"/usr/share/superd/services/a70q-obexd.service
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
@@ -110,14 +115,14 @@ a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824
 b89de3d533c99d54bbe0477aa19bf78617018152fdd80673f1dd81d7b4f26269ee536c897fe0825df47b080f65146313e70561bf609ebc803e31faa647dedf23  a70q-modem.initd
 de65573bc143d45ee529bfb48c18a2960d29b45c94daed55a3939c837b11f62510432bdd8186e29144709109ea98abc0a96b1e3ce409db1fb61db3a14c31a7fd  a70q-wlroots.sh
 27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
-cacd6ad1e6bd532017827d51fef870f0a5ff0989c08297241c875812ebf1735df63e4c0ed023bdd2dca27c3ea4bc41c6607b09e4106bf5645f52f4f52306fa0f  sxmo_deviceprofile.sh
+417319ae6d479445aaea1e90ea6f7b946724ecd7ae45ffcc610d6d5a54a06a33b10d8c8cf3f581f5c3401819717b31a4c718293a01124be0668529500eb5aa17  sxmo_deviceprofile.sh
 c4b4dcdff43e2e1c2d710f0452661f2e57c936358326751558b081ef56877d185705e10f34d79444e3efc7f157bc734ce2650bfeaf62af6698030dd365688de8  60-a70q-gpu.rules
 d7c2b37f83cc210275ab705fd22c903ea522ae22146f4cd81a2f71bcff1e5ed88cd40af738149e43e82d6901832f2e1f2971a9aedf9207f0928f88ab3e98dbc4  a70q.conf
 fb95796f354e772dc6e7118838f0988f79562024ec0fa62a067eaf67a88189a7eee0c6460c4e62eecc275ccacc4e1c2d1b29598e3d15716c27af3a893e98e874  HiFi.conf
 73c4876220eafbcdabd1048aededbeb5494e49e2a19a3f34d5a8ef33f3191961b5ae35d05310800e84301b4af660719a6b3f3ad3abc5f3307686d0cc025a4310  50-a70q-elogind.conf
 ad43556a3b5c6d144b7993ae866847bddcc3ca05c0126199e8539a150d7472ea6a35ec98352970170e2cd820e452cfa644d36d0d3e697917982a4dac58acc246  wlopm-retry.sh
 dac22437ce2187aed54057c7b5f349dfcfd03572fd164fc0542962c7b6d41ebe77bf80a2ee6e31c57b720868eb43ab3fc4ea3639dc4d1c5a9b84c262c4137bca  sxmo_hook_postwake.sh
-2356e98ddc19709db481dba210dca533ac3e8fdac065bc9cac89310126fd5ff71bf2c6d6a3cc29f3ae7db1f23c17b6d82904b912c34e32d3782d5d29e1564e37  50-a70q-sway.conf
+473d0aa04150d0e90aaace19a047c2490f34422f4c9aacafa1b9cfeff90adbbea7c5c4677a28bdfabb3a27294d1266a9e1a84c15248e68e74ef0aa6b464cedd3  50-a70q-sway.conf
 778bf73f0ac657d8fa066d7723daaee22f5469ba98ff88d92be58b2782bdf00cafeab336a11ce3cc90b36991a6044c733a088dd4463457829046c85cb16a9fa1  sxmo_soundmonitor.sh
 0db24f9be0c900174a83c57eaa862eeab1b121f329673c284272ef0f19550f13ca52c1251db552de572400ff69085963018a897269ebec20619326a38a85c479  sxmo_soundmonitor.service
 aabcbe0882b222841f531b9eb514e5012c68ad97a53b7650df37bda878e72dc260b8f8414ad641aeace2be814167860593109ae122c27f705240bb1e1f2bbf9c  sxmo_vibrate.sh
@@ -130,4 +135,6 @@ fcdffc1dd56723a2c69e99ecb93a720915ce21ee3f417411d08420c911f748166513f22535ae5ee9
 ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd092898925bf4b8b887f612256a0b8ad9168247172c72363f41bfabb9  80-a70q-ssc.rules
 67f47c7b6cbf8c2351a6e6a332f7df9ebe08e91f9a06e0433b66e42139295290f04fe8e08f9ef8246c93e9704175ab129c4daab51839c51a6c197f8e5ee2a99b  90-a70q-automount.rules
 344ea26853ee0bd0d647a8e07da69fa26892ad2750dc209e5b4935553ecab44abf8419daa5823a7afc98797bc84e537c4cf414e69a6c8772fc9115c7618a12fe  a70q-automount
+c193a2a8d69c63fa8c59bfbea04c7114b6a5e1b2d3da794cd7f530b0491702126f676b0f405bbdea60ce7f48ebd40552794f758e7aea1304e71b47b27d3ba511  a70q-statusbar.py
+cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b252e23555914eb2c1dd6afffdff5382356b85ecb13ce7cf233  sxmo_dmenu_back.sh
 "
