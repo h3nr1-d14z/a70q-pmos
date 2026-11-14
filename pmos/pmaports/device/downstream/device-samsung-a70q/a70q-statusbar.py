@@ -6,6 +6,7 @@
 # colour #FDFDFD for both text and background); `sxmobar -D` lists the component names in
 # the same order. This wrapper adds the names, drops the default colours, enables
 # click_events and runs an action for the clicked block (mouse click or finger tap).
+# State circle = quick settings (sxmo_hook_quickactions.sh).
 import json
 import os
 import subprocess
@@ -78,8 +79,8 @@ def on_click(ev):
         date_info()
     elif name == 'notifs':
         spawn('sxmo_notifs.sh', 'menu')
-    else:  # state (lock/unlock icon), notch, unknown
-        spawn('sxmo_appmenu.sh', 'sys')
+    else:  # state (lock/unlock circle), notch, unknown: quick settings
+        spawn('sxmo_hook_quickactions.sh')
 
 
 def read_clicks():

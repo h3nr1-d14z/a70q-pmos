@@ -4,10 +4,12 @@
 # is reachable. The repo is deliberately NOT in /etc/apk/repositories: apk refuses to install or
 # upgrade anything while a listed repository is unreachable (ERRORS C67), i.e. away from home.
 #   sudo a70q-upgrade [apk upgrade options]
-# Repo URLs: /etc/a70q/repos (one per line), default http://172.16.42.2:8099/edge (Mac over USB).
+# Repo URLs: /etc/a70q/repos (one per line; create it to add the build machine's LAN address), else
+# /usr/share/a70q/repos.default (http://172.16.42.2:8099/edge, the build machine over USB).
 set -e
 [ "$(id -u)" = 0 ] || { echo "run as root: sudo a70q-upgrade" >&2; exit 1; }
-urls="$(grep -v '^[[:space:]]*#' /etc/a70q/repos 2>/dev/null || true)"
+cfg=/etc/a70q/repos; [ -r "$cfg" ] || cfg=/usr/share/a70q/repos.default
+urls="$(grep -v '^[[:space:]]*#' "$cfg" 2>/dev/null || true)"
 [ -n "$urls" ] || urls="http://172.16.42.2:8099/edge"
 extra=""
 for u in $urls; do

@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=41
+pkgrel=42
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -71,6 +71,7 @@ source="
 	a70q-bonsaid
 	a70q-bt-reconnect
 	a70q-scale
+	sxmo_hook_quickactions.sh
 	50-a70q.gschema.override
 "
 options="!archcheck !check"
@@ -131,6 +132,8 @@ package() {
 	# reconnect paired headphones at login/resume; UI scale from the Config menu
 	install -Dm755 "$srcdir"/a70q-bt-reconnect "$pkgdir"/usr/libexec/a70q/a70q-bt-reconnect
 	install -Dm755 "$srcdir"/a70q-scale "$pkgdir"/usr/libexec/a70q/a70q-scale
+	# quick settings (two-finger swipe down from the top, or tap the state circle in the bar)
+	install -Dm755 "$srcdir"/sxmo_hook_quickactions.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_quickactions.sh
 	install -Dm644 "$srcdir"/50-a70q.gschema.override "$pkgdir"/usr/share/glib-2.0/schemas/50-a70q.gschema.override
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
@@ -140,7 +143,7 @@ package() {
 	install -Dm644 "$srcdir"/a70q-session.sh "$pkgdir"/etc/profile.d/a70q-session.sh
 	# updates: public mirrors + the build machine's repo when reachable (ERRORS C67)
 	install -Dm755 "$srcdir"/a70q-upgrade "$pkgdir"/usr/bin/a70q-upgrade
-	install -Dm644 "$srcdir"/a70q-repos "$pkgdir"/etc/a70q/repos
+	install -Dm644 "$srcdir"/a70q-repos "$pkgdir"/usr/share/a70q/repos.default
 	# CPU/bus DCVS as on Android (ERRORS C68), boot runlevel
 	install -Dm755 "$srcdir"/a70q-power-up "$pkgdir"/usr/libexec/a70q/a70q-power-up
 	install -Dm755 "$srcdir"/a70q-power.initd "$pkgdir"/etc/init.d/a70q-power
@@ -184,7 +187,7 @@ fcdffc1dd56723a2c69e99ecb93a720915ce21ee3f417411d08420c911f748166513f22535ae5ee9
 ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd092898925bf4b8b887f612256a0b8ad9168247172c72363f41bfabb9  80-a70q-ssc.rules
 67f47c7b6cbf8c2351a6e6a332f7df9ebe08e91f9a06e0433b66e42139295290f04fe8e08f9ef8246c93e9704175ab129c4daab51839c51a6c197f8e5ee2a99b  90-a70q-automount.rules
 344ea26853ee0bd0d647a8e07da69fa26892ad2750dc209e5b4935553ecab44abf8419daa5823a7afc98797bc84e537c4cf414e69a6c8772fc9115c7618a12fe  a70q-automount
-c193a2a8d69c63fa8c59bfbea04c7114b6a5e1b2d3da794cd7f530b0491702126f676b0f405bbdea60ce7f48ebd40552794f758e7aea1304e71b47b27d3ba511  a70q-statusbar.py
+85ee103e4594ef5861f805d9c1bf3bdee7ed18aa8be8e17ac6142e6891d2eab1f6c4d44ba68ed3852f02698cf00e6c36ab2dc0055617ed6f8471ad389fce380c  a70q-statusbar.py
 cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b252e23555914eb2c1dd6afffdff5382356b85ecb13ce7cf233  sxmo_dmenu_back.sh
 73382608d90f147b483bd729c0515e7493ed548ae333741cb5cd865cbfcdb17550bd142da2bd3224af1eafd49e7c2638c4a0ab8ebc98fe40be9dd042925242d6  a70q-autobrightness.py
 674e6a7199596135be7a7afac240b757a0912eb5ea9b6fc6e571a447c56993cead7cdd55417b3f9744841a3f538119bd2a40f8b2f95b560bbf62d9919010dec6  a70q-autobrightness.service
@@ -193,8 +196,8 @@ cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b25
 0ae7d3364416f9e7a4952b4204b066258a1bce45899fbc0ee76316fd0d6e55c3e1f83b3cb2a4a65116246cc24fdd1781ba8a316b57f98309cc6525eec04479d9  a70q-dunstrc
 1ea04fa44822bc2cd94affcd2442d120e75ed6a399bcc5d62bb0cfe299396041b41d8ffb6eb962649fa4d197d4a671e36e95a062545ad11426083d16a143ab39  a70q-session.sh
 599087e5c958c334523c9ee1856417cb239f60bf2bea4aaf487cac5fbda231d9b6726b42218b344af7ac9b805ab6280ca01eea6cbc38e6c23d1fbe58d4ccce05  a70q-gtk3-settings.ini
-68d2e56c0e374cd65d64b352620e33341f2db647b957107cbacddcdec2fcb2ab6bef48763a3098ccede69f67d68e8b44fda0cb21e0aa9d6320ff5d559bcbb5ba  a70q-upgrade
-22c2ca2cba2842931a634d1e67989b704f2360052e8bf460c5a91cc940480f2192318459875978f72dca93b8d1b797af709e2cd9dab465c3ee4d4ea8887d78cb  a70q-repos
+4dbc183101f65f0d6479c8d67e261abd6169e9cdd6b398c7d8e7f6a84420f055ab18fc44e8bac27915cadfad77446e5b3db022b955e9928303c0be1d3e374a40  a70q-upgrade
+b5d760d4970ff743b8d59ac7a3484cbc08056c9d4a311a5dfe25046de9271798c88b32d0336863b6712485649472d9ca743a5bc454f359d7569c05c2164ebc0e  a70q-repos
 53f6b045921395a2c1feec2f2f70ae56e532a40e13561737f9a750f028f2e747aa37695e1a6641683b773ed5661ad2b99374d3035e61e231edd166e99ce15c2a  a70q-power-up
 69fdb83d0de0f605b946cde9f367401e54ba0f17ef5e4ca89e700fecf2e8489ccc211c998b20f04b09bbf647a65e387c47b5bd91084379c83dea5883b9a62292  a70q-power.initd
 45789ed74072b6a77291d41cbf68c63afd8033c1eb1a4c9108ebf679bb914d5ec8b3f5a87d152c5160b073dff0c589d031486c5a79d75dde7d418b4f62a0c1a3  a70q-fcitx5.service
@@ -205,5 +208,6 @@ ce5c975fd39b858f2adf57d49967071c180821f5b5b9bbad7263bfc1f62805907c0c91f4c1f6fa61
 e3c089324bc7202d60b04b915d3049ca5e752c7be1cba48706475314e6dc8ecec665be1e058efe01464c633cdaec82c151a480d6ea7c12c0f93c09d1b5a6d96e  a70q-bonsaid
 ca46fdf2d09d27e3c47c9258f6d07052d11a42173acc0f02cfbfa917abdf072b73f7c6e827a95bedfb7e8498f8810ea5b59fe55459720a2103000d4a15ea01b1  a70q-bt-reconnect
 608dcd237cb35cecd2a72ca3eed57546619511becf6ad3fca4566b519a1a6223a7d9b1bcf5202ad9b03c9c50b7512f6631c1802fa480001ea8ec8a447b29ea29  a70q-scale
+e8876ac66b5680b3a5909cae17a7b6aff225c041e28ba8838f3c314a0bbfd61e08cfa1aaa746b687741f1e495def43a72e6ea75c1b1130876fabbea39d5d908e  sxmo_hook_quickactions.sh
 bd17d633579c0c3c384c7af56cffaa9e7ca2ff7af0e4665060b7500e7c57cc9c9618c7aa1d0cc122d6c4a78ac4f8d113436e7cacd23e8325ef2269801a4fefb6  50-a70q.gschema.override
 "
