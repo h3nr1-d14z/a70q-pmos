@@ -222,3 +222,7 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - wlroots 0.20.2 + patch `WLR_DISPLAY_ONLY_DRM`: sway render Vulkan trên turnip-kgsl vào dumb buffer của SDE (C54)
 - Kernel r18 (patch 0009, 0010): alsa-lib nạp được mixer → PipeWire theo dõi jack, rút tai nghe tự về loa (C55)
 
+## 2026-11-14 tối — Đèn pin, rung, độ sáng, xoay tay, Bluetooth
+- Device r22: đèn pin/rung/độ sáng qua Sxmo (C56); xoay tay chạy, xoay tự động cần sensor registry qua FastRPC (C57); modem tạm hoãn vì chưa có SIM (C58)
+- Bluetooth: kernel r19 (`BT_HCIUART` + H4), `a70q-btinit` nạp firmware WCN3988 ở userspace; tự lên khi boot (C59)
+

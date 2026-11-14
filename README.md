@@ -19,7 +19,8 @@ Hướng Ubuntu Touch/Halium ban đầu đã dừng (2026-11-13); tài liệu c�
 | Âm thanh | ✅ | loa, tai nghe (tự chuyển theo jack, kernel r18), mic chính; PipeWire + UCM |
 | Suspend + nút nguồn | ✅ | ngủ khi tắt màn hình, nút nguồn đánh thức; WiFi giữ kết nối (ERRORS C51–C52) |
 | Đèn pin, rung, độ sáng | ✅ | qua Sxmo (ERRORS C56); máy không có LED thông báo |
-| Xoay màn hình, Bluetooth, gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
+| Bluetooth | ✅ | WCN3988, BlueZ; quét/bật OK (ERRORS C59) |
+| Xoay tự động, gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
 
 ## Cấu trúc
 

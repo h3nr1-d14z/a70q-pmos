@@ -5,7 +5,7 @@
 maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=linux-samsung-a70q
 pkgver=4.14.190
-pkgrel=18
+pkgrel=19
 pkgdesc="Samsung Galaxy A70 kernel fork"
 arch="aarch64"
 _carch="arm64"
@@ -95,7 +95,7 @@ package() {
 
 sha512sums="
 04c848a678ba1e5a99404691c2d3628ec995b037911986218e2c82e37b07d6b7aca37489250077f1f55906b105854da8c7a53cc5a1c39f9b1c922437ae6d24cc  linux-samsung-a70q-699d9d7da5b74952f7feb8b699199f12302db6e2.tar.gz
-922b32e028f82a88c19544d01f3d4ca6db36b42f20cd101b211de2ddc09d45f09b8e3dae880e5a72371ede2aec2363d769e13135f1fe638965e559e6065fae46  config-samsung-a70q.aarch64
+b5ef2dc519f4bd151c99a05de6f371040ca343cc5a4b7f2a3257d69e44b7dfd0577971fbfdedba65cc26f2f14a672874fd2d9fe1a3ee8d7b7ef0b2331109bae3  config-samsung-a70q.aarch64
 c5bcb103a51a3cbd35dd614aa52526232591b32bbf2759ab44029a10f64b44530526faebbcdc97d6e56d3be1d8e12e118cbd2cc12480c9dc9a47cba9cf690da9  0001-usb-gadget-u_ether-resubmit-rx-request.patch
 19bd3572b675b8cae7af962fae1e097f2213193b8c048b5aad6e8d71dd2ee1f3be6a1f8d18bb4c1c05421c9a362e7b52325c0a8a6f7f87894ddfa786b2b54ddd  0002-loop-rescan-partitions-after-LOOP_SET_BLOCK_SIZE.patch
 88d7962f2866ab452ac8ca807b7c3b46458274ce2fe1c2db23b8625223e3cfe4ccb789fa349f74aefbd2154ce081a260e1047a3be19e30c1860889ecbab9be2c  0003-loop-drop-page-cache-before-LOOP_SET_BLOCK_SIZE.patch

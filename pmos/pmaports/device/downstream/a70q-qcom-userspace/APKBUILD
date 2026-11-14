@@ -3,11 +3,12 @@
 # class, so we build qrtr-ns from the last qrtr commit that still had it and
 # patch pd-mapper/tqftpserv to find firmware without /sys/class/remoteproc.
 # a70q-bdf replaces Android's proprietary cnss-daemon for the WCN3990 board data.
+# a70q-btinit does the WCN3988 Bluetooth firmware download (btqca) and attaches HCI UART (H4).
 maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=a70q-qcom-userspace
 pkgver=1
-pkgrel=0
-pkgdesc="QRTR name service, pd-mapper, tqftpserv, BDF loader and reboot-mode for Galaxy A70"
+pkgrel=1
+pkgdesc="QRTR name service, pd-mapper, tqftpserv, WLAN BDF / Bluetooth loaders and reboot-mode for Galaxy A70"
 url="https://github.com/linux-msm"
 arch="aarch64"
 license="BSD-3-Clause AND GPL-2.0-or-later"
@@ -24,6 +25,7 @@ source="
 	pd-mapper-0001-PD_MAPPER_JSON_DIRS.diff
 	tqftpserv-0001-fallback-without-remoteproc.diff
 	a70q-bdf.c
+	a70q-btinit.c
 	reboot-mode.c
 "
 builddir="$srcdir"
@@ -47,12 +49,13 @@ build() {
 	(cd tqftpserv-$_tftp && $CC $CFLAGS -I$q/include -o ../out/tqftpserv tqftpserv.c \
 		translate.c $q/lib/*.c $LDFLAGS)
 	$CC $CFLAGS -o out/a70q-bdf a70q-bdf.c $LDFLAGS
+	$CC $CFLAGS -o out/a70q-btinit a70q-btinit.c $LDFLAGS
 	$CC $CFLAGS -o out/reboot-mode reboot-mode.c $LDFLAGS
 }
 
 package() {
 	local f
-	for f in qrtr-ns qrtr-lookup pd-mapper tqftpserv a70q-bdf reboot-mode; do
+	for f in qrtr-ns qrtr-lookup pd-mapper tqftpserv a70q-bdf a70q-btinit reboot-mode; do
 		install -Dm755 out/$f "$pkgdir"/usr/libexec/a70q/$f
 	done
 	install -d "$pkgdir"/usr/bin
@@ -68,5 +71,6 @@ d8dda67fac505141fc021e66c563672e76dc8202358a2b493db8c4a6034dac27db1a0dcda04406ef
 419baf420f8dc4556a6b2634e6715e09b65dfad2fc54f02183265f2af902d9c3be8674c8733251883cf78ff306d3e5a99d6d7c0a65124d836ce5a570606cfa81  pd-mapper-0001-PD_MAPPER_JSON_DIRS.diff
 32826e233a38e30de07ca1ebec63adad043954aa8b045775cd2a34907e8711b816a35a7c0626e112ca48559676b21528ac1edcd77520851826b9e32462919eef  tqftpserv-0001-fallback-without-remoteproc.diff
 71d026e15dfa64f3c10c818b70f366ffd41eaafbbafdba7a1547db96ca8922e9b173c03caeaa152196cc25fb95b3591299892f21fe75041aad760e791275bb54  a70q-bdf.c
+967a1218cb11bc772513a5f4b2b880b20ee2d92ab6ae5eb901303be29f2d07853db3cd7eafb8655c2be01f274f71aa349b8321cf303fe2649bfbf84eb9d84b4f  a70q-btinit.c
 e22935cf3024837d7f15f0cced9e538eb17f7e7ced75b11cc928418ca692a206a540f4c1d6d71c68170a01eafe5d3ed913bf975dc48a1035cbe6400026017141  reboot-mode.c
 "

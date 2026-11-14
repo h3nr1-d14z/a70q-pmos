@@ -505,5 +505,15 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 
 ### C58. Modem: dịch vụ QMI có trên QRTR, ModemManager chưa nhận (đang điều tra)
 - `qrtr-lookup`: node 0 (modem) công bố WDS(1), DMS(2), NAS(3), QOS(4), WMS(5), VOICE(9), UIM(11), PBM(12)... → điều khiển gọi điện/SMS qua QMI về nguyên tắc khả thi; data cần thêm rmnet/IPA
+- **Tạm hoãn** (2026-11-14): người dùng chưa lắp SIM vào máy
 - ModemManager 1.25.95 có QRTR (`qrtr devices allowed: yes`) nhưng `mmcli -L`: không có modem. NetworkManager tự kích hoạt MM qua D-Bus ngay khi nó thoát → không chạy được bản `--debug` riêng (thua giành tên `org.freedesktop.ModemManager1`); cần dừng NM hoặc chặn activation khi debug
+
+### C59. ✅ Bluetooth (WCN3988) — xem `pmos/bluetooth/README.md`
+- Kernel không có `hci_uart`; `hci_qca` 4.14 chỉ hỗ trợ ROME, DT không có serdev → khởi tạo chip ở userspace (`a70q-btinit`), kernel chỉ cần `BT_HCIUART` + `BT_HCIUART_H4` (r19)
+- UART GENI downstream không phát gì (byte nằm mãi trong `TIOCOUTQ`) cho tới khi userspace gọi `TIOCPMGET` (bỏ phiếu clock; HAL Android làm việc này)
+- NVM có header bao loại 4 (upstream: "nhiều bộ tag → header loại 4") → đọc tag từ sai chỗ thì không vá được baud → sau khi nạp NVM chip đổi sang 3.2 Mbaud (giá trị gốc) và im lặng
+- Tag 17 `data[0]` bit 7 = in-band sleep (upstream bật vì `hci_qca` dùng IBS); với H4 phải xoá, nếu không: `Frame reassembly failed (-84)` mỗi 20 ms, mọi lệnh khởi tạo của kernel `tx timeout`
+- Lệnh đầu tiên sau khi bật nguồn có thể mất → thử `HCI_Reset` nhiều lần, chấp nhận cả phản hồi đọc phiên bản
+- `btpower` off không reset chip (nguồn dùng chung WLAN) → chip giữ trạng thái giữa các lần chạy; thử nghiệm sai một lần là phải reboot để có chip sạch
+- Kết quả: tự lên khi boot, `bluetoothctl power on` OK, quét thấy 33 thiết bị
 

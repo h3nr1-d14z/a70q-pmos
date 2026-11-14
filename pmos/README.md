@@ -8,13 +8,13 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 
 | Thành phần | Phiên bản đang chạy | Nguồn |
 |---|---|---|
-| BOOT | kernel `linux-samsung-a70q` r18 + initramfs pmOS | `tools/mkboot.sh 18 ...` |
+| BOOT | kernel `linux-samsung-a70q` r19 + initramfs pmOS | `tools/mkboot.sh 19 ...` |
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r22 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r23 | `pmaports/device/downstream/` |
 | `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
-| `a70q-qcom-userspace` | r0 | như trên |
+| `a70q-qcom-userspace` | r1 (thêm `a70q-btinit`) | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
 
@@ -80,7 +80,7 @@ Quay về LineageOS: flash `../a70-root/artifacts/boot/lineage-boot-orig.img` v�
 
 Source `a70q-lineage/android_kernel_samsung_sm6150` nhánh `lineage-22.2` @ `699d9d7da` (trùng với blob
 LOS: defconfig == IKCONFIG, DTB giống từng byte). Config = `a70q_defconfig` + fragment k1 (devtmpfs),
-k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HELPER_FALLBACK`).
+k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HELPER_FALLBACK`, `BT_HCIUART` + H4).
 
 | Patch | Sửa gì |
 |---|---|
@@ -132,6 +132,10 @@ bật màn hình. Các mảnh ghép trong `device-samsung-a70q`:
 (`sxmo_flashtoggle.sh`, `sxmo_vibrate`, `sxmo_brightness.sh` + shim `brightnessctl` → `panel0-backlight`),
 udev `61-a70q-feedback.rules`. Máy không có LED thông báo (`SXMO_DISABLE_LEDS=1`).
 
+**Bluetooth** (C59, `bluetooth/README.md`): chip WCN3988 trên UART `ttyHS0`; `a70q-btinit` nạp
+firmware từ vendor và gắn HCI UART (H4), chạy nền từ `a70q-modem-up` (log `/var/log/a70q-bt.log`);
+BlueZ (`bluetoothd`) dùng `hci0`.
+
 ## 7. Việc còn lại
 
 Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
@@ -141,8 +145,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
 | Xoay màn hình tự động | xoay tay chạy (menu Sxmo, `sxmo_rotate.sh`); SSC trả lời nhưng sensor registry chưa nạp (C57) | port `hexagonrpcd` sang FastRPC downstream (`/dev/adsprpc-smd`) |
 | Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
-| Bluetooth (WCN3990) | không có `hci0` | `hci_uart`/btqca qua UART + firmware từ apnhlos |
-| Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | debug MM với QRTR; data cần rmnet/IPA |
+| Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | **tạm hoãn: chưa có SIM**; debug MM với QRTR; data cần rmnet/IPA |
 | GPS | qua modem (QMI LOC) | sau khi có QMI |
 | Camera | `/dev/video*` chỉ là venus (codec) và SDE rotator; camera cần stack CAMX độc quyền | rất khó |
 | NFC (NXP NQx), vân tay (etspi) | chưa thử | driver/HAL độc quyền |

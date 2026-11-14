@@ -28,10 +28,13 @@ for f in "$FWM"/*; do ln -sf "$f" /lib/firmware/; done        # modem.mdt etc. f
 mkdir -p /lib/firmware/wlan/qca_cld
 for f in "$FW"/a612_zap.*; do ln -sf "$f" /lib/firmware/; done
 VEND=$(part vendor)
-if { [ ! -e /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ] || [ ! -e /lib/firmware/a630_sqe.fw ]; } && [ -n "$VEND" ]; then
-	mkdir -p /run/a70q-vendor && mount -o ro "$VEND" /run/a70q-vendor && {
+if { [ ! -e /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ] || [ ! -e /lib/firmware/a630_sqe.fw ] ||
+		[ ! -e /lib/firmware/qca/apnv11.bin ]; } && [ -n "$VEND" ]; then
+	mkdir -p /run/a70q-vendor /lib/firmware/qca && mount -o ro "$VEND" /run/a70q-vendor && {
 		cp /run/a70q-vendor/firmware/wlan/qca_cld/* /lib/firmware/wlan/qca_cld/
 		cp /run/a70q-vendor/firmware/a630_sqe.fw /run/a70q-vendor/firmware/a612_rgmu.bin /lib/firmware/
+		# Bluetooth (WCN3988): rampatch + NVM for a70q-btinit
+		cp /run/a70q-vendor/firmware/apbtfw11.tlv /run/a70q-vendor/firmware/apnv11.bin /lib/firmware/qca/
 		umount /run/a70q-vendor; }
 fi
 
@@ -85,6 +88,14 @@ for i in $(seq 1 30); do [ -e /dev/wlan ] && break; sleep 0.5; done
 echo ON > /dev/wlan
 for i in $(seq 1 120); do [ -e /sys/class/net/wlan0 ] && break; sleep 0.5; done   # takes ~20 s
 [ -e /sys/class/net/wlan0 ] && log "wlan0 up ($(cat /sys/class/net/wlan0/address))" || log "ERROR: no wlan0"
+
+# Bluetooth: WCN3988 BT core on the GENI UART; firmware download + HCI UART (H4) attach in
+# userspace (ERRORS C59). a70q-btinit stays running: it holds the UART and its clock vote.
+if [ -x /usr/libexec/a70q/a70q-btinit ] && [ -e /dev/btpower ]; then
+	setsid /usr/libexec/a70q/a70q-btinit >/var/log/a70q-bt.log 2>&1 &
+	echo $! > /run/a70q-btinit.pid
+	log "bluetooth init started (log: /var/log/a70q-bt.log)"
+fi
 # suspend with WiFi connected: without a WoWLAN config cfg80211 disconnects on suspend and the
 # resulting event aborts it. With the "disconnect" trigger too the firmware woke the AP at once
 # in our test (WLAN_CE_2), magic-packet only lets it sleep (ERRORS C51)
