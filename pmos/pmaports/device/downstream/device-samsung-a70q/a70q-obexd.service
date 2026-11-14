@@ -1,0 +1,11 @@
+[Unit]
+Description=a70q: Bluetooth OBEX (receive files from trusted devices into ~/Downloads)
+
+[Service]
+Type=simple
+Restart=always
+# -a: accept pushes without an obex agent. bluetoothd only authorizes the OBEX services for
+# trusted (paired + "trust") devices when no default agent is registered, so untrusted
+# devices are still rejected.
+ExecStart=/bin/sh -c 'mkdir -p "$HOME/Downloads" && exec /usr/lib/bluetooth/obexd -n -a -r "$HOME/Downloads"'
+RestartSec=5s

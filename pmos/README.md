@@ -8,11 +8,11 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 
 | Thành phần | Phiên bản đang chạy | Nguồn |
 |---|---|---|
-| BOOT | kernel `linux-samsung-a70q` r19 + initramfs pmOS | `tools/mkboot.sh 19 ...` |
+| BOOT | kernel `linux-samsung-a70q` r21 + initramfs pmOS | `tools/mkboot.sh 21 ...` |
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r24 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r25 | `pmaports/device/downstream/` |
 | `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
 | `a70q-qcom-userspace` | r2 (`a70q-btinit`) | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
@@ -80,7 +80,8 @@ Quay về LineageOS: flash `../a70-root/artifacts/boot/lineage-boot-orig.img` v�
 
 Source `a70q-lineage/android_kernel_samsung_sm6150` nhánh `lineage-22.2` @ `699d9d7da` (trùng với blob
 LOS: defconfig == IKCONFIG, DTB giống từng byte). Config = `a70q_defconfig` + fragment k1 (devtmpfs),
-k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HELPER_FALLBACK`, `BT_HCIUART` + H4).
+k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HELPER_FALLBACK`, `BT_HCIUART` + H4,
+RFCOMM/BNEP/HIDP).
 
 | Patch | Sửa gì |
 |---|---|
@@ -90,6 +91,7 @@ k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HE
 | 0008 | MBHC: thêm kcontrol `Headphone Jack` / `Headset Mic Jack` cho PipeWire (C48) |
 | 0009 | loopback PCM: đọc `Playback N Volume` khi stream đóng trả 0 thay vì ENODEV (C55) |
 | 0010 | ALSA core: control MIXER không đọc được (không có `get`/lỗi) trả 0 → alsa-lib nạp được mixer, PipeWire theo dõi được jack (C55) |
+| 0011 | Bluetooth: build lại RFCOMM/BNEP/HIDP (vendor comment trong Makefile) → OBEX, HFP, PAN (C60) |
 
 `kernel/patches/disabled/`: 0005 (fbdev → bootloop), 0007 (writeback trong DT gốc, không có tác dụng vì
 node nằm trong DTBO).
@@ -134,7 +136,7 @@ udev `61-a70q-feedback.rules`. Máy không có LED thông báo (`SXMO_DISABLE_LE
 
 **Bluetooth** (C59, `bluetooth/README.md`): chip WCN3988 trên UART `ttyHS0`; `a70q-btinit` nạp
 firmware từ vendor và gắn HCI UART (H4), chạy nền từ `a70q-modem-up` (log `/var/log/a70q-bt.log`);
-BlueZ (`bluetoothd`) dùng `hci0`; ghép đôi và A2DP (điện thoại làm loa cho Mac) đã thử. PipeWire dùng quantum
+BlueZ (`bluetoothd`) dùng `hci0`; ghép đôi, A2DP (điện thoại làm loa cho Mac) và nhận file OBEX (superd `a70q-obexd`, C60) đã thử. PipeWire dùng quantum
 2048 cho card q6 (`/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf`).
 
 ## 7. Việc còn lại

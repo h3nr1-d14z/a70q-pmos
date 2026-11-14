@@ -1,0 +1,35 @@
+From ed370245b7279e2e0f102a05e7e70596847597a2 Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Sat, 14 Nov 2026 10:00:00 +0000
+Subject: [PATCH] Bluetooth: build RFCOMM, BNEP and HIDP again
+
+The vendor kernel comments these protocols out of net/bluetooth/Makefile
+(Android uses its own userspace Bluetooth stack), so CONFIG_BT_RFCOMM=y
+etc. silently build nothing and BlueZ cannot open RFCOMM sockets
+("Protocol not supported"): no OBEX file transfer, no HFP, no PAN.
+rfcomm/tty.c was removed as well, so CONFIG_BT_RFCOMM_TTY must stay off.
+---
+ net/bluetooth/Makefile | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/net/bluetooth/Makefile b/net/bluetooth/Makefile
+index 2b080d3..fda41c0 100755
+--- a/net/bluetooth/Makefile
++++ b/net/bluetooth/Makefile
+@@ -4,10 +4,10 @@
+ #
+ 
+ obj-$(CONFIG_BT)	+= bluetooth.o
+-#obj-$(CONFIG_BT_RFCOMM)	+= rfcomm/
+-#obj-$(CONFIG_BT_BNEP)	+= bnep/
++obj-$(CONFIG_BT_RFCOMM)	+= rfcomm/
++obj-$(CONFIG_BT_BNEP)	+= bnep/
+ obj-$(CONFIG_BT_CMTP)	+= cmtp/
+-#obj-$(CONFIG_BT_HIDP)	+= hidp/
++obj-$(CONFIG_BT_HIDP)	+= hidp/
+ obj-$(CONFIG_BT_6LOWPAN) += bluetooth_6lowpan.o
+ 
+ bluetooth_6lowpan-y := 6lowpan.o
+-- 
+2.43.0
+

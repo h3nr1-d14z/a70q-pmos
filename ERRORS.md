@@ -520,3 +520,11 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - Đính chính giữa chừng: `ACL packet for unknown connection handle 3804` KHÔNG phải UART hỏng: 3804 = 0xEDC = `QCA_DEBUG_HANDLE` 0x2EDC (log debug của firmware, upstream `hci_qca` lọc riêng) → vô hại. Việc hạ UART xuống 2 Mbaud vì nghi lỗi này là không cần (vẫn giữ 2M, đã kiểm chứng)
 - Đổi baud bằng lệnh vendor không bền: `HCI_Reset` (kernel gửi mỗi lần bật adapter) áp lại baud trong NVM → baud vận hành phải bằng baud ghi vào NVM (`a70q-btinit -b`, mặc định 2000000)
 
+### C60. ✅ Chuyển file Bluetooth (OBEX): kernel vendor không build RFCOMM
+- Mac báo "the device does not have the necessary services"; Mac (`system_profiler SPBluetoothDataType`) chỉ thấy AVRCP/A2DP/GATT
+- `obexd` báo đăng ký profile OPP/FTP thành công, nhưng `bluetoothd`: `RFCOMM server failed for Object Push: socket(STREAM, RFCOMM): Protocol not supported` → không có bản ghi SDP
+- Bật `CONFIG_BT_RFCOMM/BNEP/HIDP=y` (r20) KHÔNG đủ: `net/bluetooth/Makefile` của vendor đã comment các dòng `rfcomm/ bnep/ hidp/` (Android dùng stack Bluetooth userspace) → config `=y` nhưng không build gì (không có log "RFCOMM socket layer initialized", không có symbol `rfcomm_` trong `/proc/kallsyms`). Patch 0011 bỏ comment (r21); `rfcomm/tty.c` cũng bị xoá → `CONFIG_BT_RFCOMM_TTY` phải tắt
+- Kết quả: OPP/FTP được quảng bá, Mac gửi file sang điện thoại OK (`~/Downloads`). Cũng mở đường cho HFP (tai nghe gọi điện) và PAN
+- `obexd` chạy trong phiên Sxmo qua superd (`a70q-obexd`, `-a` tự nhận); cài mới cần `superctl enable a70q-obexd` một lần (trạng thái enable nằm trong `~/.config/services/enabled/`)
+- Khi thay đổi dịch vụ, Mac giữ danh sách cũ: Forget rồi ghép lại (phía điện thoại cũng `bluetoothctl remove`)
+

@@ -5,7 +5,7 @@
 maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=linux-samsung-a70q
 pkgver=4.14.190
-pkgrel=19
+pkgrel=21
 pkgdesc="Samsung Galaxy A70 kernel fork"
 arch="aarch64"
 _carch="arm64"
@@ -46,6 +46,7 @@ source="
 	0008-ASoC-wcd-mbhc-expose-headset-jack-as-kcontrols.patch
 	0009-ASoC-msm-pcm-loopback-do-not-fail-volume-get-when-closed.patch
 	0010-ALSA-control-report-unreadable-MIXER-controls-as-zero.patch
+	0011-Bluetooth-build-RFCOMM-BNEP-and-HIDP-again.patch
 "
 builddir="$srcdir/$_repository-$_commit"
 _outdir="out"
@@ -95,7 +96,7 @@ package() {
 
 sha512sums="
 04c848a678ba1e5a99404691c2d3628ec995b037911986218e2c82e37b07d6b7aca37489250077f1f55906b105854da8c7a53cc5a1c39f9b1c922437ae6d24cc  linux-samsung-a70q-699d9d7da5b74952f7feb8b699199f12302db6e2.tar.gz
-b5ef2dc519f4bd151c99a05de6f371040ca343cc5a4b7f2a3257d69e44b7dfd0577971fbfdedba65cc26f2f14a672874fd2d9fe1a3ee8d7b7ef0b2331109bae3  config-samsung-a70q.aarch64
+a47a9ca3f8de69e419fed660e931380feaeada5e71d1347f0883a554334f4ea82180f306f6ebfcdaf36d69a635e3e2385c71983144baca4b38071cb21cd090d7  config-samsung-a70q.aarch64
 c5bcb103a51a3cbd35dd614aa52526232591b32bbf2759ab44029a10f64b44530526faebbcdc97d6e56d3be1d8e12e118cbd2cc12480c9dc9a47cba9cf690da9  0001-usb-gadget-u_ether-resubmit-rx-request.patch
 19bd3572b675b8cae7af962fae1e097f2213193b8c048b5aad6e8d71dd2ee1f3be6a1f8d18bb4c1c05421c9a362e7b52325c0a8a6f7f87894ddfa786b2b54ddd  0002-loop-rescan-partitions-after-LOOP_SET_BLOCK_SIZE.patch
 88d7962f2866ab452ac8ca807b7c3b46458274ce2fe1c2db23b8625223e3cfe4ccb789fa349f74aefbd2154ce081a260e1047a3be19e30c1860889ecbab9be2c  0003-loop-drop-page-cache-before-LOOP_SET_BLOCK_SIZE.patch
@@ -104,4 +105,5 @@ d9474bcd5d792e678d1a8a9320dcec663663c86db0859c41db994045dfb7c374cdfa1eda41fd362e
 a7cc2f64eee90878f53d914d4203c85008337a76c6adfb9c606640ea7bbcd45708700a40782b871fe1b1aaad17756c85c2e713a1e227b2b3437fd9ecdef77052  0008-ASoC-wcd-mbhc-expose-headset-jack-as-kcontrols.patch
 3e0566d7d9bc65d7d483afa1da79f1a6fbfc5d9c6e3800f38cb5c1f34aa09849f896f4e5b534fb824f9c1183a5d9839a5e9417af949eb2ecf805f5d973501cda  0009-ASoC-msm-pcm-loopback-do-not-fail-volume-get-when-closed.patch
 c6f324bb115fa6387e4087ccffeb73cd7728d96938b996e6221645330eebb01904bebdb6a577547caa709951608124ece9449c3e6a300a04d584af8431d154ad  0010-ALSA-control-report-unreadable-MIXER-controls-as-zero.patch
+dfd3fcbc6509b6cda904fcb491260f640353173a665e4921da27db6d5b2a43f43ac37e1bc308c41d57aae318163d99645fd69701997b71ea2e36f119d440bfcb  0011-Bluetooth-build-RFCOMM-BNEP-and-HIDP-again.patch
 "
