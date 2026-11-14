@@ -156,6 +156,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 | Camera | kernel có stack CAMX (`cam-isp`, `cam-icp`, `cam-sensor-driver` ×5, `media0/1`); không có userspace mở, ISP chỉ lập trình được bằng HAL Android `camera.qcom` + tuning Samsung | **không khả thi** trên pmOS thuần (cần libhybris/HAL Android) |
 | Vân tay | Egis `etspi` dưới màn hình, `tz: 1`: SPI thuộc TrustZone, so khớp trong trustlet Samsung qua `qseecom` | **không khả thi** (chỉ HAL Android gọi được trustlet) |
 | NFC (NXP NQx) | chưa thử | |
+| FM radio | Samsung không bật: kernel không có driver FM (không radio-iris/rtc6226), DT không có node FM, vendor chỉ có interface `vendor.qti.hardware.fm@1.0` không có HAL, `vendor.hw.fm.init=0`. FM của WCN3988 điều khiển qua lệnh HCI riêng của Qualcomm + âm thanh qua SLIMbus (btfm) | **không làm** (không có đường lấy tiếng và không biết anten) |
 | Âm thanh qua Bluetooth/USB, mic tai nghe | chưa thử thực tế | |
 | C30 | debug-shell mất IP ECM | |
 
