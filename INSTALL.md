@@ -125,9 +125,11 @@ wpctl status | grep -A3 Sinks             # loa/tai nghe
 
 ## 6. Cập nhật về sau
 
-- Build lại package như bước 2, rồi trên Mac `pmos/tools/repo.sh start` (phục vụ repo package qua HTTP,
-  cổng 8099). Trên máy thêm vào đầu `/etc/apk/repositories` dòng do `pmos/tools/repo.sh phone` in ra,
-  sau đó `sudo apk update && sudo apk upgrade`. ✅
+- Package thường (Sxmo, ứng dụng, thư viện): `sudo apk update && sudo apk upgrade` ở bất cứ đâu có mạng.
+- Package riêng của máy (kernel, device package...): build lại như bước 2, trên máy tính chạy
+  `pmos/tools/repo.sh start` (phục vụ qua HTTP, cổng 8099), rồi trên điện thoại `sudo a70q-upgrade`.
+  Lệnh này tự dùng thêm kho trên máy tính nếu với tới được (USB `172.16.42.2`, hoặc địa chỉ LAN thêm vào
+  `/etc/a70q/repos`), không thì chỉ cập nhật từ internet. ✅
 - Kernel cập nhật qua apk **không** tự ghi phân vùng BOOT: tạo boot.img bằng `pmos/tools/mkboot.sh`
   (xem `pmos/README.md` mục 3) rồi `flash.sh --BOOT`. Có thể đưa máy vào Download Mode từ xa:
   `sudo reboot-mode download` qua SSH. ✅

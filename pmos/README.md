@@ -64,15 +64,17 @@ pmos/tools/dtbo-drop-wb.sh backups/dtbo.img pmos/out/dtbo-nowb.img   # = bản �
 `tools/repo.sh start` chạy container `a70q-repo` (tự khởi động lại cùng Docker) phục vụ
 `a70q-pmbwork:/packages` ở cổng 8099. Index do pmbootstrap ký bằng khoá `pmos@local`, khoá này đã có
 trong `/etc/apk/keys` của rootfs do `pmbootstrap install` tạo, nên không cần `--allow-untrusted`.
-Thêm vào đầu `/etc/apk/repositories` của máy (`tools/repo.sh phone` in ra đúng địa chỉ):
 
-```
-http://172.16.42.2:8099/edge      # Mac qua USB
-http://<IP LAN của Mac>:8099/edge # Mac qua WiFi
-```
+Kho này **không** nằm trong `/etc/apk/repositories`: khi một kho trong danh sách không với tới được,
+apk từ chối mọi lệnh `add`/`upgrade` (C67), tức là ra khỏi nhà là hỏng. Thay vào đó:
 
-Sau mỗi lần build: trên máy `sudo apk update && sudo apk upgrade`. Kernel (`linux-samsung-a70q`) cập nhật
-qua apk vẫn phải tạo boot.img + flash bằng heimdall (mục 4), apk không tự ghi phân vùng BOOT.
+- `apk` thường chỉ dùng mirror Alpine/postmarketOS trên internet, chạy ở bất cứ đâu
+- `sudo a70q-upgrade` (device package): dò từng địa chỉ trong `/etc/a70q/repos` (mặc định
+  `http://172.16.42.2:8099/edge`, Mac qua USB; thêm IP LAN của Mac để cập nhật qua WiFi, `tools/repo.sh
+  phone` in ra), thêm `--repository` cho địa chỉ nào trả lời trong 1 giây, rồi `apk update && apk upgrade`
+
+Kernel (`linux-samsung-a70q`) cập nhật qua apk vẫn phải tạo boot.img + flash bằng heimdall (mục 4),
+apk không tự ghi phân vùng BOOT.
 
 ## 4. Flash
 

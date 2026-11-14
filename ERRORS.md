@@ -337,3 +337,12 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - **Cách sửa**: `# CONFIG_NFC_PN547 is not set`, `# CONFIG_SEC_NFC_LOGGER is not set` (kernel r22, fragment k3) → kernel vào userspace ở 1,9 s; SSH USB ~16 s, Sxmo ~15 s, WiFi ~31 s
 - **Cách tìm**: awk tìm khoảng trống > 0,4 s giữa các dòng dmesg trước khi vào userspace
 
+### C67. Kho package riêng trong `/etc/apk/repositories` làm apk tê liệt khi ra khỏi nhà
+- **Triệu chứng** (giả lập bằng `--repositories-file` với địa chỉ Mac không với tới): `apk update` mất 126 s
+  ("2 unavailable"), rồi `apk upgrade`/`apk add`: `ERROR: Not continuing due to stale/unavailable
+  repositories. Use --force-missing-repositories to continue.`
+- **Nguyên nhân**: apk-tools hiện tại từ chối thay đổi hệ thống khi một kho đã khai báo không có index
+- **Cách sửa**: bỏ kho Mac khỏi `/etc/apk/repositories`; `a70q-upgrade` (device r34) dò cổng bằng
+  `nc -z -w 1` và chỉ thêm `--repository` cho địa chỉ trả lời. Ở xa: `apk` thường 1 s, `a70q-upgrade` 8 s
+- **Bài học**: thử cả trường hợp "mất kết nối" trước khi coi một cấu hình mạng là xong
+

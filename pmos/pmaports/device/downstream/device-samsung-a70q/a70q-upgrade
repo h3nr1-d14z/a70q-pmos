@@ -1,0 +1,26 @@
+#!/bin/sh
+# a70q-upgrade: system update that also pulls the a70q's own packages (kernel, device package,
+# turnip, patched wlroots/libssc, ...) from the build machine's repo (pmos/tools/repo.sh) when it
+# is reachable. The repo is deliberately NOT in /etc/apk/repositories: apk refuses to install or
+# upgrade anything while a listed repository is unreachable (ERRORS C67), i.e. away from home.
+#   sudo a70q-upgrade [apk upgrade options]
+# Repo URLs: /etc/a70q/repos (one per line), default http://172.16.42.2:8099/edge (Mac over USB).
+set -e
+[ "$(id -u)" = 0 ] || { echo "run as root: sudo a70q-upgrade" >&2; exit 1; }
+urls="$(grep -v '^[[:space:]]*#' /etc/a70q/repos 2>/dev/null || true)"
+[ -n "$urls" ] || urls="http://172.16.42.2:8099/edge"
+extra=""
+for u in $urls; do
+	hp="${u#*://}"; hp="${hp%%/*}"
+	h="${hp%:*}"; p="${hp##*:}"; [ "$p" = "$hp" ] && p=80
+	if nc -z -w 1 "$h" "$p" 2>/dev/null; then
+		echo "a70q-upgrade: using $u"
+		extra="$extra --repository $u"
+	else
+		echo "a70q-upgrade: $u not reachable, skipping (only public mirrors)"
+	fi
+done
+# shellcheck disable=SC2086
+apk update $extra
+# shellcheck disable=SC2086
+apk upgrade $extra "$@"

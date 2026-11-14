@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=33
+pkgrel=34
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -58,6 +58,8 @@ source="
 	a70q-dunstrc
 	a70q-session.sh
 	a70q-gtk3-settings.ini
+	a70q-upgrade
+	a70q-repos
 "
 options="!archcheck !check"
 
@@ -112,6 +114,9 @@ package() {
 	install -Dm644 "$srcdir"/a70q-dunstrc "$pkgdir"/etc/xdg/dunst/dunstrc
 	install -Dm644 "$srcdir"/a70q-gtk3-settings.ini "$pkgdir"/etc/gtk-3.0/settings.ini
 	install -Dm644 "$srcdir"/a70q-session.sh "$pkgdir"/etc/profile.d/a70q-session.sh
+	# updates: public mirrors + the build machine's repo when reachable (ERRORS C67)
+	install -Dm755 "$srcdir"/a70q-upgrade "$pkgdir"/usr/bin/a70q-upgrade
+	install -Dm644 "$srcdir"/a70q-repos "$pkgdir"/etc/a70q/repos
 	# Bluetooth file receive (OBEX) in the user session
 	install -Dm644 "$srcdir"/a70q-obexd.service "$pkgdir"/usr/share/superd/services/a70q-obexd.service
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
@@ -160,4 +165,6 @@ f0aa9d3cd644a1089f8062f07e4b5f3d75fb1e6c0a546726655909d02390065a37645b7db54988fa
 cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db755777ea51050827a637c5c2006a4a0e31009418370f94b1eb80  a70q-dunstrc
 69b09a3c84af80bce0a174b66d22093c52b3ac23c907758609a98a8ac4888cfceb3e491376df918e400275ae6324d2e1ca74e214e277ab3db92210c51b279604  a70q-session.sh
 599087e5c958c334523c9ee1856417cb239f60bf2bea4aaf487cac5fbda231d9b6726b42218b344af7ac9b805ab6280ca01eea6cbc38e6c23d1fbe58d4ccce05  a70q-gtk3-settings.ini
+68d2e56c0e374cd65d64b352620e33341f2db647b957107cbacddcdec2fcb2ab6bef48763a3098ccede69f67d68e8b44fda0cb21e0aa9d6320ff5d559bcbb5ba  a70q-upgrade
+22c2ca2cba2842931a634d1e67989b704f2360052e8bf460c5a91cc940480f2192318459875978f72dca93b8d1b797af709e2cd9dab465c3ee4d4ea8887d78cb  a70q-repos
 "
