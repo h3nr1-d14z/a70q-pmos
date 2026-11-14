@@ -1,0 +1,52 @@
+# Turnip (Mesa Vulkan for Adreno) built with the kgsl kernel backend.
+# Alpine's mesa is built with -Dfreedreno-kmds=msm,virtio, which cannot drive the
+# downstream 4.14 kgsl GPU driver (/dev/kgsl-3d0) of the Galaxy A70 (Adreno 612).
+# Installed under its own name + ICD so it coexists with mesa-vulkan-freedreno.
+maintainer="a70q pmOS port <noreply@example.org>"
+pkgname=mesa-vulkan-freedreno-kgsl
+pkgver=26.2.6
+pkgrel=1
+pkgdesc="Mesa turnip Vulkan driver with the kgsl backend (downstream Adreno kernels)"
+url="https://mesa3d.org"
+arch="aarch64"
+license="MIT"
+depends="vulkan-loader"
+makedepends="
+	patchelf
+	bison flex glslang libdrm-dev meson ninja python3 py3-mako py3-yaml py3-packaging
+	zlib-dev zstd-dev expat-dev elfutils-dev
+	wayland-dev wayland-protocols libxshmfence-dev libx11-dev libxext-dev libxrandr-dev libxcb-dev
+"
+options="!check"
+source="https://archive.mesa3d.org/mesa-$pkgver.tar.xz"
+builddir="$srcdir/mesa-$pkgver"
+
+build() {
+	abuild-meson \
+		-Db_ndebug=true \
+		-Dplatforms=wayland,x11 \
+		-Dgallium-drivers= \
+		-Dvulkan-drivers=freedreno \
+		-Dfreedreno-kmds=msm,kgsl \
+		-Dglx=disabled -Degl=disabled -Dgbm=disabled \
+		-Dgles1=disabled -Dgles2=disabled -Dopengl=false \
+		-Dllvm=disabled -Dvideo-codecs= -Dvulkan-layers= \
+		. output
+	ninja -C output src/freedreno/vulkan/libvulkan_freedreno.so
+}
+
+package() {
+	install -Dm755 output/src/freedreno/vulkan/libvulkan_freedreno.so \
+		"$pkgdir"/usr/lib/libvulkan_freedreno_kgsl.so
+	# own SONAME, otherwise abuild adds so:libvulkan_freedreno.so and it conflicts
+	# with mesa-vulkan-freedreno
+	patchelf --set-soname libvulkan_freedreno_kgsl.so "$pkgdir"/usr/lib/libvulkan_freedreno_kgsl.so
+	mkdir -p "$pkgdir"/usr/share/vulkan/icd.d
+	cat > "$pkgdir"/usr/share/vulkan/icd.d/freedreno_kgsl_icd.aarch64.json <<-EOT
+	{"ICD":{"api_version":"1.4.335","library_path":"/usr/lib/libvulkan_freedreno_kgsl.so"},"file_format_version":"1.0.1"}
+	EOT
+}
+
+sha512sums="
+0959679a8e9560a36d63bfc67357c73fde6fd98b00c29859ab30b31454b9ef8c8def38c7e180b168fd39080681042559dfc4a4252dfb289930a9776e0243c2dc  mesa-26.2.6.tar.xz
+"

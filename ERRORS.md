@@ -411,3 +411,15 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
 - Tắt FALLBACK (kernel r14) → firmware thiếu báo lỗi ngay; modem/WLAN nạp file trực tiếp nên không ảnh hưởng
 - Đo: SSH USB 41s, WiFi 53s sau flash (trước: ~100–190s / ~3 phút); 0 timeout
 - flash.sh giờ luôn ghi log `/tmp/a70q-flash-*.log` (lần trước thoát sớm mà output bị pipe nuốt)
+
+### C47. ✅ GPU Adreno 612 qua kgsl: chuỗi 5 trở ngại
+- Kernel có kgsl (`Adreno612v1`), firmware: zap `a612_zap.*` trên apnhlos; `a630_sqe.fw` + `a612_rgmu.bin` chỉ có trên partition **vendor** (sda24) → chép vào `/lib/firmware` (khi mở kgsl lần đầu thấy `a612_zap: Brought out of reset`)
+- `/dev/kgsl-3d0` mặc định 0600 root (Android dùng ueventd) → udev rule 0666; `/dev/ion` cũng cần cho dma-buf (không có `/dev/dma_heap`)
+- **Mesa của Alpine không có backend kgsl** (`-Dfreedreno-kmds=msm,virtio`): turnip chỉ thấy `renderD128` (msm_drm = SDE hiển thị) → `not compatible with turnip`. Lưu ý chuỗi "kgsl" vẫn có trong .so (tên tuỳ chọn TU_DEBUG) — không chứng minh được gì; xác nhận bằng APKBUILD → tự build turnip `msm,kgsl`
+- Package riêng bị abuild tự thêm `provides so:libvulkan_freedreno.so` → conflict với mesa-vulkan-freedreno → `patchelf --set-soname libvulkan_freedreno_kgsl.so`
+- `vulkaninfo` báo INITIALIZATION_FAILED: nó bật VK_KHR_display, turnip-kgsl từ chối (`I can't KHR_display`) — không phải lỗi GPU
+- vkcube segfault trong `wsi_GetSwapchainImagesKHR(swapchain=0)`: tạo swapchain thất bại (sway pixman không có linux-dmabuf) và vkcube không kiểm tra → `MESA_VK_WSI_DEBUG=sw` (present qua wl_shm) → chạy
+- A612 không có HW multiview → turnip chỉ báo Vulkan 1.0; Zink cần ≥1.2 → `TU_DEBUG=noconform` (→ 1.3)
+- Zink `failed to choose pdev`: EGL đưa major:minor của `renderD128` (SDE) và Zink tìm GPU Vulkan có DRM node khớp → không có. EGL tự rơi về đường swrast; với `GALLIUM_DRIVER=zink` đường đó chạy Zink trên turnip (thông báo lỗi lần thử đầu là vô hại)
+- Đo: glmark2-es2 Zink 73–77 vs llvmpipe 34; vkcube ~33 fps (giới hạn bởi copy wl_shm + compositor pixman)
+

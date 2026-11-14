@@ -1,0 +1,4 @@
+# Adreno 612 via the downstream kgsl driver (turnip kgsl backend) and ION for dma-buf
+# export (Vulkan WSI / external memory). Android uses 0666 for kgsl as well.
+KERNEL=="kgsl-3d0", MODE="0666"
+KERNEL=="ion", MODE="0666"

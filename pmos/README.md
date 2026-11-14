@@ -56,7 +56,16 @@ Về Download Mode từ shell: upload `tools/src/reboot-mode.c` (static) → `re
 - Log: `/var/log/a70q-modem.log`. Cấu hình WiFi: `wpa_passphrase SSID PASS >> /etc/wpa_supplicant/wpa_supplicant.conf` (chmod 600)
 - Kiểm chứng: reboot → SSH qua WiFi sau ~3 phút (boot chậm do kernel chờ firmware venus timeout 60s — cần sửa)
 
+## ✅ GPU Adreno 612: Vulkan (turnip-kgsl) + OpenGL/GLES (Zink) (2026-11-14)
+- Kernel downstream dùng **kgsl** (`/dev/kgsl-3d0`), không phải msm DRM; `renderD128` là node của driver hiển thị SDE, không có GPU
+- `mesa-vulkan-freedreno-kgsl` (pmaports): turnip của Mesa 26.2.6 build với `-Dfreedreno-kmds=msm,kgsl` (Alpine chỉ build `msm,virtio`), SONAME + ICD riêng (`freedreno_kgsl_icd.aarch64.json`) nên chạy song song với mesa-vulkan-freedreno
+- `device-samsung-a70q` r9: udev `60-a70q-gpu.rules` (kgsl-3d0 + ion 0666); `a70q-modem-up` chép `a630_sqe.fw` + `a612_rgmu.bin` từ partition vendor, link `a612_zap.*` từ apnhlos; `/etc/profile.d/a70q-wlroots.sh` đặt `TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw GALLIUM_DRIVER=zink`
+- Kết quả: `eglinfo` → `zink Vulkan 1.3(Turnip Adreno (TM) 612)`; glmark2-es2-wayland 540x960: **73–77** (llvmpipe: 34); vkcube ~33 fps
+- Compositor (sway) vẫn render pixman: wlroots GLES/Vulkan cần GPU có DRM render node. Chi tiết lỗi: ERRORS.md C47
+- Build thử nhanh ngoài pmbootstrap: `pmos/mesa/build.sh` (Docker aarch64 native, ~1 phút)
+
 ## Tiếp theo
 1. ~~Initramfs pmOS + USB networking~~ ✅
 2. ~~Rootfs trên USERDATA → boot pmOS thật, SSH~~ ✅
-3. ~~WiFi~~ ✅, ~~đóng gói service~~ ✅; còn: boot nhanh (firmware sớm), UI trên KMS (màn hình đã chạy qua DRM), touch, âm thanh (adsp), pin; sửa C30
+3. ~~WiFi~~ ✅, ~~đóng gói service~~ ✅, ~~boot nhanh~~ ✅, ~~UI trên KMS + touch~~ ✅, ~~GPU cho app~~ ✅
+4. Còn: âm thanh (adsp), compositor dùng GPU (cần dmabuf giữa kgsl và SDE), tắt writeback Virtual-1 ở DTBO, pin/suspend, sửa C30

@@ -205,3 +205,8 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - Userdata xoá (theo lựa chọn user), rootfs OpenRC sparse-flash vào USERDATA; `/` = loop0p2 ext4 (4K), resize 108GB
 - Chuỗi lỗi: systemd≥5.4 (C31) → loop node Docker (C32) → heimdall cần sparse (C33) → thiếu loop.max_part (C34) → 2 bug kernel loop/4K (C35, patches 0002–0004)
 - `ssh user@172.16.42.1` — Nura (pmOS) edge, kernel 4.14.190-perf #9-postmarketOS, RAM 5.5GB
+
+## 2026-11-14 trưa — GPU Adreno 612 chạy (Vulkan + GL qua Zink)
+- turnip build với backend kgsl (package `mesa-vulkan-freedreno-kgsl`), firmware GPU từ vendor, udev rule, env trong profile.d
+- Sau reboot sạch: `zink Vulkan 1.3(Turnip Adreno (TM) 612)`, glmark2 73 (llvmpipe 34); chi tiết C47
+

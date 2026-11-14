@@ -18,6 +18,20 @@ for p in modemst1 modemst2 fsc fsg; do ln -sf "$(part $p)" /dev/disk/by-partlabe
 for f in "$FWM"/*; do ln -sf "$f" /lib/firmware/; done        # modem.mdt etc. for PIL
 [ -e /dev/qcom_rmtfs_uio1 ] || ln -sf /dev/uio0 /dev/qcom_rmtfs_uio1   # uio0 name=rmtfs
 
+# Firmware from the vendor partition (copied once into the rootfs):
+#  - WLAN: WCNSS_qcom_cfg.ini for qcacld
+#  - GPU (Adreno 612, kgsl): SQE + RGMU microcode, requested on first open of /dev/kgsl-3d0
+#    (the zap shader a612_zap.* lives on apnhlos and is linked below)
+mkdir -p /lib/firmware/wlan/qca_cld
+for f in "$FW"/a612_zap.*; do ln -sf "$f" /lib/firmware/; done
+VEND=$(part vendor)
+if { [ ! -e /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ] || [ ! -e /lib/firmware/a630_sqe.fw ]; } && [ -n "$VEND" ]; then
+	mkdir -p /run/a70q-vendor && mount -o ro "$VEND" /run/a70q-vendor && {
+		cp /run/a70q-vendor/firmware/wlan/qca_cld/* /lib/firmware/wlan/qca_cld/
+		cp /run/a70q-vendor/firmware/a630_sqe.fw /run/a70q-vendor/firmware/a612_rgmu.bin /lib/firmware/
+		umount /run/a70q-vendor; }
+fi
+
 /usr/libexec/a70q/qrtr-ns -f 1 >/var/log/qrtr-ns.log 2>&1 &
 # wait until the name service answers (kernel memshare server 52 is always there);
 # publishing before qrtr-ns is bound loses the NEW_SERVER packet silently
@@ -49,12 +63,6 @@ log "modem requested"
 
 # --- WLAN: WCN3990 firmware waits for the board data file over QMI (cnss-daemon's job on
 # Android; downstream icnss never sends it). Then start the built-in qcacld driver.
-mkdir -p /lib/firmware/wlan/qca_cld
-VEND=$(part vendor)
-if [ ! -e /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ] && [ -n "$VEND" ]; then
-	mkdir -p /run/a70q-vendor && mount -o ro "$VEND" /run/a70q-vendor &&
-	cp /run/a70q-vendor/firmware/wlan/qca_cld/* /lib/firmware/wlan/qca_cld/ ; umount /run/a70q-vendor 2>/dev/null
-fi
 for i in $(seq 1 60); do
 	WLFW=$(/usr/libexec/a70q/qrtr-lookup 2>/dev/null | awk '$1==69 {print $4, $5; exit}')
 	[ -n "$WLFW" ] && break; sleep 1
