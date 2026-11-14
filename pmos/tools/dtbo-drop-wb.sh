@@ -8,19 +8,21 @@ set -e
 IN=$(cd "$(dirname "$1")" && pwd)/$(basename "$1"); OUT=$2
 T=$(mktemp -d); HERE=$(cd "$(dirname "$0")" && pwd)
 python3 "$HERE/dtboimg.py" unpack "$IN" "$T/e" >/dev/null
-docker run --rm -v a70q-ksrc:/src -v "$T":/t a70q-kbuild bash -ec '
+docker run --rm -v "$T":/t alpine:3.22 sh -ec '
+apk add -q dtc python3
 cd /t/e; for f in e*.dtbo; do
-  /src/dtc-host/dtc -q -I dtb -O dts -o ${f%.dtbo}.dts $f
+  dtc -q -I dtb -O dts -o ${f%.dtbo}.dts $f
   python3 - ${f%.dtbo}.dts <<PY
-import sys
+import re, sys
 p=sys.argv[1]; s=open(p).read()
-for a,b in (("connectors = <0xffffffff 0x17 0xffffffff 0x18>;","connectors = <0xffffffff 0xffffffff 0x18>;"),
-            ("\"/fragment@15/__overlay__:connectors:8\"","\"/fragment@15/__overlay__:connectors:4\""),
-            ("connectors = <0x4 0xc>;","connectors = <0x8>;")):
-    assert s.count(a)==1,(p,a); s=s.replace(a,b)
+# number formatting differs between dtc versions (1.4.4: 0x4, 1.7: 0x04), hence the regexes
+for a,b in ((r"connectors = <0xffffffff 0x17 0xffffffff 0x18>;","connectors = <0xffffffff 0xffffffff 0x18>;"),
+            (r"\"/fragment@15/__overlay__:connectors:8\"","\"/fragment@15/__overlay__:connectors:4\""),
+            (r"connectors = <0x0?4 0x0?c>;","connectors = <0x08>;")):
+    s,n=re.subn(a,b,s); assert n==1,(p,a,n)
 open(p,"w").write(s)
 PY
-  /src/dtc-host/dtc -q -I dts -O dtb -o $f ${f%.dtbo}.dts
+  dtc -q -I dts -O dtb -o $f ${f%.dtbo}.dts
 done'
 python3 "$HERE/dtboimg.py" pack "$IN" "$T/e" "$OUT"
 rm -rf "$T"

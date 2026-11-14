@@ -42,8 +42,8 @@ pmos/pmb/run.sh build --arch aarch64 linux-samsung-a70q device-samsung-a70q
 # boot.img từ package kernel r<N>
 pmos/tools/mkboot.sh <N> pmos/out/boot-r<N>.img
 
-# DTBO không có writeback connector
-pmos/tools/dtbo-drop-wb.sh backups/dtbo.img pmos/out/dtbo-nowb.img
+# DTBO không có writeback connector (dtbo.img của LineageOS = backups/dtbo.img)
+pmos/tools/dtbo-drop-wb.sh backups/dtbo.img pmos/out/dtbo-nowb.img   # = bản đang flash (sha1 a681333…)
 ```
 
 - `pmb/run.sh`: tạo config pmbootstrap (device samsung-a70q, `service_manager = openrc` vì systemd cần
@@ -52,6 +52,8 @@ pmos/tools/dtbo-drop-wb.sh backups/dtbo.img pmos/out/dtbo-nowb.img
 - `kernel/build.sh <variant> [fragment]`: build kernel nhanh ngoài pmbootstrap (volume `a70q-ksrc`,
   clang 19, dtc 1.4.4 `-H epapr` cho DTB giống từng byte bản LOS); `NOPATCH=1` để build source gốc
 - `mesa/build.sh`: build thử turnip-kgsl (~1 phút)
+- `tools/dtbo-drop-wb.sh`: dùng `dtc` của Alpine (không cần image/volume build kernel); kết quả trùng
+  từng byte với DTBO đang flash trên máy
 - `tools/mkboot.sh`: kernel từ apk + initramfs + cmdline (deviceinfo + UUID phân vùng rootfs) + header
   copy từ boot LOS (`--like`) để qua anti-rollback của Samsung (os_version 15.0.0, SPL 2026-06).
   Initramfs mặc định là `pmos/out/pmos-r1/initramfs` (lấy từ `chroot_rootfs_samsung-a70q/boot/` sau lần
@@ -82,12 +84,8 @@ pmos/tools/flash.sh --BOOT pmos/out/boot-r15.img                 # cập nhật 
 pmos/tools/flash.sh --DTBO pmos/out/dtbo-nowb.img                # DTBO
 ```
 
-Cài mới từ đầu (xoá dữ liệu):
-1. `pmos/pmb/run.sh install --password <pw>` → `samsung-a70q.img`; `img2simg` thành sparse (heimdall
-   chết ở 7% với image thô, ERRORS C33)
-2. vbmeta tắt verify: `avbtool make_vbmeta_image --flags 2 --output vbmeta-disabled.img`
-3. `flash.sh --BOOT <boot.img> --DTBO <dtbo.img> --VBMETA vbmeta-disabled.img --USERDATA samsung-a70q.sparse.img`
-4. Sau khi boot: `apk add postmarketos-ui-sxmo-de-sway`, cài các package tự build, cấu hình WiFi bằng `nmcli`
+Cài mới từ đầu (xoá dữ liệu): làm theo `../INSTALL.md` (`pmb/run.sh install`, `tools/prepare-install.sh`
+tạo boot/dtbo/vbmeta/userdata, rồi một lệnh `flash.sh` cho cả bốn phân vùng).
 
 Quay về LineageOS: flash `../a70-root/artifacts/boot/lineage-boot-orig.img` và `backups/dtbo.img`
 (USERDATA đã bị pmOS chiếm, cần format lại trong recovery).

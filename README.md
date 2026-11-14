@@ -37,11 +37,12 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 
 | Đường dẫn | Nội dung |
 |---|---|
+| `INSTALL.md` | **Cài từ đầu** (cho người khác): chuẩn bị, build, flash, lần boot đầu |
 | `pmos/README.md` | Hướng dẫn chi tiết: build, flash, quy trình test từng thành phần |
-| `pmos/pmaports/device/downstream/` | Package: `device-samsung-a70q`, `linux-samsung-a70q`, `a70q-qcom-userspace`, `mesa-vulkan-freedreno-kgsl` |
+| `pmos/pmaports/device/downstream/` | Package: `device-samsung-a70q`, `linux-samsung-a70q`, `a70q-qcom-userspace`, `mesa-vulkan-freedreno-kgsl`, `wlroots0.20`, `libssc` |
 | `pmos/kernel/` | Build kernel nhanh bằng Docker + các patch (`patches/`) |
 | `pmos/pmb/` | pmbootstrap trong Docker |
-| `pmos/tools/` | `mkboot.sh`, `bootimg.py`, `dtboimg.py`, `dtbo-drop-wb.sh`, `flash.sh` (heimdall an toàn trên macOS) |
+| `pmos/tools/` | `prepare-install.sh`, `mkboot.sh`, `bootimg.py`, `dtboimg.py`, `dtbo-drop-wb.sh`, `flash.sh` (heimdall an toàn trên macOS), `repo.sh` (kho package) |
 | `pmos/mesa/` | Build thử turnip-kgsl ngoài pmbootstrap |
 | `ERRORS.md` | Sổ lỗi: triệu chứng → nguyên nhân → cách sửa |
 | `LOG.md` | Nhật ký theo ngày |
