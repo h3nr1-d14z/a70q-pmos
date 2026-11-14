@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=36
+pkgrel=37
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -62,6 +62,7 @@ source="
 	a70q-repos
 	a70q-power-up
 	a70q-power.initd
+	a70q-fcitx5.service
 "
 options="!archcheck !check"
 
@@ -110,6 +111,7 @@ package() {
 	# adaptive brightness (Config menu entry replaced in the context menu hook, started by the start hook)
 	install -Dm755 "$srcdir"/a70q-autobrightness.py "$pkgdir"/usr/libexec/a70q/a70q-autobrightness
 	install -Dm644 "$srcdir"/a70q-autobrightness.service "$pkgdir"/usr/share/superd/services/a70q-autobrightness.service
+	install -Dm644 "$srcdir"/a70q-fcitx5.service "$pkgdir"/usr/share/superd/services/a70q-fcitx5.service
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
 	# look: notifications like the menus, dark GTK/libadwaita; session env (WebKit sandbox, XDG dirs)
@@ -166,7 +168,7 @@ c193a2a8d69c63fa8c59bfbea04c7114b6a5e1b2d3da794cd7f530b0491702126f676b0f405bbdea
 cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b252e23555914eb2c1dd6afffdff5382356b85ecb13ce7cf233  sxmo_dmenu_back.sh
 73382608d90f147b483bd729c0515e7493ed548ae333741cb5cd865cbfcdb17550bd142da2bd3224af1eafd49e7c2638c4a0ab8ebc98fe40be9dd042925242d6  a70q-autobrightness.py
 674e6a7199596135be7a7afac240b757a0912eb5ea9b6fc6e571a447c56993cead7cdd55417b3f9744841a3f538119bd2a40f8b2f95b560bbf62d9919010dec6  a70q-autobrightness.service
-648d134f4b5cf99eb6c8e21cab6fc43df6d3768e7c1454550689653280d4ee15ab76bad4b53d5480dc5ac081fd345e099756ddc4d95b65909d7188305f06a3bf  sxmo_hook_start.sh
+53a982949451c21a0cb9ee26d9d2e1e1f34ab1357c590be9e891f41fd8ba1fb750439cb1d83b93cab1baa2edb6c1bc09cda4d692980cee565b7dd3c6e49cfdbf  sxmo_hook_start.sh
 f0aa9d3cd644a1089f8062f07e4b5f3d75fb1e6c0a546726655909d02390065a37645b7db54988fa4b3379f0485bc7d5c1db662f0eba1688b65cd871cb5a6e61  sxmo_hook_contextmenu.sh
 cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db755777ea51050827a637c5c2006a4a0e31009418370f94b1eb80  a70q-dunstrc
 1ea04fa44822bc2cd94affcd2442d120e75ed6a399bcc5d62bb0cfe299396041b41d8ffb6eb962649fa4d197d4a671e36e95a062545ad11426083d16a143ab39  a70q-session.sh
@@ -175,4 +177,5 @@ cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db7557
 22c2ca2cba2842931a634d1e67989b704f2360052e8bf460c5a91cc940480f2192318459875978f72dca93b8d1b797af709e2cd9dab465c3ee4d4ea8887d78cb  a70q-repos
 53f6b045921395a2c1feec2f2f70ae56e532a40e13561737f9a750f028f2e747aa37695e1a6641683b773ed5661ad2b99374d3035e61e231edd166e99ce15c2a  a70q-power-up
 69fdb83d0de0f605b946cde9f367401e54ba0f17ef5e4ca89e700fecf2e8489ccc211c998b20f04b09bbf647a65e387c47b5bd91084379c83dea5883b9a62292  a70q-power.initd
+45789ed74072b6a77291d41cbf68c63afd8033c1eb1a4c9108ebf679bb914d5ec8b3f5a87d152c5160b073dff0c589d031486c5a79d75dde7d418b4f62a0c1a3  a70q-fcitx5.service
 "

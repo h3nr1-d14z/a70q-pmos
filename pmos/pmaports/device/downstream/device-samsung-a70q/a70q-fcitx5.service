@@ -1,0 +1,8 @@
+[Unit]
+Description=a70q: fcitx5 input method (Vietnamese via fcitx5-unikey), Wayland input-method-v2 on sway
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/fcitx5 --replace
+RestartSec=5s

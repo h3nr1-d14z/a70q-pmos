@@ -158,6 +158,34 @@ BlueZ (`bluetoothd`) dùng `hci0`; ghép đôi, A2DP (điện thoại làm loa c
 **Cảm biến / xoay tự động** (C61, `sensors/README.md`): `hexagonrpcd` + shim FastRPC downstream phục vụ
 registry cho Sensor Core của ADSP; iio-sensor-proxy (libssc) đọc gia tốc kế (Sxmo Autorotate), ánh sáng, tiệm cận, la bàn.
 
+### Gõ tiếng Việt (fcitx5-unikey)
+
+`apk add fcitx5 fcitx5-unikey` rồi `~/.config/fcitx5/profile`:
+
+```
+[Groups/0]
+Name=Default
+Default Layout=us
+DefaultIM=unikey
+
+[Groups/0/Items/0]
+Name=keyboard-us
+Layout=
+
+[Groups/0/Items/1]
+Name=unikey
+Layout=
+
+[GroupOrder]
+0=Default
+```
+
+`sxmo_hook_start.sh` của device package chạy service superd `a70q-fcitx5` nếu có `fcitx5`. fcitx5 nối với
+sway qua `input-method-v2`, nhận cả phím từ wvkbd (virtual-keyboard) nên gõ Telex trên bàn phím ảo ra
+chữ có dấu; GTK4 (Epiphany) và foot dùng `text-input-v3`, không cần `GTK_IM_MODULE`. Kiểm tra: `wtype`
+"Tieengs Vieetj" vào foot → "Tiếng Việt". Bật/tắt bộ gõ: Ctrl+Space (wvkbd có phím Ctr) hoặc icon fcitx5
+trên thanh trạng thái.
+
 ## 7. Việc còn lại
 
 Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
