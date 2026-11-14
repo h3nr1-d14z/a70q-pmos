@@ -38,6 +38,7 @@ while :; do
 	$(pgrep -x fcitx5 >/dev/null && printf '%s\n' "$icon_kbd Vietnamese input $(onoff vi_on)")
 	$icon_cam Screenshot
 	$(player_options)
+	$icon_inf Gestures & buttons
 	$icon_pwr Screen Off
 	EOF
 	)" || exit 0
@@ -59,6 +60,7 @@ while :; do
 		*Pause) playerctl pause ;;
 		*Play) playerctl play ;;
 		*Next) playerctl next ;;
+		*'Gestures & buttons') /usr/libexec/a70q/a70q-help; exit 0 ;;
 		*'Screen Off') sxmo_state.sh set screenoff; exit 0 ;;
 	esac
 done

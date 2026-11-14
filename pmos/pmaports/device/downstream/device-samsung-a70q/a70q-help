@@ -1,0 +1,38 @@
+#!/bin/sh
+# a70q-help: cheat sheet of Sxmo gestures/buttons as configured on the a70q (Sxmo's
+# sxmo_hook_inputhandler.sh + the a70q additions), shown as a scrollable menu.
+# Opened from Quick settings and the System menu. Picking any line closes it.
+cat <<'TXT' | sxmo_dmenu.sh -p "Cử chỉ & phím"
+✕ Đóng
+── NÚT CỨNG ──
+Nguồn ×1 · tắt / bật màn hình
+Nguồn ×2 · khoá cảm ứng (màn sáng, không nhận chạm)
+Nguồn ×3 hoặc giữ · mở terminal
+Nguồn + Volume Down · chụp màn hình (~/Pictures/Screenshots)
+Volume Up ×1 · menu của app đang mở
+Volume Up ×2 · System menu
+Volume Up ×3 hoặc giữ · danh sách cửa sổ (chuyển app)
+Volume Down ×1 · bật/tắt bàn phím ảo
+Volume Down ×2 · đổi bố cục cửa sổ
+Volume Down ×3 hoặc giữ · đóng app đang mở
+── VUỐT TỪ MÉP ──
+Mép trên ↓ · menu        Mép trên ↑ · đóng menu, thông báo
+2 ngón từ mép trên ↓ · cài đặt nhanh
+Mép dưới ↑ / ↓ · mở / đóng bàn phím ảo
+2 ngón từ mép dưới ↓ · đóng app
+Mép trái → · workspace sau     Mép phải ← · workspace trước
+2 ngón ← / → · chuyển app sang workspace khác
+Mép trái ↑ / ↓ · âm lượng      Mép trên ← / → · độ sáng
+── GÓC MÀN HÌNH (chạm) ──
+Góc trên trái · System menu    Góc trên phải · Scripts
+Góc dưới trái · khoá màn hình  Góc dưới phải · xoay màn hình
+── THANH TRẠNG THÁI (chạm) ──
+○ · cài đặt nhanh     🔊 · âm thanh (lăn chuột: âm lượng)
+WiFi · mạng     pin · chi tiết pin     nhiệt độ · CPU/GPU/pin
+VI/EN · đổi bộ gõ     giờ · lịch     chuột phải · menu chính
+── KHÁC ──
+Chạm ô nhập chữ · bàn phím tự hiện; rời đi · tự ẩn
+Ctrl+Space · bật/tắt gõ tiếng Việt (Telex)
+Trong menu: mục Back · về menu trước
+TXT
+exit 0

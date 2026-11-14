@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=45
+pkgrel=46
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -74,6 +74,7 @@ source="
 	sxmo_hook_quickactions.sh
 	a70q-battery-saver
 	sxmo_hook_battery.sh
+	a70q-help
 	50-a70q.gschema.override
 "
 options="!archcheck !check"
@@ -139,6 +140,8 @@ package() {
 	# automatic battery saver, evaluated on every upower change via the battery hook
 	install -Dm755 "$srcdir"/a70q-battery-saver "$pkgdir"/usr/libexec/a70q/a70q-battery-saver
 	install -Dm755 "$srcdir"/sxmo_hook_battery.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_battery.sh
+	# gesture/button cheat sheet (Quick settings, System menu)
+	install -Dm755 "$srcdir"/a70q-help "$pkgdir"/usr/libexec/a70q/a70q-help
 	install -Dm644 "$srcdir"/50-a70q.gschema.override "$pkgdir"/usr/share/glib-2.0/schemas/50-a70q.gschema.override
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
@@ -197,7 +200,7 @@ cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b25
 b2f7b302eb902e1cccbecf120082604b6278a0535176e5701e5807240deba1ed0b17dc908e75333720e6dce83ceaec49d7417eeff79d0db71a3b36fd6f18b040  a70q-autobrightness.py
 674e6a7199596135be7a7afac240b757a0912eb5ea9b6fc6e571a447c56993cead7cdd55417b3f9744841a3f538119bd2a40f8b2f95b560bbf62d9919010dec6  a70q-autobrightness.service
 01755591819d89ef81a8e6919bac9671b01a5f4ca6c6b2bfc3ad7e6a1be0adacc7627ada1d4a04ca23ff222886cea64784d9d9d846e036fef88fa7685ff8792c  sxmo_hook_start.sh
-24473823c2907980c519d99f4471aa66597a058e01099f169d57272268dbe159e9ee1fd131918dbe55ab96bb9b5569adfc2ad0ba4615d80cdaca61dd9a95c5cd  sxmo_hook_contextmenu.sh
+9f858d68e4a123e94a52c0163672c4447f7f1624a95b7c96fe1e481427e689f0a944085b8068bf96fbccc4aad8b2197f13ba534c57b6dd72ba6dafb5ad12efb5  sxmo_hook_contextmenu.sh
 0ae7d3364416f9e7a4952b4204b066258a1bce45899fbc0ee76316fd0d6e55c3e1f83b3cb2a4a65116246cc24fdd1781ba8a316b57f98309cc6525eec04479d9  a70q-dunstrc
 1ea04fa44822bc2cd94affcd2442d120e75ed6a399bcc5d62bb0cfe299396041b41d8ffb6eb962649fa4d197d4a671e36e95a062545ad11426083d16a143ab39  a70q-session.sh
 599087e5c958c334523c9ee1856417cb239f60bf2bea4aaf487cac5fbda231d9b6726b42218b344af7ac9b805ab6280ca01eea6cbc38e6c23d1fbe58d4ccce05  a70q-gtk3-settings.ini
@@ -213,8 +216,9 @@ ce5c975fd39b858f2adf57d49967071c180821f5b5b9bbad7263bfc1f62805907c0c91f4c1f6fa61
 e3c089324bc7202d60b04b915d3049ca5e752c7be1cba48706475314e6dc8ecec665be1e058efe01464c633cdaec82c151a480d6ea7c12c0f93c09d1b5a6d96e  a70q-bonsaid
 ca46fdf2d09d27e3c47c9258f6d07052d11a42173acc0f02cfbfa917abdf072b73f7c6e827a95bedfb7e8498f8810ea5b59fe55459720a2103000d4a15ea01b1  a70q-bt-reconnect
 608dcd237cb35cecd2a72ca3eed57546619511becf6ad3fca4566b519a1a6223a7d9b1bcf5202ad9b03c9c50b7512f6631c1802fa480001ea8ec8a447b29ea29  a70q-scale
-e8876ac66b5680b3a5909cae17a7b6aff225c041e28ba8838f3c314a0bbfd61e08cfa1aaa746b687741f1e495def43a72e6ea75c1b1130876fabbea39d5d908e  sxmo_hook_quickactions.sh
+68c1b26fe716a70ca4040c0f11b4240656cbec32737c4bb8c227ecca500966e49fea8051bfd931b308712e90971050ccd054f9a1bb96666c4a051c2251e17d1d  sxmo_hook_quickactions.sh
 14f65b55989ad2ca55e22644819407b82b8c501a1793537e2071f2cea7cba75c3479672202dea9fee9806b4b91d1da657a41a8c8bb68c26c37f39fdfa31dcdd0  a70q-battery-saver
 eeec700b48b53e397be3109511b68fc57b8e3fc847937b1d45e8515208ec7fcbe847554cf667575fa4353afdd23f26f8c294e9bfc457aab64e55e8e3c87083cc  sxmo_hook_battery.sh
+6a5a8b8356cdb205bcd6aa099368a79e94560fba97be7a2fc4cbfe62afd3d6622e8c58f938bff008f532746d307f099f0c5ae7f097a264e472e8805b2a77c798  a70q-help
 bd17d633579c0c3c384c7af56cffaa9e7ca2ff7af0e4665060b7500e7c57cc9c9618c7aa1d0cc122d6c4a78ac4f8d113436e7cacd23e8325ef2269801a4fefb6  50-a70q.gschema.override
 "

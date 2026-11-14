@@ -24,6 +24,7 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 | Bàn phím ảo | ✅ | wvkbd: vuốt từ mép dưới lên, hoặc Volume Down khi không mở menu |
 | NFC | ❌ | không có chip trả lời trên SM-A705F; driver tắt để boot nhanh (C66) |
 | Phát WiFi (hotspot) | ✅ | menu Sxmo Networks → Create Wifi Hotspot (wlan0 chuyển sang AP, 10.42.0.1); chưa thể vừa phát vừa nối WiFi |
+| Hướng dẫn cử chỉ | ✅ | "Gestures & buttons" trong cài đặt nhanh và System menu: mọi nút cứng, cử chỉ vuốt, góc, thanh trạng thái (tiếng Việt) |
 | Cài đặt nhanh | ✅ | vuốt 2 ngón từ mép trên xuống, hoặc chạm vòng tròn trạng thái trên thanh: WiFi, Bluetooth, đèn pin, xoay, độ sáng, tự chỉnh sáng, tiếng Việt, chụp màn hình, nhạc |
 | Menu + thanh trạng thái | ✅ | menu rộng, dòng cao dễ chạm; mục **Back** trong menu con; thanh hiện % WiFi, icon Bluetooth khi có kết nối, nhiệt độ CPU, VI/EN; bấm icon trên thanh (loa = Audio, lăn chuột = âm lượng, wifi = Networks, pin = chi tiết, nhiệt độ = CPU/GPU/pin, VI/EN = đổi bộ gõ, giờ = lịch, ○ = cài đặt nhanh); chuột phải lên thanh / phím Menu / Super+P = menu chính (device r32) |
 | Tự chỉnh độ sáng | ✅ | cảm biến ánh sáng, giữ mức chỉnh tay; Config → Adaptive Brightness (device r33) |

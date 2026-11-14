@@ -7,6 +7,7 @@
 # The lines are evaluated by sxmo_appmenu.sh: "label ^ loop ^ command".
 . sxmo_hook_icons.sh
 [ "$(/usr/libexec/a70q/a70q-autobrightness status)" = on ] && toggle="$icon_ton" || toggle="$icon_tof"
-/usr/share/sxmo/default_hooks/sxmo_hook_contextmenu.sh "$@" | awk -v scale="			$icon_ror Display scale ($(/usr/libexec/a70q/a70q-scale get)) ^ 0 ^ /usr/libexec/a70q/a70q-scale" -v line="			$icon_brightness Adaptive Brightness $toggle ^ 1 ^ /usr/libexec/a70q/a70q-autobrightness toggle" '
+/usr/share/sxmo/default_hooks/sxmo_hook_contextmenu.sh "$@" | awk -v help="			$icon_inf Gestures & buttons ^ 0 ^ /usr/libexec/a70q/a70q-help" -v scale="			$icon_ror Display scale ($(/usr/libexec/a70q/a70q-scale get)) ^ 0 ^ /usr/libexec/a70q/a70q-scale" -v line="			$icon_brightness Adaptive Brightness $toggle ^ 1 ^ /usr/libexec/a70q/a70q-autobrightness toggle" '
 	/supertoggle_daemon sxmo_adaptivebrightness/ { print line; print scale; next }
+	/sxmo_terminal.sh man sxmo/ { print help }
 	{ print }'
