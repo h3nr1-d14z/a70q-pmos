@@ -11,6 +11,7 @@
 # - the sensor is only read while the screen is unlocked (sxmo.state "unlock")
 import math
 import os
+import select
 import signal
 import subprocess
 import sys
@@ -128,8 +129,12 @@ class Daemon:
                 self.start_sensor()
                 self.read_sensor()
                 self.step()
-                time.sleep(0.1 if self.target is not None and
-                           get_raw() != round(MAX_RAW * self.target / 100.0) else 0.5)
+                ramping = self.target is not None and get_raw() != round(MAX_RAW * self.target / 100.0)
+                if ramping or self.mon is None:
+                    time.sleep(0.1)
+                else:
+                    # idle: sleep until the sensor reports (or 2 s, to notice lock/manual changes)
+                    select.select([self.mon.stdout], [], [], 2.0)
             else:
                 self.stop_sensor()
                 time.sleep(1)

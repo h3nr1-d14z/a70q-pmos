@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=34
+pkgrel=35
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -60,6 +60,8 @@ source="
 	a70q-gtk3-settings.ini
 	a70q-upgrade
 	a70q-repos
+	a70q-power-up
+	a70q-power.initd
 "
 options="!archcheck !check"
 
@@ -117,6 +119,10 @@ package() {
 	# updates: public mirrors + the build machine's repo when reachable (ERRORS C67)
 	install -Dm755 "$srcdir"/a70q-upgrade "$pkgdir"/usr/bin/a70q-upgrade
 	install -Dm644 "$srcdir"/a70q-repos "$pkgdir"/etc/a70q/repos
+	# CPU/bus DCVS as on Android (ERRORS C68), boot runlevel
+	install -Dm755 "$srcdir"/a70q-power-up "$pkgdir"/usr/libexec/a70q/a70q-power-up
+	install -Dm755 "$srcdir"/a70q-power.initd "$pkgdir"/etc/init.d/a70q-power
+	ln -s /etc/init.d/a70q-power "$pkgdir"/etc/runlevels/boot/a70q-power
 	# Bluetooth file receive (OBEX) in the user session
 	install -Dm644 "$srcdir"/a70q-obexd.service "$pkgdir"/usr/share/superd/services/a70q-obexd.service
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
@@ -158,7 +164,7 @@ ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd09289892
 344ea26853ee0bd0d647a8e07da69fa26892ad2750dc209e5b4935553ecab44abf8419daa5823a7afc98797bc84e537c4cf414e69a6c8772fc9115c7618a12fe  a70q-automount
 c193a2a8d69c63fa8c59bfbea04c7114b6a5e1b2d3da794cd7f530b0491702126f676b0f405bbdea60ce7f48ebd40552794f758e7aea1304e71b47b27d3ba511  a70q-statusbar.py
 cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b252e23555914eb2c1dd6afffdff5382356b85ecb13ce7cf233  sxmo_dmenu_back.sh
-b05fb5253e39a2c0b530abfa895b1c25cf32cbe470d073741ac308ebdfa202cabb59b4d53708eaf1f9604546090dfd396e4000820ac6ef2f51f6247483181867  a70q-autobrightness.py
+73382608d90f147b483bd729c0515e7493ed548ae333741cb5cd865cbfcdb17550bd142da2bd3224af1eafd49e7c2638c4a0ab8ebc98fe40be9dd042925242d6  a70q-autobrightness.py
 674e6a7199596135be7a7afac240b757a0912eb5ea9b6fc6e571a447c56993cead7cdd55417b3f9744841a3f538119bd2a40f8b2f95b560bbf62d9919010dec6  a70q-autobrightness.service
 648d134f4b5cf99eb6c8e21cab6fc43df6d3768e7c1454550689653280d4ee15ab76bad4b53d5480dc5ac081fd345e099756ddc4d95b65909d7188305f06a3bf  sxmo_hook_start.sh
 f0aa9d3cd644a1089f8062f07e4b5f3d75fb1e6c0a546726655909d02390065a37645b7db54988fa4b3379f0485bc7d5c1db662f0eba1688b65cd871cb5a6e61  sxmo_hook_contextmenu.sh
@@ -167,4 +173,6 @@ cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db7557
 599087e5c958c334523c9ee1856417cb239f60bf2bea4aaf487cac5fbda231d9b6726b42218b344af7ac9b805ab6280ca01eea6cbc38e6c23d1fbe58d4ccce05  a70q-gtk3-settings.ini
 68d2e56c0e374cd65d64b352620e33341f2db647b957107cbacddcdec2fcb2ab6bef48763a3098ccede69f67d68e8b44fda0cb21e0aa9d6320ff5d559bcbb5ba  a70q-upgrade
 22c2ca2cba2842931a634d1e67989b704f2360052e8bf460c5a91cc940480f2192318459875978f72dca93b8d1b797af709e2cd9dab465c3ee4d4ea8887d78cb  a70q-repos
+53f6b045921395a2c1feec2f2f70ae56e532a40e13561737f9a750f028f2e747aa37695e1a6641683b773ed5661ad2b99374d3035e61e231edd166e99ce15c2a  a70q-power-up
+69fdb83d0de0f605b946cde9f367401e54ba0f17ef5e4ca89e700fecf2e8489ccc211c998b20f04b09bbf647a65e387c47b5bd91084379c83dea5883b9a62292  a70q-power.initd
 "

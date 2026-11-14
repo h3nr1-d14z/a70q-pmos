@@ -1,0 +1,84 @@
+#!/bin/sh
+# a70q-power-up: CPU / bus DCVS settings that Android applies at boot and pmOS did not (ERRORS C68).
+# Without it the kernel defaults stay: cpufreq "performance" on both clusters (always max clock)
+# and most bus devfreq nodes (CPU<->LLCC/DDR bandwidth, L3/LLCC/DDR latency) on "performance".
+# Values are the SM6150 (soc_id 355) branch of the vendor's /vendor/bin/init.qcom.post_boot.sh
+# and /vendor/bin/init.qti.dcvs.sh (LineageOS 22.2 vendor = stock A705FXXU5DXD2). Android-only
+# steps (getprop, Android cpusets, configure_memory_parameters which is disabled there too) skipped.
+
+w() { [ -e "$2" ] && echo "$1" > "$2" 2>/dev/null; }
+
+echo 3f > /proc/irq/default_smp_affinity 2>/dev/null   # default IRQ affinity: silver cluster
+
+# core control on silver (big cluster: off)
+C=/sys/devices/system/cpu/cpu0/core_ctl
+w "0 0 0 0 1 1" $C/not_preferred
+w 4 $C/min_cpus
+w 60 $C/busy_up_thres
+w 40 $C/busy_down_thres
+w 100 $C/offline_delay_ms
+w 0 $C/is_big_cluster
+w 8 $C/task_thres
+w 0 /sys/devices/system/cpu/cpu6/core_ctl/enable
+
+# big.LITTLE scheduler (WALT)
+w 65 /proc/sys/kernel/sched_downmigrate
+w 71 /proc/sys/kernel/sched_upmigrate
+w 85 /proc/sys/kernel/sched_group_downmigrate
+w 100 /proc/sys/kernel/sched_group_upmigrate
+w 1 /proc/sys/kernel/sched_walt_rotate_big_tasks
+w 740000 /proc/sys/kernel/sched_little_cluster_coloc_fmin_khz
+
+# cpufreq: schedutil (silver cpu0-5, gold cpu6-7)
+for c in 0 6; do
+	P=/sys/devices/system/cpu/cpu$c/cpufreq
+	w schedutil $P/scaling_governor
+	w 0 $P/schedutil/up_rate_limit_us
+	w 0 $P/schedutil/down_rate_limit_us
+	w 1209600 $P/schedutil/hispeed_freq
+done
+w 576000 /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq
+w 768000 /sys/devices/system/cpu/cpu6/cpufreq/scaling_min_freq
+w -6 /sys/devices/system/cpu/cpu6/sched_load_boost
+w -6 /sys/devices/system/cpu/cpu7/sched_load_boost
+w 85 /sys/devices/system/cpu/cpu6/cpufreq/schedutil/hispeed_load
+
+# short boost of the silver cluster on touch/key input
+w "0:1209600" /sys/module/cpu_boost/parameters/input_boost_freq
+w 40 /sys/module/cpu_boost/parameters/input_boost_ms
+
+# bus DCVS: CPU<->LLCC and LLCC<->DDR bandwidth by bw_hwmon
+for d in /sys/devices/platform/soc/*cpu-cpu-llcc-bw/devfreq/*cpu-cpu-llcc-bw; do
+	[ -d "$d" ] || continue
+	w bw_hwmon $d/governor
+	w "2288 4577 7110 9155 12298 14236" $d/bw_hwmon/mbps_zones
+	w 4 $d/bw_hwmon/sample_ms; w 68 $d/bw_hwmon/io_percent; w 20 $d/bw_hwmon/hist_memory
+	w 0 $d/bw_hwmon/hyst_length; w 80 $d/bw_hwmon/down_thres; w 0 $d/bw_hwmon/guard_band_mbps
+	w 250 $d/bw_hwmon/up_scale; w 1600 $d/bw_hwmon/idle_mbps; w 50 $d/polling_interval
+done
+for d in /sys/devices/platform/soc/*cpu-llcc-ddr-bw/devfreq/*cpu-llcc-ddr-bw; do
+	[ -d "$d" ] || continue
+	w bw_hwmon $d/governor
+	w "1144 1720 2086 2929 3879 5931 6881" $d/bw_hwmon/mbps_zones
+	w 4 $d/bw_hwmon/sample_ms; w 68 $d/bw_hwmon/io_percent; w 20 $d/bw_hwmon/hist_memory
+	w 0 $d/bw_hwmon/hyst_length; w 80 $d/bw_hwmon/down_thres; w 0 $d/bw_hwmon/guard_band_mbps
+	w 250 $d/bw_hwmon/up_scale; w 1600 $d/bw_hwmon/idle_mbps; w 40 $d/polling_interval
+done
+
+# init.qti.dcvs.sh: mem_latency for L3/LLCC/DDR latency nodes, compute for the gold DDR floor
+for d in /sys/devices/platform/soc/*cpu*-lat/devfreq/*cpu*-lat; do
+	[ -d "$d" ] || continue
+	w mem_latency $d/governor; w 10 $d/polling_interval; w 400 $d/mem_latency/ratio_ceil
+done
+w 4000 /sys/class/devfreq/soc:qcom,cpu6-cpu-l3-lat/mem_latency/ratio_ceil
+for d in /sys/devices/platform/soc/*cdsp-cdsp-l3-lat/devfreq/*cdsp-cdsp-l3-lat; do
+	[ -d "$d" ] && w cdspl3 $d/governor
+done
+for d in /sys/devices/platform/soc/*cpu*-ddr-latfloor*/devfreq/*cpu-ddr-latfloor*; do
+	[ -d "$d" ] || continue
+	w compute $d/governor; w 10 $d/polling_interval
+done
+
+w 0 /proc/sys/kernel/sched_boost
+w 0 /sys/module/lpm_levels/parameters/sleep_disabled
+exit 0

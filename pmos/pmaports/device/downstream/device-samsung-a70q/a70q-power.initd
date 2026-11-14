@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+# Galaxy A70: CPU/bus DCVS settings Android applies at boot (schedutil, bw_hwmon, mem_latency);
+# the kernel defaults keep CPUs and memory buses at maximum clock (ERRORS C68).
+description="a70q CPU and bus frequency scaling (vendor post_boot values)"
+
+depend() {
+	need sysfs
+}
+
+start() {
+	ebegin "Applying a70q CPU/bus frequency scaling"
+	/usr/libexec/a70q/a70q-power-up
+	eend $?
+}

@@ -346,3 +346,14 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
   `nc -z -w 1` và chỉ thêm `--repository` cho địa chỉ trả lời. Ở xa: `apk` thường 1 s, `a70q-upgrade` 8 s
 - **Bài học**: thử cả trường hợp "mất kết nối" trước khi coi một cấu hình mạng là xong
 
+### C68. CPU và bus bộ nhớ luôn ở xung tối đa (governor `performance`)
+- **Triệu chứng**: `scaling_governor` = `performance` cả hai cluster (luôn 1708/2016 MHz khi rảnh); devfreq
+  `cpu-cpu-llcc-bw`, `cpu-llcc-ddr-bw`, `*-l3-lat`, `*-llcc-lat`, `*-ddr-latfloor` cũng `performance`
+- **Nguyên nhân**: trên Android, `/vendor/bin/init.qcom.post_boot.sh` (nhánh sm6150, soc_id 355) và
+  `/vendor/bin/init.qti.dcvs.sh` đặt schedutil/bw_hwmon/mem_latency/compute lúc boot; pmOS không chạy chúng
+- **Cách sửa**: `a70q-power-up` (dịch vụ OpenRC `a70q-power`, runlevel boot, device r35) áp đúng các giá trị
+  của hai script vendor, bỏ phần chỉ có nghĩa trên Android. Rảnh: silver ~600–700 MHz, gold 768 MHz;
+  chạm màn hình boost silver lên 1,2 GHz trong 40 ms như Android
+- **Bài học**: khi port từ Android, rà các script `post_boot`/`init.*.rc` của vendor để tìm những gì Android
+  âm thầm cấu hình lúc boot
+
