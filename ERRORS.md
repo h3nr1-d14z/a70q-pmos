@@ -367,4 +367,23 @@ Bối cảnh: halium-11 = build tree A11/lineage-18.1; device+vendor trees a70q 
 
 ### C41. Firmware: kernel chờ `/vendor/firmware_mnt/image` → timeout 60s mỗi lần (venus...)
 - `apnhlos` = sda17 (vfat, có a612_zap, adsp, bdwlan.*...), `modem` = sda18 (vfat), `dsp` = sda19 (ext4)
-- WiFi: `CONFIG_QCA_CLD_WLAN` chưa bật (LOS build wlan.ko ngoài kernel); source có `drivers/staging/qcacld-3.0`
+- ~~WiFi: `CONFIG_QCA_CLD_WLAN` chưa bật~~ **SAI (đính chính)**: `CONFIG_QCA_CLD_WLAN=y` (profile default) có sẵn trong config (giống LOS), module `wlan` + `icnss` đã nạp
+
+## I. Modem + WLAN bring-up (2026-11-14) — đang dở: firmware WLAN chạy, chờ FW_READY
+
+Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-modem-up.sh`):
+- ✅ Firmware: mount `apnhlos`(sda17)→/vendor/firmware_mnt, `modem`(sda18)→/vendor/firmware-modem; symlink modem.* vào /lib/firmware cho PIL
+- ✅ `restart_level=RELATED` cho mọi subsystem (mặc định SYSTEM → modem crash = reboot cả máy)
+- ✅ Modem boot qua `/dev/subsys_modem` (giữ fd mở) → ONLINE ổn định khi đủ dịch vụ
+- ✅ Dịch vụ QRTR userspace (kernel 4.14 KHÔNG có name service trong kernel):
+  - `qrtr-ns` (linux-msm/qrtr @6d950d2, commit cuối trước khi bỏ ns), chạy `qrtr-ns -f 1`
+  - `rmtfs -P -r` (READ-ONLY, shadow buffer — EFS thật không bị ghi); cần `/dev/qcom_rmtfs_uio1 -> /dev/uio0` (uio0 name=rmtfs)
+  - `pd-mapper` + patch `PD_MAPPER_JSON_DIRS` (downstream không có /sys/class/remoteproc)
+  - `tqftpserv` + patch fallback `TQFTPSERV_FW_DIRS` (cùng lý do) → modem tải được `wlanmdsp.mbn`
+  - ⭐ Bẫy: phải CHỜ qrtr-ns trả lời (lookup thấy service 52) rồi mới chạy dịch vụ — publish quá sớm thì gói NEW_SERVER mất im lặng → thiếu rmtfs → modem fatal sau ~40s
+- ✅ icnss: QMI WLFW connected, msa_info/msa_ready/cap OK — chip_id 0x140 (WCN3990), fw 0x301a82cf (2019-08-21)
+- ❌ Chưa có `FW_READY_IND` → chưa có wlan0. icnss downstream KHÔNG tự gửi BDF; nghi FW chờ BDF/cal (trên Android có cnss-daemon độc quyền) — điều tra tiếp
+- Debug tốt nhất: `/sys/kernel/debug/ipc_logging/icnss/log` (chi tiết hơn dmesg), `/sys/kernel/debug/icnss/stats`
+
+### C42. Bộ lọc grep tự gây hiểu nhầm
+- `grep -v 4097` để bỏ log DIAG đã xoá luôn các dòng `add server [4097:..]` → tưởng ns từ chối mọi server. Lọc theo nội dung cần tìm, không lọc ngược quá rộng

@@ -1,0 +1,24 @@
+diff --git a/src/ns.c b/src/ns.c
+index 1e847a8..ede013a 100644
+--- a/src/ns.c
++++ b/src/ns.c
+@@ -765,6 +765,19 @@ int main(int argc, char **argv)
+ 		PLOGE_AND_EXIT("getsockname()");
+ 	sq.sq_port = QRTR_PORT_CTRL;
+ 	ctx.local_node = sq.sq_node;
++	/*
++	 * On some downstream kernels getsockname() can still report node 0
++	 * right after the address was set; local services then publish from
++	 * the real address and get rejected as spoofed. Trust the address we
++	 * were asked to configure.
++	 */
++	if (addr != (unsigned long)-1 && ctx.local_node != addr) {
++		LOGW("getsockname() reported node %u, using configured node %lu\n",
++		     ctx.local_node, addr);
++		ctx.local_node = addr;
++		sq.sq_node = addr;
++	}
++	LOGD("local node %u\n", ctx.local_node);
+ 
+ 	rc = bind(ctx.sock, (void *)&sq, sizeof(sq));
+ 	if (rc < 0) {

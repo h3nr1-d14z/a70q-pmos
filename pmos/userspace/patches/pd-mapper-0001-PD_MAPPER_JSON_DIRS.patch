@@ -1,0 +1,70 @@
+diff --git a/pd-mapper.c b/pd-mapper.c
+index 1167e02..25547d6 100644
+--- a/pd-mapper.c
++++ b/pd-mapper.c
+@@ -272,6 +272,55 @@ static char *known_extensions[] = {
+   NULL,
+ };
+ 
++/*
++ * Downstream (msm_subsys) kernels have no /sys/class/remoteproc. Allow listing
++ * the firmware directories holding *.jsn explicitly:
++ *   PD_MAPPER_JSON_DIRS=/vendor/firmware_mnt/image:/vendor/firmware-modem/image
++ */
++static void pd_add_jsons_from_dir(struct assoc *json_set, const char *dir)
++{
++	char json_path[PATH_MAX];
++	struct dirent *de;
++	DIR *d = opendir(dir);
++	int i;
++
++	if (!d)
++		return;
++	while ((de = readdir(d)) != NULL) {
++		size_t len = strlen(de->d_name);
++
++		for (i = 0; known_extensions[i] != NULL; i++) {
++			size_t el = strlen(known_extensions[i]);
++
++			if (len > el && !strcmp(&de->d_name[len - el], known_extensions[i]))
++				break;
++		}
++		if (known_extensions[i] == NULL)
++			continue;
++		if (strlen(dir) + 1 + len + 1 > sizeof(json_path))
++			continue;
++		snprintf(json_path, sizeof(json_path), "%s/%s", dir, de->d_name);
++		assoc_set(json_set, json_path, NULL);
++	}
++	closedir(d);
++}
++
++static int pd_enumerate_jsons_env(struct assoc *json_set)
++{
++	const char *env = getenv("PD_MAPPER_JSON_DIRS");
++	char *dirs, *dir, *save = NULL;
++
++	if (!env || !*env)
++		return -1;
++	dirs = strdup(env);
++	if (!dirs)
++		return -1;
++	for (dir = strtok_r(dirs, ":", &save); dir; dir = strtok_r(NULL, ":", &save))
++		pd_add_jsons_from_dir(json_set, dir);
++	free(dirs);
++	return 0;
++}
++
+ static int pd_enumerate_jsons(struct assoc *json_set)
+ {
+ 	char firmware_value[PATH_MAX];
+@@ -289,6 +338,9 @@ static int pd_enumerate_jsons(struct assoc *json_set)
+ 	size_t len;
+ 	size_t n;
+ 
++	if (pd_enumerate_jsons_env(json_set) == 0)
++		return 0;
++
+ 	class_fd = open("/sys/class/remoteproc", O_RDONLY | O_DIRECTORY);
+ 	if (class_fd < 0) {
+ 		warn("failed to open remoteproc class");
