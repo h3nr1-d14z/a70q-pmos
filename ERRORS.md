@@ -357,3 +357,21 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - **Bài học**: khi port từ Android, rà các script `post_boot`/`init.*.rc` của vendor để tìm những gì Android
   âm thầm cấu hình lúc boot
 
+### C69. Epiphany cuộn trang lag: bộ vẽ DMA-BUF của WebKit tốn CPU gấp đôi
+- **Đo** (`pmos/tools/epibench.sh`: mở trang Wikipedia dài, 45 lần Page Up/Down bằng `wtype`, cộng thời gian
+  CPU từng nhóm tiến trình trong lúc cuộn, centi-giây; mỗi cấu hình đo 2 lần, chênh < 3%):
+
+  | Cấu hình | epiphany | WebKit | sway | tổng |
+  |---|---|---|---|---|
+  | mặc định | 575 | 675 | 135 | 1385 |
+  | `WEBKIT_DISABLE_DMABUF_RENDERER=1` | 510 | 270 | 115 | **890** |
+  | + `GSK_RENDERER=gl` / `cairo` | | | | 1099 / 1235 (tệ hơn) |
+  | + bỏ `MESA_VK_WSI_DEBUG` | | | | 1198 (tệ hơn) |
+  | `WEBKIT_SKIA_ENABLE_CPU_RENDERING=1` (không tắt dmabuf) | | | | 1374 |
+  | sway scale 3 / 2 thay 2,5 | | | | 832 / 849 (chỉ ~10%, đổi kích thước UI → không làm) |
+- Trang web **có** chạy trên GPU (Zink/turnip; `ZINK: failed to choose pdev` chỉ là lần thử ghép GPU với thiết
+  bị DRM hiển thị, sau đó Zink chọn được turnip — `eglinfo` trên wayland/gbm/surfaceless đều ra turnip)
+- Giả thuyết (chưa kiểm chứng): ở chế độ DMA-BUF, WebKit cấp phát buffer qua GBM trên `renderD128` = SDE (bộ
+  hiển thị, không phải GPU) nên mỗi khung phải chép qua lại
+- **Cách sửa**: `WEBKIT_DISABLE_DMABUF_RENDERER=1` trong `a70q-session.sh` (device r36); sau reboot đo lại 939
+

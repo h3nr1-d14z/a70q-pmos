@@ -44,14 +44,17 @@ def report(path):
     if len(rows) < 2:
         print('not enough samples')
         return
-    # discharging stretches only (status != Charging/Full)
+    # boottime/suspended restart at every reboot: sum the per-boot deltas
+    hours = slept = 0.0
+    for a, b in zip(rows, rows[1:]):
+        if float(b[1]) >= float(a[1]):
+            hours += (float(b[1]) - float(a[1])) / 3600
+            slept += (float(b[2]) - float(a[2])) / 3600
     first, last = rows[0], rows[-1]
-    hours = (float(last[1]) - float(first[1])) / 3600
-    slept = (float(last[2]) - float(first[2])) / 3600
     drop = int(first[3]) - int(last[3])
     print(f'{first[0]} -> {last[0]}: {hours:.2f} h, suspended {slept:.2f} h '
           f'({100 * slept / hours if hours else 0:.0f}%), battery {first[3]}% -> {last[3]}% '
-          f'({drop / hours if hours else 0:.2f} %/h), suspends {first[7]} -> {last[7]}')
+          f'({drop / hours if hours else 0:.2f} %/h)')
 
 
 def main():

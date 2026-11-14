@@ -4,6 +4,9 @@
 # openat2() (Linux 5.6); the 4.14 kernel returns ENOSYS ("bwrap: Can't open source /") and the
 # browser aborts. Run WebKit without its bwrap sandbox instead (ERRORS C64).
 export WEBKIT_DISABLE_SANDBOX_THIS_IS_DANGEROUS=1
+# WebKit's DMA-BUF renderer (default) is ~36% more CPU while scrolling than its shared-memory path
+# here: web process 675 -> 270 cs for the same scroll test (ERRORS C69)
+export WEBKIT_DISABLE_DMABUF_RENDERER=1
 
 # Alpine's dunst is built with SYSCONFDIR=/usr/local/etc/xdg and only falls back to /etc/xdg when
 # XDG_CONFIG_DIRS is set (our /etc/xdg/dunst/dunstrc). /etc/xdg is the XDG default anyway.
