@@ -38,6 +38,10 @@
 #define QCA_BAUD_OPCODE 0xFC48
 #define QCA_BAUDRATE_3000000 14
 
+// operating speed (-b): QCA baud index + termios speed
+static int op_idx = 13;
+static speed_t op_speed = B2000000;
+
 static int tty = -1, pwr = -1;
 static volatile sig_atomic_t stop;
 
@@ -151,9 +155,9 @@ static void patch_nvm(uint8_t *b, int len) {
 			// IBS, the controller would send wake/sleep bytes that break H4 framing -> clear
 			// data[2] = UART baud rate (WCN3988 < WCN3991 in btqca's soc order)
 			printf("btinit: NVM tag 17 ibs 0x%02x -> 0x%02x, baud %d -> %d\n",
-				d[0], d[0] & ~0x80, d[2], QCA_BAUDRATE_3000000);
+				d[0], d[0] & ~0x80, d[2], op_idx);
 			d[0] &= ~0x80;
-			d[2] = QCA_BAUDRATE_3000000;
+			d[2] = op_idx;
 		} else if (tag == 27 && tl > 0) {          // EDL_TAG_ID_DEEP_SLEEP: no IBS with H4
 			printf("btinit: NVM tag 27 deep sleep 0x%02x -> 0x%02x\n", d[0], d[0] & ~0x80);
 			d[0] &= ~0x80;
@@ -192,9 +196,17 @@ int main(int argc, char **argv) {
 	const char *dev = "/dev/ttyHS0";
 	const char *patch = "/lib/firmware/qca/apbtfw11.tlv", *nvm = "/lib/firmware/qca/apnv11.bin";
 	int o;
-	while ((o = getopt(argc, argv, "t:p:n:")) != -1) {
+	while ((o = getopt(argc, argv, "t:p:n:b:")) != -1) {
 		if (o == 't') dev = optarg; else if (o == 'p') patch = optarg; else if (o == 'n') nvm = optarg;
-		else { fprintf(stderr, "usage: %s [-t tty] [-p rampatch] [-n nvm]\n", argv[0]); return 2; }
+		else if (o == 'b') {
+			int b = atoi(optarg);
+			if (b == 3000000) { op_idx = 14; op_speed = B3000000; }
+			else if (b == 2000000) { op_idx = 13; op_speed = B2000000; }
+			else if (b == 1000000) { op_idx = 11; op_speed = B1000000; }
+			else if (b == 921600) { op_idx = 10; op_speed = B921600; }
+			else { fprintf(stderr, "btinit: -b 3000000|2000000|1000000|921600\n"); return 2; }
+		}
+		else { fprintf(stderr, "usage: %s [-t tty] [-p rampatch] [-n nvm] [-b baud]\n", argv[0]); return 2; }
 	}
 	int plen, nlen;
 	uint8_t *pb = load(patch, &plen), *nb = load(nvm, &nlen);
@@ -211,13 +223,13 @@ int main(int argc, char **argv) {
 	// btpower "off" does not really cut the BT core (rails shared with WLAN): after an earlier
 	// run the controller may still be patched and running at 3 or 3.2 Mbaud -> probe the speed
 	speed_t found = 0;
-	const speed_t try[] = { B115200, B3000000 };
-	const char *tryname[] = { "115200", "3000000" };
-	for (int k = 0; k < 2 && !found; k++) {
+	const speed_t try[] = { B115200, B3000000, B2000000, B1000000, B921600 };
+	const char *tryname[] = { "115200", "3000000", "2000000", "1000000", "921600" };
+	for (int k = 0; k < 5 && !found; k++) {
 		set_speed(tty, try[k], 1);
 		usleep(20000);
 		// right after power-on the first command(s) may be lost or answered partially
-		for (int a = 0; a < 3 && !found; a++) {
+		for (int a = 0; a < (k ? 1 : 3) && !found; a++) {
 			tcflush(tty, TCIOFLUSH);
 			send_cmd(0x0c03, NULL, 0);                 // HCI_Reset
 			int rr = wait_cc(0x0c03, 500, NULL, NULL);
@@ -245,11 +257,11 @@ int main(int argc, char **argv) {
 	if (found != B115200) {
 		if (read_version() == 0 && last_patch != 0x0001) {
 			printf("btinit: controller already patched (patch 0x%04x), skipping download\n", last_patch);
-			uint8_t b3 = QCA_BAUDRATE_3000000;
+			uint8_t b3 = op_idx;
 			send_cmd(QCA_BAUD_OPCODE, &b3, 1);
 			tcdrain(tty);
 			usleep(20000);
-			set_speed(tty, B3000000, 1);
+			set_speed(tty, op_speed, 1);
 			usleep(20000);
 			goto attach;
 		}
@@ -264,12 +276,12 @@ int main(int argc, char **argv) {
 	if (read_version()) { fprintf(stderr, "btinit: no answer from the controller @115200\n"); goto fail; }
 
 	// switch to 3 Mbaud: no flow control while the controller changes speed (as hci_qca does)
-	uint8_t baud = QCA_BAUDRATE_3000000;
+	uint8_t baud = op_idx;
 	set_speed(tty, B115200, 0);
 	send_cmd(QCA_BAUD_OPCODE, &baud, 1);
 	tcdrain(tty);
 	usleep(20000);
-	set_speed(tty, B3000000, 1);
+	set_speed(tty, op_speed, 1);
 	usleep(20000);
 	if (read_version()) { fprintf(stderr, "btinit: no answer after switching to 3 Mbaud\n"); goto fail; }
 

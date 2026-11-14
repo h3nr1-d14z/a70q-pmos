@@ -13,7 +13,11 @@ tty mở (đóng là mất phiếu clock).
 
 NVM (`apnv11.bin`, header bao ngoài loại 4, bảng tag loại 2): tag 17 (HCI) `data[0]` bit 7 = in-band
 sleep → **xoá** (H4 không có IBS; nếu để, chip gửi byte wake/sleep mỗi 20 ms → "Frame reassembly
-failed (-84)"), `data[2]` = baud 14 (3 Mbaud); tag 27 deep sleep để nguyên.
+failed (-84)"), `data[2]` = baud vận hành (`-b`, mặc định 2 Mbaud = index 13; 3M = 14 cũng chạy); tag 27 deep sleep để nguyên.
+Baud trong NVM phải bằng baud vận hành: `HCI_Reset` áp lại giá trị NVM.
+
+Log `ACL packet for unknown connection handle 3804` = handle debug 0x2EDC của firmware, vô hại.
+Nghe nhạc A2DP cần quantum lớn cho card q6 (`51-a70q-alsa.conf`, xem ERRORS C59).
 
 Chip: product 0x0a, rom 0x0201, soc 0x40020140; firmware từ phân vùng vendor (`/vendor/firmware`).
 `btpower` "tắt" không cắt nguồn thật (dùng chung với WLAN): chip giữ trạng thái (đã nạp patch,

@@ -516,4 +516,7 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - Lệnh đầu tiên sau khi bật nguồn có thể mất → thử `HCI_Reset` nhiều lần, chấp nhận cả phản hồi đọc phiên bản
 - `btpower` off không reset chip (nguồn dùng chung WLAN) → chip giữ trạng thái giữa các lần chạy; thử nghiệm sai một lần là phải reboot để có chip sạch
 - Kết quả: tự lên khi boot, `bluetoothctl power on` OK, quét thấy 33 thiết bị
+- Ghép đôi với Mac mini OK (Paired/Bonded/Trusted). Mac phát nhạc sang điện thoại (A2DP sink) bị **giật**: không phải do Bluetooth/UART mà do node loa ALSA xrun ~30 lần/giây với quantum 512 (`pw-top` cột ERR). `node.force-quantum = 2048` cho node của card q6 (rule WirePlumber `51-a70q-alsa.conf`) → 0 lỗi, hết giật
+- Đính chính giữa chừng: `ACL packet for unknown connection handle 3804` KHÔNG phải UART hỏng: 3804 = 0xEDC = `QCA_DEBUG_HANDLE` 0x2EDC (log debug của firmware, upstream `hci_qca` lọc riêng) → vô hại. Việc hạ UART xuống 2 Mbaud vì nghi lỗi này là không cần (vẫn giữ 2M, đã kiểm chứng)
+- Đổi baud bằng lệnh vendor không bền: `HCI_Reset` (kernel gửi mỗi lần bật adapter) áp lại baud trong NVM → baud vận hành phải bằng baud ghi vào NVM (`a70q-btinit -b`, mặc định 2000000)
 

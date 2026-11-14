@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=23
+pkgrel=24
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -41,6 +41,7 @@ source="
 	61-a70q-feedback.rules
 	sxmo_brightness.sh
 	brightnessctl-shim.sh
+	51-a70q-alsa.conf
 "
 options="!archcheck !check"
 
@@ -76,6 +77,8 @@ package() {
 	# brightness: point Sxmo's brightnessctl calls at the AMOLED panel backlight
 	install -Dm755 "$srcdir"/sxmo_brightness.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_brightness.sh
 	install -Dm755 "$srcdir"/brightnessctl-shim.sh "$pkgdir"/usr/share/a70q/brightnessctl-shim/brightnessctl
+	# PipeWire: larger quantum for the q6 card (xruns at 512 frames)
+	install -Dm644 "$srcdir"/51-a70q-alsa.conf "$pkgdir"/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf
 	# Sxmo status bar refresh on headphone plug/unplug (superd reads /etc/superd/services first)
 	install -Dm755 "$srcdir"/sxmo_soundmonitor.sh "$pkgdir"/usr/share/a70q/sxmo/sxmo_soundmonitor.sh
 	install -Dm644 "$srcdir"/sxmo_soundmonitor.service "$pkgdir"/etc/superd/services/sxmo_soundmonitor.service
@@ -108,4 +111,5 @@ aabcbe0882b222841f531b9eb514e5012c68ad97a53b7650df37bda878e72dc260b8f8414ad641ae
 7426bc64f2971fe18d270cc3109a31e48f972cdfed60ed38f354cbf25f9f7690fd7cc7c51937a95a131fa3ea6cb8b57790b5c5447607b9f287bf7ac7ca98c6a9  61-a70q-feedback.rules
 32b6e31ca4785a002b16ba200a8149c4815c8eddbcbc8c0c856e6f80dca9b1ec76b639d26a9c1ee5b6cb9d3259c427120957e557fab2e7efe06450d66ae22b97  sxmo_brightness.sh
 fcdffc1dd56723a2c69e99ecb93a720915ce21ee3f417411d08420c911f748166513f22535ae5ee9e69d0cff8e26de129568eab20a6efa7051360a60b1dbb441  brightnessctl-shim.sh
+8a0782315617ad6a883d95ea50cfbfffb0def3c4c8ad592801f1d098ea9f674de8006cd85d2e5e1ab8b6ace45b7986a7d47f74b77310228dd274cd7a2302d28d  51-a70q-alsa.conf
 "

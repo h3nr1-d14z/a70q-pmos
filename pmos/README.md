@@ -12,9 +12,9 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r23 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r24 | `pmaports/device/downstream/` |
 | `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
-| `a70q-qcom-userspace` | r1 (thêm `a70q-btinit`) | như trên |
+| `a70q-qcom-userspace` | r2 (`a70q-btinit`) | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
 
@@ -134,7 +134,8 @@ udev `61-a70q-feedback.rules`. Máy không có LED thông báo (`SXMO_DISABLE_LE
 
 **Bluetooth** (C59, `bluetooth/README.md`): chip WCN3988 trên UART `ttyHS0`; `a70q-btinit` nạp
 firmware từ vendor và gắn HCI UART (H4), chạy nền từ `a70q-modem-up` (log `/var/log/a70q-bt.log`);
-BlueZ (`bluetoothd`) dùng `hci0`.
+BlueZ (`bluetoothd`) dùng `hci0`; ghép đôi và A2DP (điện thoại làm loa cho Mac) đã thử. PipeWire dùng quantum
+2048 cho card q6 (`/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf`).
 
 ## 7. Việc còn lại
 
