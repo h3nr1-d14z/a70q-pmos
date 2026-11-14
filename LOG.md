@@ -218,3 +218,7 @@ Kernel dự phòng đã build sẵn trong volume `final-halium-boot.img` (gcc 9.
 - "Bấm nguồn là tắt máy" thực ra là elogind `HandlePowerKey=poweroff` (PMIC: PS_HOLD), không phải crash
 - WoWLAN magic-packet cho phép ngủ khi WiFi kết nối; wrapper `wlopm` (lần bật màn hình đầu luôn lỗi); hook postwake bật màn hình khi dậy bằng nút nguồn; device r16 (ERRORS C51–C52)
 
+## 2026-11-14 tối — Giao diện chạy trên GPU + jack tai nghe
+- wlroots 0.20.2 + patch `WLR_DISPLAY_ONLY_DRM`: sway render Vulkan trên turnip-kgsl vào dumb buffer của SDE (C54)
+- Kernel r18 (patch 0009, 0010): alsa-lib nạp được mixer → PipeWire theo dõi jack, rút tai nghe tự về loa (C55)
+

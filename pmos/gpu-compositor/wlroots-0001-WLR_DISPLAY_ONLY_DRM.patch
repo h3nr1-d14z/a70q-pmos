@@ -1,0 +1,97 @@
+diff -ruN a/render/allocator/allocator.c b/render/allocator/allocator.c
+--- a/render/allocator/allocator.c	2026-11-14 12:38:17
++++ b/render/allocator/allocator.c	2026-11-14 12:38:17
+@@ -7,6 +7,7 @@
+ #include <wlr/interfaces/wlr_buffer.h>
+ #include <wlr/render/allocator.h>
+ #include <wlr/util/log.h>
++#include "util/env.h"
+ #include <xf86drm.h>
+ #include <xf86drmMode.h>
+ #include "render/allocator/drm_dumb.h"
+@@ -108,9 +109,13 @@
+ 
+ 	struct wlr_allocator *alloc = NULL;
+ 
++	// WLR_DISPLAY_ONLY_DRM: GBM on a display-only DRM device has no driver; dumb buffers of
++	// the display device can be scanned out and exported as DMA-BUF for the GPU renderer
++	bool display_only_drm = env_parse_bool("WLR_DISPLAY_ONLY_DRM");
++
+ 	uint32_t gbm_caps = WLR_BUFFER_CAP_DMABUF;
+ 	if ((backend_caps & gbm_caps) && (renderer_caps & gbm_caps)
+-			&& drm_fd >= 0) {
++			&& drm_fd >= 0 && !display_only_drm) {
+ #if WLR_HAS_GBM_ALLOCATOR
+ 		wlr_log(WLR_DEBUG, "Trying to create gbm allocator");
+ 		int gbm_fd = reopen_drm_node(drm_fd, true);
+@@ -137,7 +142,8 @@
+ 	}
+ 
+ 	uint32_t drm_caps = WLR_BUFFER_CAP_DMABUF | WLR_BUFFER_CAP_DATA_PTR;
+-	if ((backend_caps & drm_caps) && (renderer_caps & drm_caps)
++	uint32_t drm_renderer_caps = display_only_drm ? WLR_BUFFER_CAP_DMABUF : drm_caps;
++	if ((backend_caps & drm_caps) && (renderer_caps & drm_renderer_caps)
+ 			&& drm_fd >= 0 && drmIsMaster(drm_fd)) {
+ 		wlr_log(WLR_DEBUG, "Trying to create drm dumb allocator");
+ 		int dumb_fd = reopen_drm_node(drm_fd, false);
+diff -ruN a/render/vulkan/renderer.c b/render/vulkan/renderer.c
+--- a/render/vulkan/renderer.c	2026-11-14 12:38:17
++++ b/render/vulkan/renderer.c	2026-11-14 12:38:17
+@@ -28,6 +28,7 @@
+ #include "render/vulkan/shaders/output.frag.h"
+ #include "types/wlr_buffer.h"
+ #include "util/time.h"
++#include "util/env.h"
+ 
+ // TODO:
+ // - simplify stage allocation, don't track allocations but use ringbuffer-like
+@@ -2617,7 +2618,12 @@
+ 
+ 	// Do not use the drm_fd that was passed in: we should prefer the render
+ 	// node even if a primary node was provided
+-	dev->drm_fd = vulkan_open_phdev_drm_fd(phdev);
++	if (env_parse_bool("WLR_DISPLAY_ONLY_DRM") && drm_fd >= 0) {
++		// the GPU has no DRM node: buffers are allocated on the display device
++		dev->drm_fd = fcntl(drm_fd, F_DUPFD_CLOEXEC, 0);
++	} else {
++		dev->drm_fd = vulkan_open_phdev_drm_fd(phdev);
++	}
+ 
+ 	return vulkan_renderer_create_for_device(dev);
+ 
+diff -ruN a/render/vulkan/vulkan.c b/render/vulkan/vulkan.c
+--- a/render/vulkan/vulkan.c	2026-11-14 12:38:17
++++ b/render/vulkan/vulkan.c	2026-11-14 12:38:17
+@@ -12,6 +12,7 @@
+ #include <xf86drm.h>
+ #include <vulkan/vulkan.h>
+ #include <wlr/util/log.h>
++#include "util/env.h"
+ #include <wlr/version.h>
+ #include <wlr/config.h>
+ #include "render/dmabuf.h"
+@@ -273,6 +274,11 @@
+ 		return VK_NULL_HANDLE;
+ 	}
+ 
++	// WLR_DISPLAY_ONLY_DRM: the DRM device only drives the display (e.g. Qualcomm SDE on
++	// downstream kernels) and the GPU is a non-DRM device (kgsl) without
++	// VK_EXT_physical_device_drm. Use the first non-CPU Vulkan device instead of failing.
++	bool display_only_drm = env_parse_bool("WLR_DISPLAY_ONLY_DRM");
++
+ 	struct stat drm_stat = {0};
+ 	if (drm_fd >= 0 && fstat(drm_fd, &drm_stat) != 0) {
+ 		wlr_log_errno(WLR_ERROR, "fstat failed");
+@@ -347,6 +353,12 @@
+ 		bool found;
+ 		if (drm_fd >= 0) {
+ 			if (!has_drm_props) {
++				if (display_only_drm &&
++						phdev_props.deviceType != VK_PHYSICAL_DEVICE_TYPE_CPU) {
++					wlr_log(WLR_INFO, "WLR_DISPLAY_ONLY_DRM: using \"%s\" "
++						"without a DRM node", phdev_props.deviceName);
++					return phdev;
++				}
+ 				wlr_log(WLR_DEBUG, "  Ignoring physical device \"%s\": "
+ 					"VK_EXT_physical_device_drm not supported",
+ 					phdev_props.deviceName);

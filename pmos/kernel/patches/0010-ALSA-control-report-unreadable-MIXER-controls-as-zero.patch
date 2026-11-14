@@ -1,0 +1,66 @@
+From 78e6470f4d7c6d78588caf0bbabd46fad1c86e6d Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Sat, 14 Nov 2026 06:10:00 +0000
+Subject: [PATCH] ALSA: control: report unreadable MIXER controls as zero
+
+The downstream Qualcomm q6 ASoC drivers register many MIXER controls that are
+write-only commands in practice: no get callback, or reads fail with
+-EINVAL/-EPERM/-EAGAIN. alsa-lib reads every MIXER control in
+snd_mixer_load() and aborts on the first error, so the card mixer could not
+be opened by PipeWire/PulseAudio ("amixer: Mixer load error"): no jack
+detection, the headphone port stayed selected after unplugging.
+Return zeros for such MIXER controls instead.
+---
+ sound/core/control.c | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/sound/core/control.c b/sound/core/control.c
+index 86bd9db..cc7d917 100755
+--- a/sound/core/control.c
++++ b/sound/core/control.c
+@@ -893,6 +893,7 @@ static int snd_ctl_elem_read(struct snd_card *card,
+ 	struct snd_kcontrol *kctl;
+ 	struct snd_kcontrol_volatile *vd;
+ 	unsigned int index_offset;
++	int result;
+ 
+ 	kctl = snd_ctl_find_id(card, &control->id);
+ 	if (kctl == NULL)
+@@ -900,11 +901,32 @@ static int snd_ctl_elem_read(struct snd_card *card,
+ 
+ 	index_offset = snd_ctl_get_ioff(kctl, &control->id);
+ 	vd = &kctl->vd[index_offset];
+-	if (!(vd->access & SNDRV_CTL_ELEM_ACCESS_READ) || kctl->get == NULL)
++	if (!(vd->access & SNDRV_CTL_ELEM_ACCESS_READ) || kctl->get == NULL) {
++		/* same for MIXER controls without a get callback (see below) */
++		if (kctl->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER) {
++			memset(&control->value, 0, sizeof(control->value));
++			return 0;
++		}
+ 		return -EPERM;
++	}
+ 
+ 	snd_ctl_build_ioff(&control->id, kctl, index_offset);
+-	return kctl->get(kctl, control);
++	result = kctl->get(kctl, control);
++	/*
++	 * The downstream Qualcomm q6 ASoC drivers register ~170 MIXER controls that
++	 * are really write-only commands (ADSP Stream Cmd, Playback Event Ack/ION FD,
++	 * Audio Effects Config, ...): no get callback, or reads fail with
++	 * -EINVAL/-EPERM/-EAGAIN. Android's
++	 * tinyalsa never reads them, but alsa-lib's snd_mixer_load() reads every
++	 * MIXER control and aborts on the first error, so PipeWire/PulseAudio could
++	 * not open the card mixer (no jack detection, no hardware volume).
++	 * Report such controls as zero instead of failing the read.
++	 */
++	if (result < 0 && kctl->id.iface == SNDRV_CTL_ELEM_IFACE_MIXER) {
++		memset(&control->value, 0, sizeof(control->value));
++		result = 0;
++	}
++	return result;
+ }
+ 
+ static int snd_ctl_elem_read_user(struct snd_card *card,
+-- 
+2.43.0
+

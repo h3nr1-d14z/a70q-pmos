@@ -469,3 +469,22 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - Fix: `/etc/sway/config.d/50-a70q.conf` (config Sxmo `include /etc/sway/config.d/*` sau khối bar, sửa được bar theo id `bar-0`): `height 31` (bằng độ sâu tai thỏ), `gaps 0 14 0 14` → kiểm bằng `grim -g "0,0 432x48"` + người dùng xác nhận trên máy
 - Góc dưới chưa chừa lề (nội dung cửa sổ sát đáy mất vài pixel ở hai góc)
 
+### C54. ✅ sway render bằng GPU (Vulkan trên turnip-kgsl) — xem `pmos/gpu-compositor/README.md`
+- wlroots ghép renderer với thiết bị DRM qua GBM / `VK_EXT_physical_device_drm`; ở đây SDE (DRM) không có GPU, kgsl (GPU) không có DRM → renderer Vulkan báo "Could not match drm and vulkan device"
+- Bài thử `dmabuf-kgsl-test`: GEM của SDE → dma-buf → import vào turnip-kgsl → GPU ghi, CPU đọc đúng 100% → chia sẻ buffer khả thi
+- Patch wlroots `WLR_DISPLAY_ONLY_DRM`: chọn GPU Vulkan không có DRM node, dùng fd DRM của màn hình, allocator dumb buffer của SDE (Vulkan render được vào LINEAR, turnip còn hỗ trợ UBWC)
+- Bẫy: binary sway có file capability `cap_sys_nice` → trình nạp musl bỏ qua `LD_LIBRARY_PATH` (thư viện thử không được nạp, log vẫn là đường gốc). Chép binary ra chỗ khác để thử
+- Bẫy: `rc-service tinydm stop` chưa giết hết sway cũ → seat bận (`libseat ... Broken pipe`) → chờ đến khi không còn tiến trình sway
+- Không có dma-buf sync_file trên 4.14 → wlroots chờ phía CPU (blocking)
+- Package `wlroots0.20` r100 + profile chỉ bật Vulkan khi `.so` chứa chuỗi `WLR_DISPLAY_ONLY_DRM` (an toàn nếu Alpine nâng wlroots)
+
+### C55. ✅ Rút tai nghe nhưng vẫn chọn tai nghe (icon tai nghe không mất)
+- Kernel báo jack đúng (`Headphone Jack` off) nhưng PipeWire để `availability unknown`: ACP dùng mixer của alsa-lib để theo dõi jack, mà `snd_mixer_load()` của card thất bại (`amixer: Mixer load error`)
+- alsa-lib đọc MỌI control MIXER khi nạp, dừng ở lỗi đầu tiên. Driver q6 downstream có ~170 control MIXER thực chất là lệnh chỉ-ghi (ADSP Stream Cmd, Playback Event Ack/ION FD, Audio Effects Config...): không có `get`, hoặc đọc trả EINVAL/EPERM/EAGAIN; `Playback 39 Volume` (loopback) trả ENODEV khi PCM chưa mở. Android dùng tinyalsa nên không bao giờ đọc
+- Lỗi đổi dần ENODEV → EINVAL → EPERM qua từng bản vá: tìm bằng quét `amixer cget numid=N` + `strace -e ioctl amixer scontrols`
+- Fix kernel: 0009 (loopback volume get trả 0 khi stream đóng), 0010 (ALSA core: control MIXER không đọc được → trả 0 thay vì lỗi). Kernel r18: mixer nạp được, jack `available`/`not available`, rút tai nghe → tự chuyển Speaker, icon mất
+- Icon tai nghe trên thanh bar không đổi khi cắm/rút: `sxmo_soundmonitor.sh` của Sxmo chỉ làm mới khi có `'change' on sink` VÀ âm lượng đổi; đổi profile tạo/xoá sink (`'new'`/`'remove'`) → không làm mới. Bản sửa `/usr/share/a70q/sxmo/sxmo_soundmonitor.sh` + unit `/etc/superd/services/sxmo_soundmonitor.service` (superd ưu tiên `/etc/superd/services`, cần `superctl reload`; superd gọi script bằng đường dẫn tuyệt đối nên không thay được qua PATH)
+- Tai nghe nhỏ + ù: phần mặc định của vendor `mixer_paths` (HAL Android áp lúc boot) đặt `RX HPH Mode = CLS_AB`, `HPHL/HPHR Volume 17`; UCM thiếu → `CLS_H_INVALID`. Thêm vào EnableSequence của verb → rõ, trái/phải đúng (thử bằng `speaker-test -t wav`; `pw-play` file mono sẽ ra cả hai tai)
+- Đính chính một nhận định sai giữa chừng: `WSA_CDC_DMA_RX_0 Channels = 0` là mục `'One'` (enum One/Two), không phải "0 kênh"
+- Chưa tái hiện được: một lần sau boot kernel báo `Headphone Jack = on` dù người dùng nói chưa cắm; lần reboot sau (r20, không cắm) báo đúng `off`
+

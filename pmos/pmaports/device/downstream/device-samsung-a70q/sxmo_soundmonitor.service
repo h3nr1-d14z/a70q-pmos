@@ -1,0 +1,8 @@
+[Unit]
+Description=Sxmo: watch audio changes and update the status bar (a70q: also on sink/port switches)
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/share/a70q/sxmo/sxmo_soundmonitor.sh
+RestartSec=1s

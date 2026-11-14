@@ -1,7 +1,14 @@
 # a70q graphics environment.
-# Compositor: wlroots renders with pixman (the display DRM node is SDE-only and the GPU is
-# the downstream kgsl driver, which wlroots' GLES/Vulkan renderers cannot use).
-export WLR_RENDERER=pixman
+# Compositor: the display DRM device (SDE) has no GPU and the GPU (kgsl) has no DRM node.
+# wlroots0.20 from our pmaports carries the WLR_DISPLAY_ONLY_DRM patch: Vulkan renderer on
+# turnip-kgsl, rendering into dumb buffers of the SDE device (ERRORS C54). Without that
+# patch the Vulkan renderer cannot start, so fall back to pixman (CPU) then.
+if grep -q WLR_DISPLAY_ONLY_DRM /usr/lib/libwlroots-0.20.so 2>/dev/null; then
+	export WLR_RENDERER=vulkan
+	export WLR_DISPLAY_ONLY_DRM=1
+else
+	export WLR_RENDERER=pixman
+fi
 export WLR_NO_HARDWARE_CURSORS=1
 # Clients: GPU via turnip-kgsl (mesa-vulkan-freedreno-kgsl).
 #  - TU_DEBUG=noconform: A612 has no HW multiview, so turnip only exposes Vulkan 1.0

@@ -1,0 +1,47 @@
+From 587f8adb8fbb3baef74721396e828b7be56c861f Mon Sep 17 00:00:00 2001
+From: a70q <noreply@example.org>
+Date: Sat, 14 Nov 2026 06:00:00 +0000
+Subject: [PATCH] ASoC: msm-pcm-loopback: do not fail volume get when the
+ stream is closed
+
+Reading the "Playback N Volume" control of an unopened loopback PCM returned
+-ENODEV. alsa-lib reads all simple volume controls in snd_mixer_load(), so the
+mixer of the whole card failed to load ("amixer: Mixer load error: No such
+device") and PipeWire/ACP could not track the headset jack kcontrols (port
+availability stayed unknown, headphones stayed selected after unplug).
+Report 0 instead, like msm-pcm-q6-v2 does.
+---
+ techpack/audio/asoc/msm-pcm-loopback-v2.c | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/techpack/audio/asoc/msm-pcm-loopback-v2.c b/techpack/audio/asoc/msm-pcm-loopback-v2.c
+index aa2d8fa..5a90833 100755
+--- a/techpack/audio/asoc/msm-pcm-loopback-v2.c
++++ b/techpack/audio/asoc/msm-pcm-loopback-v2.c
+@@ -545,18 +545,16 @@ static int msm_pcm_volume_ctl_get(struct snd_kcontrol *kcontrol,
+ 
+ 	substream = vol->pcm->streams[SNDRV_PCM_STREAM_PLAYBACK].substream;
+ 	if ((!substream) || (!substream->runtime)) {
++		/* stream not open: report 0 like msm-pcm-q6-v2 does. -ENODEV made
++		 * alsa-lib's snd_mixer_load() fail for the whole card, so PipeWire
++		 * could not track the headset jack kcontrols */
+ 		pr_debug("%s substream or runtime not found\n", __func__);
+-		rc = -ENODEV;
++		ucontrol->value.integer.value[0] = 0;
+ 		goto exit;
+ 	}
+ 	mutex_lock(&loopback_session_lock);
+ 	prtd = substream->runtime->private_data;
+-	if (!prtd) {
+-		rc = -ENODEV;
+-		mutex_unlock(&loopback_session_lock);
+-		goto exit;
+-	}
+-	ucontrol->value.integer.value[0] = prtd->volume;
++	ucontrol->value.integer.value[0] = prtd ? prtd->volume : 0;
+ 	mutex_unlock(&loopback_session_lock);
+ exit:
+ 	return rc;
+-- 
+2.43.0
+

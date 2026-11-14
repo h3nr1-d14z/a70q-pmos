@@ -8,11 +8,12 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 
 | Thành phần | Phiên bản đang chạy | Nguồn |
 |---|---|---|
-| BOOT | kernel `linux-samsung-a70q` r15 + initramfs pmOS | `tools/mkboot.sh 15 ...` |
+| BOOT | kernel `linux-samsung-a70q` r18 + initramfs pmOS | `tools/mkboot.sh 18 ...` |
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r17 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r20 | `pmaports/device/downstream/` |
+| `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
 | `a70q-qcom-userspace` | r0 | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
@@ -87,6 +88,8 @@ k2 (USB ECM), k3 (NLS, SYSVIPC, VT, DRM fbdev, user ns, tắt `FW_LOADER_USER_HE
 | 0002–0004 | loop device: block size 4K cho rootfs trên UFS (rescan, xoá page cache, `LOOP_CONFIGURE` đặt queue block size) (C35) |
 | 0006 | `sec_battery`: không vào chế độ LPM khi boot từ màn hình sạc (mất cảm ứng) (C45) |
 | 0008 | MBHC: thêm kcontrol `Headphone Jack` / `Headset Mic Jack` cho PipeWire (C48) |
+| 0009 | loopback PCM: đọc `Playback N Volume` khi stream đóng trả 0 thay vì ENODEV (C55) |
+| 0010 | ALSA core: control MIXER không đọc được (không có `get`/lỗi) trả 0 → alsa-lib nạp được mixer, PipeWire theo dõi được jack (C55) |
 
 `kernel/patches/disabled/`: 0005 (fbdev → bootloop), 0007 (writeback trong DT gốc, không có tác dụng vì
 node nằm trong DTBO).
@@ -100,19 +103,21 @@ tqftpserv → boot modem (`/dev/subsys_modem`) → gửi BDF WLAN qua QMI (`a70q
 (`a70q-qcom-userspace`). Chi tiết: ERRORS mục I và C43.
 
 **Màn hình + Sxmo** (C38, C45, C49, C53): DRM/KMS của SDE (`card0-DSI-1`), wlroots render bằng pixman
-(`/etc/profile.d/a70q-wlroots.sh`). Device profile Sxmo cho compatible `qcom,sm6150p-idp`. Thanh bar chừa
+(trước đây; nay là Vulkan trên GPU, xem dưới). Device profile Sxmo cho compatible `qcom,sm6150p-idp`. Thanh bar chừa
 góc bo và tai thỏ qua `/etc/sway/config.d/50-a70q.conf`. Dòng `output Virtual-1 disable` trong
 `~/.config/sxmo/sway` (workaround cũ) không còn cần sau khi đã sửa DTBO.
 
 **GPU** (C47): driver kgsl (`/dev/kgsl-3d0`), không có DRM render node. `mesa-vulkan-freedreno-kgsl`
 (turnip `-Dfreedreno-kmds=msm,kgsl`) cho Vulkan; OpenGL/GLES qua Zink. Biến môi trường trong
 `a70q-wlroots.sh`: `TU_DEBUG=noconform` (A612 không có multiview → chỉ Vulkan 1.0), `MESA_VK_WSI_DEBUG=sw`
-(compositor pixman không có linux-dmabuf), `GALLIUM_DRIVER=zink`. Firmware GPU (`a630_sqe.fw`,
-`a612_rgmu.bin`) chép từ phân vùng vendor lúc boot. Compositor chưa dùng GPU.
+(client trình bày qua wl_shm), `GALLIUM_DRIVER=zink`. Firmware GPU (`a630_sqe.fw`, `a612_rgmu.bin`)
+chép từ phân vùng vendor lúc boot. **Compositor cũng render bằng GPU** (C54): wlroots0.20 có patch
+`WLR_DISPLAY_ONLY_DRM`, `WLR_RENDERER=vulkan`, vẽ vào dumb buffer của SDE.
 
 **Âm thanh** (C48): `a70q-modem-up` boot ADSP → card q6 `sm6150-idp-snd-card` (WCD937x + WSA881x).
 UCM `/usr/share/alsa/ucm2/Samsung/a70q/` (thiết bị Speaker, Headphones, Earpiece, Mic, HeadsetMic);
-PipeWire chọn loa/tai nghe theo jack.
+PipeWire chọn loa/tai nghe theo jack (kernel r18, C55); icon tai nghe của Sxmo được làm mới bằng
+`/usr/share/a70q/sxmo/sxmo_soundmonitor.sh` (unit `/etc/superd/services/`).
 
 **Suspend + nút nguồn** (C51, C52): Sxmo tự suspend 3 s sau khi tắt màn hình; nút nguồn đánh thức và
 bật màn hình. Các mảnh ghép trong `device-samsung-a70q`:
@@ -129,7 +134,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 
 | Tính năng | Hiện trạng | Hướng làm |
 |---|---|---|
-| Compositor dùng GPU | sway render bằng pixman (CPU) | đang làm: chia sẻ buffer giữa kgsl (GPU) và SDE (hiển thị) |
+| Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
 | Xoay màn hình | không có gia tốc kế dưới Linux: cảm biến nằm sau sensor hub của ADSP (SSC), `/sys/bus/iio` chỉ có ADC của PMIC | cần client SSC (kiểu `hexagonrpcd`/libssc của pmOS) hoặc xoay tay bằng `swaymsg output DSI-1 transform` |
 | Đèn pin | có `/sys/class/leds/led:torch_0`, `led:torch_1` (max 500), `led:switch_0..2` | ghi brightness + switch; nối vào Sxmo (deviceprofile/hook đèn pin) |
 | Rung | có `/sys/class/leds/vibrator` (`activate`, `duration`) | nối vào Sxmo (`sxmo_vibrate`) |
