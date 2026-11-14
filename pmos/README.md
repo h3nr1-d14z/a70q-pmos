@@ -12,7 +12,7 @@ trong phân vùng USERDATA, giao diện Sxmo (sway). Lịch sử và nguyên nh�
 | DTBO | DTBO gốc bỏ connector writeback | `tools/dtbo-drop-wb.sh ../backups/dtbo.img ...` |
 | VBMETA | flags=2 (tắt verify) | xem mục 4 |
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
-| `device-samsung-a70q` | r16 | `pmaports/device/downstream/` |
+| `device-samsung-a70q` | r17 | `pmaports/device/downstream/` |
 | `a70q-qcom-userspace` | r0 | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
@@ -99,8 +99,10 @@ tqftpserv → boot modem (`/dev/subsys_modem`) → gửi BDF WLAN qua QMI (`a70q
 → `wlan0`. Kernel 4.14 không có QRTR name service và remoteproc class nên các tool linux-msm được vá
 (`a70q-qcom-userspace`). Chi tiết: ERRORS mục I và C43.
 
-**Màn hình + Sxmo** (C38, C45, C49): DRM/KMS của SDE (`card0-DSI-1`), wlroots render bằng pixman
-(`/etc/profile.d/a70q-wlroots.sh`). Device profile Sxmo cho compatible `qcom,sm6150p-idp`.
+**Màn hình + Sxmo** (C38, C45, C49, C53): DRM/KMS của SDE (`card0-DSI-1`), wlroots render bằng pixman
+(`/etc/profile.d/a70q-wlroots.sh`). Device profile Sxmo cho compatible `qcom,sm6150p-idp`. Thanh bar chừa
+góc bo và tai thỏ qua `/etc/sway/config.d/50-a70q.conf`. Dòng `output Virtual-1 disable` trong
+`~/.config/sxmo/sway` (workaround cũ) không còn cần sau khi đã sửa DTBO.
 
 **GPU** (C47): driver kgsl (`/dev/kgsl-3d0`), không có DRM render node. `mesa-vulkan-freedreno-kgsl`
 (turnip `-Dfreedreno-kmds=msm,kgsl`) cho Vulkan; OpenGL/GLES qua Zink. Biến môi trường trong

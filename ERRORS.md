@@ -462,3 +462,10 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - `~/.cache/sxmo/sxmo.nosuspend` (và `sxmo.noidle`) được Sxmo tạo ở lần đăng nhập đầu khi chưa có deviceprofile → phải xoá để Sxmo tự suspend; cài mới có deviceprofile từ đầu thì không bị
 - Kiểm chứng (device r16, rút cáp): bấm nguồn → màn hình tắt → 3 s sau suspend → 28 s sau bấm nguồn → dậy, màn hình sáng sau 0,7 s → bấm lần nữa → mở khoá, cảm ứng chạy
 - Quy trình debug khi máy "chết" không để lại log: stream `dmesg -c` về Mac qua SSH; đọc `Power-on/Power-off reason` của qpnp-power-on ở lần boot sau; BusyBox `dmesg` không có `-w`, `grep` không có `--line-buffered`, `cat /dev/kmsg` chạy nền tự thoát (EPIPE)
+
+### C53. ✅ Góc bo + tai thỏ cắt thanh trạng thái Sxmo
+- Panel 1080x2400 bo góc r=60px, tai thỏ giọt nước giữa mép trên rộng ~189px sâu ~76px (lấy từ overlay LineageOS của a70q: `rounded_corner_radius_top/bottom` 60px, `config_mainBuiltInDisplayCutout` tính bằng dp, `ro.sf.lcd_density=420` → 2.625px/dp; thanh trạng thái Android 77px). Sway scale 2.5 → góc r=24, tai thỏ x=178..254, sâu ~30.5 (đơn vị logic)
+- Thanh bar Sxmo nằm sát mép: ô workspace và đồng hồ rơi vào góc bo
+- Fix: `/etc/sway/config.d/50-a70q.conf` (config Sxmo `include /etc/sway/config.d/*` sau khối bar, sửa được bar theo id `bar-0`): `height 31` (bằng độ sâu tai thỏ), `gaps 0 14 0 14` → kiểm bằng `grim -g "0,0 432x48"` + người dùng xác nhận trên máy
+- Góc dưới chưa chừa lề (nội dung cửa sổ sát đáy mất vài pixel ở hai góc)
+
