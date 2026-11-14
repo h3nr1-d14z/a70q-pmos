@@ -18,7 +18,13 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 | Đèn pin, rung, độ sáng | ✅ | qua Sxmo (ERRORS C56); máy không có LED thông báo |
 | Bluetooth | ✅ | WCN3988, BlueZ; quét/bật OK (ERRORS C59) |
 | Xoay tự động, cảm biến ánh sáng/tiệm cận/la bàn | ✅ | qua Sensor Core ADSP + iio-sensor-proxy (ERRORS C61) |
-| Gọi điện/SMS, GPS, camera | ❌ | chưa làm; hiện trạng + hướng làm: `pmos/README.md` mục 7 |
+| % pin trên thanh trạng thái | ✅ | `SXMO_BAR_SHOW_BAT_PER=1` (device r29) |
+| Bàn phím ảo | ✅ | wvkbd: vuốt từ mép dưới lên, hoặc Volume Down khi không mở menu |
+| Phát WiFi (hotspot) | ✅ | menu Sxmo Networks → Create Wifi Hotspot (wlan0 chuyển sang AP, 10.42.0.1); chưa thể vừa phát vừa nối WiFi |
+| USB OTG | ✅ | tự chuyển vai host (typec); đã thử chuột, hub, LAN USB (`cdc_ether`); kernel có USB storage, vfat, exFAT |
+| GPS | 🟡 | QMI LOC chạy, chưa thấy vệ tinh khi thử trong nhà (`pmos/gnss/README.md`) |
+| Camera, vân tay | ❌ | không khả thi trên pmOS thuần (cần HAL Android), xem `pmos/README.md` mục 7 |
+| Gọi điện/SMS | ⏸ | hoãn (chưa dùng SIM) |
 
 ## Cấu trúc
 
