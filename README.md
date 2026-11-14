@@ -7,7 +7,7 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 
 | Tính năng | Trạng thái | Ghi chú |
 |---|---|---|
-| Boot pmOS từ UFS | ✅ | SSH USB ~41s, WiFi ~53s |
+| Boot pmOS từ UFS | ✅ | kernel 1,9 s; SSH USB ~16 s, Sxmo ~15 s, WiFi ~31 s (kernel r22, C66) |
 | USB networking (ECM) | ✅ | `ssh user@172.16.42.1` |
 | Modem DSP + WiFi (WCN3990) | ✅ | NetworkManager, tự kết nối khi boot |
 | Màn hình (DRM/KMS) + Sxmo | ✅ | sway render pixman; DTBO đã bỏ connector writeback |
@@ -20,6 +20,7 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 | Xoay tự động, cảm biến ánh sáng/tiệm cận/la bàn | ✅ | qua Sensor Core ADSP + iio-sensor-proxy (ERRORS C61) |
 | % pin trên thanh trạng thái | ✅ | `SXMO_BAR_SHOW_BAT_PER=1` (device r29) |
 | Bàn phím ảo | ✅ | wvkbd: vuốt từ mép dưới lên, hoặc Volume Down khi không mở menu |
+| NFC | ❌ | không có chip trả lời trên SM-A705F; driver tắt để boot nhanh (C66) |
 | Phát WiFi (hotspot) | ✅ | menu Sxmo Networks → Create Wifi Hotspot (wlan0 chuyển sang AP, 10.42.0.1); chưa thể vừa phát vừa nối WiFi |
 | Menu + thanh trạng thái | ✅ | menu rộng, dòng cao dễ chạm; mục **Back** trong menu con; bấm icon trên thanh (loa = Audio, lăn chuột = âm lượng, wifi = Networks, pin = chi tiết, giờ = lịch, ○ = System); chuột phải lên thanh / phím Menu / Super+P = menu chính (device r32) |
 | Tự chỉnh độ sáng | ✅ | cảm biến ánh sáng, giữ mức chỉnh tay; Config → Adaptive Brightness (device r33) |

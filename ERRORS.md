@@ -331,3 +331,9 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - **apk upgrade không lên bản mới**: package từng cài bằng `apk add file.apk` bị ghim trong `/etc/apk/world` (`tên><Q1checksum`) → bỏ phần `><Q1…` rồi `apk upgrade -s` xem trước. Từ khi có kho riêng (`tools/repo.sh`) không cài từ file nữa
 - **Sxmo đã có `sxmo_adaptivebrightness.sh`** nhưng không chạy trên máy này (source wrapper `sxmo_brightness.sh` có `exec`, brightnessctl nhầm thiết bị C56, so sánh lux số thực bằng `-lt`) → `a70q-autobrightness` thay vào mục menu "Adaptive Brightness"
 
+### C66. Boot chậm 18 giây: driver NFC `pn547` dò I2C không có chip trả lời
+- **Triệu chứng**: `Freeing unused kernel memory` ở giây 20,25; dmesg đầy `i2c_geni a84000.i2c: I2C xfer timeout / Abort` từ 1,6 s đến 19,4 s, kết thúc bằng `pn547_probe: ret(-110) … fail to get i2c addr`
+- **Nguyên nhân**: `i2c-0` (a84000) chỉ có `0-0028 nq-nci` và `0-002b pn547`; probe (đồng bộ, chặn initcall) thử lại nhiều vòng timeout. Trên SM-A705F không có chip NFC nào trả lời (vendor có cấu hình NFC nhưng dùng chung cho mọi biến thể)
+- **Cách sửa**: `# CONFIG_NFC_PN547 is not set`, `# CONFIG_SEC_NFC_LOGGER is not set` (kernel r22, fragment k3) → kernel vào userspace ở 1,9 s; SSH USB ~16 s, Sxmo ~15 s, WiFi ~31 s
+- **Cách tìm**: awk tìm khoảng trống > 0,4 s giữa các dòng dmesg trước khi vào userspace
+
