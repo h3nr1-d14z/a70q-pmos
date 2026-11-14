@@ -26,6 +26,8 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 | Menu + thanh trạng thái | ✅ | menu rộng, dòng cao dễ chạm; mục **Back** trong menu con; bấm icon trên thanh (loa = Audio, lăn chuột = âm lượng, wifi = Networks, pin = chi tiết, giờ = lịch, ○ = System); chuột phải lên thanh / phím Menu / Super+P = menu chính (device r32) |
 | Tự chỉnh độ sáng | ✅ | cảm biến ánh sáng, giữ mức chỉnh tay; Config → Adaptive Brightness (device r33) |
 | Trình duyệt | ✅ | Epiphany (WebKitGTK, giao diện điện thoại), chạy không sandbox vì kernel 4.14 (C64); chặn quảng cáo (EasyList) bật sẵn; thiết lập lưu qua dconf |
+| Tai nghe Bluetooth tự kết nối lại | 🟡 | khi đăng nhập và khi máy thức dậy (`a70q-bt-reconnect`); logic đã thử, chưa thử với tai nghe thật |
+| Cỡ giao diện | ✅ | Config → Display scale (2,0–3,0), nhớ qua reboot |
 | Chụp màn hình | ✅ | bấm đồng thời Nguồn + Volume Down (rung nhẹ), ảnh trong `~/Pictures/Screenshots` |
 | Bàn phím ảo tự hiện/ẩn | ✅ | hiện khi chạm vào ô nhập chữ, ẩn khi rời đi (addon Lua của fcitx5, cần `fcitx5-lua`) |
 | Gõ tiếng Việt | ✅ | fcitx5 + fcitx5-unikey (Telex) qua input-method-v2 của sway; gõ được từ bàn phím ảo, terminal, Epiphany. Bật/tắt: Ctrl+Space hoặc icon trên thanh |

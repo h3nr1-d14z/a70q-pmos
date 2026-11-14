@@ -1,11 +1,12 @@
 # a70q: dunst (Sxmo's notification daemon). Sxmo ships no system dunstrc, so dunst ran with its
 # built-in defaults. Behaviour as Sxmo's appcfg/dunst.conf; look matched to the menus
-# (BEMENU_OPTS in sxmo_deviceprofile.sh): top centre below the 31 px bar, nearly full width
-# of the 432 px (scale 2.5) screen, rounded, Sxmo font.
+# (BEMENU_OPTS in sxmo_deviceprofile.sh): top centre below the 31 px bar, fixed width that fits
+# every UI scale of a70q-scale, rounded, Sxmo font.
 [global]
     origin = top-center
     offset = (0, 38)
-    width = 404
+    # fits the narrowest UI scale offered by a70q-scale (3.0: 1080/3 = 360 px wide)
+    width = 356
     height = (0, 220)
     notification_limit = 4
     gap_size = 6

@@ -1,0 +1,14 @@
+#!/bin/sh
+# a70q-scale: UI scale of the panel (sway output scale), from the Config menu ("Display scale").
+#   a70q-scale            menu (bemenu) to pick a scale, applied at once and remembered
+#   a70q-scale get        current remembered value
+# Remembered in ~/.config/a70q/scale; sxmo_deviceprofile.sh reads it into SXMO_SWAY_SCALE at login.
+F="${XDG_CONFIG_HOME:-$HOME/.config}/a70q/scale"
+cur="$(cat "$F" 2>/dev/null)"; cur="${cur:-2.5}"
+[ "$1" = get ] && { echo "$cur"; exit 0; }
+pick="$(printf '%s\n' "2.0  (small)" "2.25" "2.5  (default)" "2.75" "3.0  (large)" |
+	sxmo_dmenu.sh -p "Scale (now $cur)")" || exit 0
+s="${pick%% *}"
+case "$s" in 2.0|2.25|2.5|2.75|3.0) ;; *) exit 0 ;; esac
+mkdir -p "$(dirname "$F")" && echo "$s" > "$F"
+swaymsg -q output DSI-1 scale "$s"

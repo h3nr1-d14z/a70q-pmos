@@ -1,0 +1,20 @@
+#!/bin/sh
+# a70q-bt-reconnect: connect paired Bluetooth headphones/speakers (Audio Sink, Headset or Handsfree
+# service) that are not connected yet. Run in the background at session start and after resume
+# (sxmo_hook_start.sh, sxmo_hook_postwake.sh). Devices that are off fail after a few seconds.
+[ "$(id -u)" = 0 ] && exit 0   # needs the user's BlueZ agent/session, not root
+for i in $(seq 90); do
+	bluetoothctl show 2>/dev/null | grep -q "Powered: yes" && break
+	sleep 1
+done
+for d in $(bluetoothctl devices Paired 2>/dev/null | awk '{ print $2 }'); do
+	info="$(bluetoothctl info "$d" 2>/dev/null)"
+	printf '%s\n' "$info" | grep -q "Connected: yes" && continue
+	# headphone side only, by UUID: Audio Sink 110b, Headset 1108, Handsfree 111e (not the gateway /
+	# source roles a computer or phone also offers: Handsfree Audio Gateway 111f, Audio Source 110a)
+	printf '%s\n' "$info" | grep -q -E "\((0000110b|00001108|0000111e)-0000-1000-8000-00805f9b34fb\)" || continue
+	logger -t a70q-bt-reconnect "connecting $d"
+	timeout 20 bluetoothctl connect "$d" >/dev/null 2>&1 &&
+		logger -t a70q-bt-reconnect "connected $d"
+done
+exit 0

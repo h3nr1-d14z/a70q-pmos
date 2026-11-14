@@ -3,7 +3,8 @@
 # qpnp_pon: power key (KEY_POWER) + RESIN (KEY_VOLUMEDOWN); gpio-keys: KEY_VOLUMEUP
 export SXMO_POWER_BUTTON="0:0:qpnp_pon"
 export SXMO_VOLUME_BUTTON="1:1:gpio-keys 0:0:qpnp_pon"
-export SXMO_SWAY_SCALE="2.5"
+# UI scale: Config menu "Display scale" (a70q-scale) remembers the choice
+export SXMO_SWAY_SCALE="$(cat "${XDG_CONFIG_HOME:-$HOME/.config}/a70q/scale" 2>/dev/null || echo 2.5)"
 # the modem is not handled by ModemManager (no QMI/rmnet over the downstream IPA path yet);
 # without this Sxmo reports "Modem crashed!" and holds a 30 s wakelock after every resume
 export SXMO_NO_MODEM=1

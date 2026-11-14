@@ -10,4 +10,6 @@ if dmesg | awk '/PM: suspend entry/ { b = "" } { b = b $0 "\n" } END { printf "%
 	grep -q "Resume caused by IRQ [0-9]*, pon_kpdpwr"; then
 	sxmo_state.sh set lock &
 fi
+# headphones that were switched on while the phone slept
+setsid -f /usr/libexec/a70q/a70q-bt-reconnect >/dev/null 2>&1
 exec /usr/share/sxmo/default_hooks/sxmo_hook_postwake.sh
