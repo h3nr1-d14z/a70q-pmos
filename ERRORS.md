@@ -375,3 +375,14 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
   hiển thị, không phải GPU) nên mỗi khung phải chép qua lại
 - **Cách sửa**: `WEBKIT_DISABLE_DMABUF_RENDERER=1` trong `a70q-session.sh` (device r36); sau reboot đo lại 939
 
+### C70. Hai bẫy khi đóng gói: superd tự thay `$biến` trong ExecStart, abuild ghép checksum theo thứ tự
+- **superd**: `ExecStart=/bin/sh -c 't=...; exec bonsaid -t "$t"'` → `Failed to read transitions file`. superd (Go,
+  `os.ExpandEnv`) thay mọi `$VAR` trước khi chạy: `$t` thành rỗng, `${VAR:-x}` không được hiểu. Nút cứng mất tác
+  dụng ~1 phút (bonsaid chết). **Quy tắc**: logic shell trong service superd → để trong script riêng
+  (`/usr/libexec/a70q/a70q-bonsaid`), ExecStart chỉ gọi script
+- **abuild**: `sha512sums` được ghép với `source` **theo vị trí**, không theo tên file. Chèn file mới vào giữa
+  `source` nhưng thêm checksum ở cuối → `a70q-bonsaid: FAILED` dù checksum đúng. **Quy tắc**: sinh lại toàn bộ
+  `sha512sums` theo thứ tự `source` (script Python trong lịch sử commit r40)
+- **Đừng xoá file đang dùng trước khi chắc bản mới cài được**: xoá `a70q-bonsaid` trên máy trước khi upgrade, build
+  lại hỏng → bonsaid chết lần hai
+

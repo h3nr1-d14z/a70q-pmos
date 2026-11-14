@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=38
+pkgrel=40
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -14,6 +14,7 @@ depends="
 	rmtfs
 	wpa_supplicant
 	bluez-obexd
+	dconf
 	hexagonrpcd
 	iio-sensor-proxy
 	linux-samsung-a70q
@@ -65,6 +66,10 @@ source="
 	a70q-fcitx5.service
 	a70qosk.lua
 	a70qosk.conf
+	a70q-bonsai_tree.json
+	a70q-bonsaid.service
+	a70q-bonsaid
+	50-a70q.gschema.override
 "
 options="!archcheck !check"
 
@@ -117,6 +122,11 @@ package() {
 	# fcitx5 Lua addon: on-screen keyboard follows text field focus (needs fcitx5-lua)
 	install -Dm644 "$srcdir"/a70qosk.conf "$pkgdir"/usr/share/fcitx5/addon/a70qosk.conf
 	install -Dm644 "$srcdir"/a70qosk.lua "$pkgdir"/usr/share/fcitx5/lua/a70qosk/a70qosk.lua
+	# Power + Volume Down = screenshot (Sxmo default button tree + combo; user tree wins if customised)
+	install -Dm644 "$srcdir"/a70q-bonsai_tree.json "$pkgdir"/usr/share/a70q/sxmo/bonsai_tree.json
+	install -Dm644 "$srcdir"/a70q-bonsaid.service "$pkgdir"/etc/superd/services/bonsaid.service
+	install -Dm755 "$srcdir"/a70q-bonsaid "$pkgdir"/usr/libexec/a70q/a70q-bonsaid
+	install -Dm644 "$srcdir"/50-a70q.gschema.override "$pkgdir"/usr/share/glib-2.0/schemas/50-a70q.gschema.override
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
 	# look: notifications like the menus, dark GTK/libadwaita; session env (WebKit sandbox, XDG dirs)
@@ -149,7 +159,7 @@ a0cc669feb7e7e5629d39306917fbb45e79e78c38af0987a257fed0a9444ce0a6d5073c9f6ad8824
 b89de3d533c99d54bbe0477aa19bf78617018152fdd80673f1dd81d7b4f26269ee536c897fe0825df47b080f65146313e70561bf609ebc803e31faa647dedf23  a70q-modem.initd
 de65573bc143d45ee529bfb48c18a2960d29b45c94daed55a3939c837b11f62510432bdd8186e29144709109ea98abc0a96b1e3ce409db1fb61db3a14c31a7fd  a70q-wlroots.sh
 27d22dff7ac4a9eb4cfa890f7d1948a8f084af17587135ace818eb1e247a48da97ba73e85638fa8685bc88e7ff3c5f46acd16da1108799e2c21da80b150c7d23  50-a70q.nm.conf
-ee5db262b7727be998c183c9ea4e1ac01176b7f18869080d18ddc57e4957c9458a0ef36cee4b8dfe51c6f41c5f6784c7223632ada971d46136f0ffc2ebe9f7fc  sxmo_deviceprofile.sh
+51dec37cbd559860e5fd37b614deb227472cb3fe754d1d41ac35e923b0ae927543b0d206c0db5f4808bdb8f674c766692aa685dd49f84125e801449f1d4cf510  sxmo_deviceprofile.sh
 c4b4dcdff43e2e1c2d710f0452661f2e57c936358326751558b081ef56877d185705e10f34d79444e3efc7f157bc734ce2650bfeaf62af6698030dd365688de8  60-a70q-gpu.rules
 d7c2b37f83cc210275ab705fd22c903ea522ae22146f4cd81a2f71bcff1e5ed88cd40af738149e43e82d6901832f2e1f2971a9aedf9207f0928f88ab3e98dbc4  a70q.conf
 fb95796f354e772dc6e7118838f0988f79562024ec0fa62a067eaf67a88189a7eee0c6460c4e62eecc275ccacc4e1c2d1b29598e3d15716c27af3a893e98e874  HiFi.conf
@@ -185,4 +195,8 @@ cd117ee30f4953fe666caf8d755f4751dfdc09daf0265585670b104bd75183bb642a05c430db7557
 45789ed74072b6a77291d41cbf68c63afd8033c1eb1a4c9108ebf679bb914d5ec8b3f5a87d152c5160b073dff0c589d031486c5a79d75dde7d418b4f62a0c1a3  a70q-fcitx5.service
 e49cb890fe646b4caf9d529b0d573d045336d8d7edec6fcf7cce72e536393668e2a6c1e00dcd4748e6e7e962a4ab44556708866123cc49c77b0a745c058c34b5  a70qosk.lua
 ce5c975fd39b858f2adf57d49967071c180821f5b5b9bbad7263bfc1f62805907c0c91f4c1f6fa618aca57a14a1d63493203f33635ddd81fcfa9e78dd3afcb86  a70qosk.conf
+91343333fd81d6ab9df3acb201c381d549907a286dc57006220ad47787236b83083174dac7d17feda03745271d714344e66189b7c51196cdf61bfd1107a56a8c  a70q-bonsai_tree.json
+3616e9b06a77a36fff174671100f4039a21ae86119b02905d92f5c400ce8be387487ccce70e3168ed8fc35f906ea535ed92f61b0bb88220e8b23eb03ca20ca9d  a70q-bonsaid.service
+e3c089324bc7202d60b04b915d3049ca5e752c7be1cba48706475314e6dc8ecec665be1e058efe01464c633cdaec82c151a480d6ea7c12c0f93c09d1b5a6d96e  a70q-bonsaid
+bd17d633579c0c3c384c7af56cffaa9e7ca2ff7af0e4665060b7500e7c57cc9c9618c7aa1d0cc122d6c4a78ac4f8d113436e7cacd23e8325ef2269801a4fefb6  50-a70q.gschema.override
 "

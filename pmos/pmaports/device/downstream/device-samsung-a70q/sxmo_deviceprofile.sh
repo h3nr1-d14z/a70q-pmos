@@ -24,3 +24,5 @@ export SXMO_BEMENU_PORTRAIT_LINES=18
 export SXMO_BEMENU_LANDSCAPE_LINES=8
 # default browser (Epiphany: light WebKitGTK browser with a phone UI; needs a70q-webkit.sh)
 export BROWSER=epiphany
+# screenshots (Power + Volume Down, a70q-bonsai_tree.json) next to the other pictures
+export SXMO_SCREENSHOT_DIR="$HOME/Pictures/Screenshots"

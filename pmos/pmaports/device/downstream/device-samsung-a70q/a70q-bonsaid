@@ -1,0 +1,8 @@
+#!/bin/sh
+# a70q: start bonsaid (Sxmo button daemon) with the user's button tree when it was customised,
+# otherwise with Sxmo's default tree + Power/Volume Down = screenshot (a70q-bonsai_tree.json).
+# A script because superd expands $VARS in ExecStart itself (Go os.ExpandEnv: no ${VAR:-x}, and
+# shell variables such as $t become empty).
+t="${XDG_CONFIG_HOME:-$HOME/.config}/sxmo/bonsai_tree.json"
+cmp -s "$t" /usr/share/sxmo/appcfg/bonsai_tree.json && t=/usr/share/a70q/sxmo/bonsai_tree.json
+exec bonsaid -t "$t"
