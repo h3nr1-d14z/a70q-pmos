@@ -125,6 +125,22 @@ bật màn hình. Các mảnh ghép trong `device-samsung-a70q`:
 
 ## 7. Việc còn lại
 
-- Compositor dùng GPU (cần chia sẻ buffer giữa kgsl và SDE)
-- C30: debug-shell mất IP ECM
-- Chưa làm: gọi điện/SMS, camera, Bluetooth, cảm biến
+Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
+
+| Tính năng | Hiện trạng | Hướng làm |
+|---|---|---|
+| Compositor dùng GPU | sway render bằng pixman (CPU) | đang làm: chia sẻ buffer giữa kgsl (GPU) và SDE (hiển thị) |
+| Xoay màn hình | không có gia tốc kế dưới Linux: cảm biến nằm sau sensor hub của ADSP (SSC), `/sys/bus/iio` chỉ có ADC của PMIC | cần client SSC (kiểu `hexagonrpcd`/libssc của pmOS) hoặc xoay tay bằng `swaymsg output DSI-1 transform` |
+| Đèn pin | có `/sys/class/leds/led:torch_0`, `led:torch_1` (max 500), `led:switch_0..2` | ghi brightness + switch; nối vào Sxmo (deviceprofile/hook đèn pin) |
+| Rung | có `/sys/class/leds/vibrator` (`activate`, `duration`) | nối vào Sxmo (`sxmo_vibrate`) |
+| LED thông báo | có `red/green/blue`, Sxmo báo "Unable to find suitable status led" | đặt tên/đường dẫn LED cho Sxmo |
+| Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
+| Bluetooth (WCN3990) | không có `hci0` | `hci_uart`/btqca qua UART + firmware từ apnhlos |
+| Gọi điện / SMS / data di động | modem DSP chạy nhưng không có QMI/rmnet tới userspace (`SXMO_NO_MODEM=1`) | rmnet qua IPA downstream + ModemManager — khó |
+| GPS | qua modem (QMI LOC) | sau khi có QMI |
+| Camera | `/dev/video*` chỉ là venus (codec) và SDE rotator; camera cần stack CAMX độc quyền | rất khó |
+| NFC (NXP NQx), vân tay (etspi) | chưa thử | driver/HAL độc quyền |
+| Âm thanh qua Bluetooth/USB, mic tai nghe | chưa thử thực tế | |
+| C30 | debug-shell mất IP ECM | |
+
+
