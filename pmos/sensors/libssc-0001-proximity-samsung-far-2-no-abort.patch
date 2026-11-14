@@ -1,0 +1,38 @@
+--- a/src/libssc-sensor-proximity.c	2026-06-28 00:26:15
++++ b/src/libssc-sensor-proximity.c	2026-11-14 18:17:06
+@@ -25,6 +25,7 @@
+ 
+ #define SSC_SENSOR_PROXIMITY_NEAR	1
+ #define SSC_SENSOR_PROXIMITY_FAR	0
++#define SSC_SENSOR_PROXIMITY_FAR_SAMSUNG	2
+ 
+ enum {
+ 	SIGNAL_MEASUREMENT,
+@@ -92,10 +93,15 @@
+ 					near = true;
+ 					break;
+ 				case SSC_SENSOR_PROXIMITY_FAR:
++				/* Samsung (a70q, STK3x3x) also reports 2 while nothing is close */
++				case SSC_SENSOR_PROXIMITY_FAR_SAMSUNG:
+ 					near = false;
+ 					break;
+ 				default:
+-					g_assert_not_reached ();
++					/* unknown value: ignore the report instead of aborting the daemon */
++					g_warning ("Unexpected proximity value %d, ignoring", (int) msg->near);
++					ssc_proximity_response__free_unpacked (msg, NULL);
++					return;
+ 			}
+ 
+ 			ssc_proximity_response__free_unpacked (msg, NULL);
+@@ -125,7 +131,9 @@
+ 					near = false;
+ 					break;
+ 				default:
+-					g_assert_not_reached ();
++					g_warning ("Unexpected proximity value %d, ignoring", (int) data.near);
++					ssc_proximity_response_davinci__free_unpacked (msg, NULL);
++					return;
+ 			}
+ 
+ 			ssc_proximity_response_davinci__free_unpacked (msg, NULL);

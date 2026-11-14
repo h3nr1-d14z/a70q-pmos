@@ -14,6 +14,7 @@ nhật ký: `../LOG.md`.
 | USERDATA | rootfs pmOS (GPT con, sector 4096) | `pmb/run.sh install` |
 | `device-samsung-a70q` | r28 | `pmaports/device/downstream/` |
 | `wlroots0.20` | 0.20.2-r100 (patch `WLR_DISPLAY_ONLY_DRM`) | như trên, xem `gpu-compositor/README.md` |
+| `libssc` | 0.4.4-r100 (patch tiệm cận Samsung) | như trên, xem `sensors/README.md` |
 | `a70q-qcom-userspace` | r3 (`a70q-btinit`, shim FastRPC) | như trên |
 | `mesa-vulkan-freedreno-kgsl` | r1 | như trên |
 | UI | `postmarketos-ui-sxmo-de-sway` (cài bằng apk sau khi flash) | Alpine/pmOS |
@@ -140,7 +141,7 @@ BlueZ (`bluetoothd`) dùng `hci0`; ghép đôi, A2DP (điện thoại làm loa c
 2048 cho card q6 (`/usr/share/wireplumber/wireplumber.conf.d/51-a70q-alsa.conf`).
 
 **Cảm biến / xoay tự động** (C61, `sensors/README.md`): `hexagonrpcd` + shim FastRPC downstream phục vụ
-registry cho Sensor Core của ADSP; iio-sensor-proxy (libssc) đọc gia tốc kế (Sxmo Autorotate) và ánh sáng.
+registry cho Sensor Core của ADSP; iio-sensor-proxy (libssc) đọc gia tốc kế (Sxmo Autorotate), ánh sáng, tiệm cận, la bàn.
 
 ## 7. Việc còn lại
 
@@ -149,7 +150,7 @@ Trạng thái kiểm tra trên máy (2026-11-14, kernel r15):
 | Tính năng | Hiện trạng | Hướng làm |
 |---|---|---|
 | Client trình bày qua dma-buf | client Vulkan/GL vẫn copy qua wl_shm | thử bỏ `MESA_VK_WSI_DEBUG=sw` giờ compositor đã nhận dma-buf |
-| Cảm biến tiệm cận, la bàn | iio-sensor-proxy crash khi dùng (libssc assert, C61) | vá libssc theo định dạng báo cáo của Samsung |
+| Tự chỉnh độ sáng, tắt màn khi gọi | cảm biến ánh sáng/tiệm cận đã đọc được (C61) | nối vào Sxmo |
 | Cảm biến tiệm cận | `sec_touchproximity` (input của màn cảm ứng), `grip_sensor` | dùng cho tắt màn khi gọi điện |
 | Gọi điện / SMS / data di động | dịch vụ QMI của modem có trên QRTR (Voice, WMS, NAS, UIM, WDS), ModemManager chưa nhận (C58) | **tạm hoãn: chưa có SIM**; debug MM với QRTR; data cần rmnet/IPA |
 | GPS | qua modem (QMI LOC) | sau khi có QMI |

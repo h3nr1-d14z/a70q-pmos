@@ -303,5 +303,7 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - Lúc boot: attach ngay khi QMI 400 xuất hiện thì `hexagonrpcd` thoát (kênh FastRPC ADSP mở vài giây sau) → chờ log `opened rpmsg channel for adsp`, thử lại tối đa 5 lần, rồi restart iio-sensor-proxy
 - Hướng bị ngược hết: `ACCEL_MOUNT_MATRIX="-1, 0, 0; 0, -1, 0; 0, 0, 1"` trong udev
 - `iio-sensor-proxy` 3.9 có sẵn backend libssc; cần tag udev trên thiết bị thuộc subsystem nó duyệt (platform `62400000.qcom,lpass`)
-- Ánh sáng chạy; tiệm cận + la bàn làm iio-sensor-proxy abort (`libssc-sensor-proximity.c:98 report_received: code should not be reached`) — chưa xong
+- Tiệm cận làm iio-sensor-proxy abort: `libssc-sensor-proximity.c:98 report_received: code should not be reached` — STK3x3x của Samsung báo `near` = 0/1 và cả **2** (lúc không có gì gần). Vá libssc (package `libssc` r100): 2 = xa, giá trị lạ khác → bỏ qua thay vì abort
+- La bàn "crash" trước đó là hệ quả dây chuyền (daemon vừa bị tiệm cận làm sập); sau vá: cả 4 cảm biến (gia tốc, ánh sáng, tiệm cận, la bàn) chạy cùng lúc
+- Lại mắc C50 một lần: `pkill -f /usr/libexec/iio-sensor-proxy` giết chính shell đang chạy → dùng `pkill -x iio-sensor-prox` (tên comm bị cắt 15 ký tự)
 

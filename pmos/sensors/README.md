@@ -21,5 +21,6 @@ udev (`80-a70q-ssc.rules`): gắn `IIO_SENSOR_PROXY_TYPE=ssc-*` vào platform de
 fastrpc thuộc subsystem mà iio-sensor-proxy không duyệt) và `ACCEL_MOUNT_MATRIX` đảo X/Y (gia tốc kế
 lệch 180° so với màn hình).
 
-Trạng thái: gia tốc kế ✅ (Sxmo Autorotate), ánh sáng ✅ (lux); tiệm cận và la bàn làm
-iio-sensor-proxy crash (libssc `g_assert_not_reached` ở báo cáo tiệm cận — giá trị Samsung khác) → đang làm.
+Trạng thái: gia tốc kế ✅ (Sxmo Autorotate), ánh sáng ✅ (lux), tiệm cận ✅, la bàn ✅.
+Tiệm cận cần `libssc` có vá (`libssc-0001-proximity-samsung-far-2-no-abort.patch`, package
+`pmaports/device/downstream/libssc` r100): STK3x3x báo thêm giá trị `2` = xa, bản gốc abort cả daemon.

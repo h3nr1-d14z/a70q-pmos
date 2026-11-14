@@ -1,0 +1,54 @@
+# a70q: Alpine libssc + proximity patch (Samsung STK3x3x reports 2 for "far"; upstream aborts
+# iio-sensor-proxy with g_assert_not_reached on any unknown value). pkgrel kept above Alpine's.
+# Contributor: Dylan Van Assche <dylan@postmarketos.org>
+# Maintainer: Dylan Van Assche <dylan@postmarketos.org>
+pkgname=libssc
+pkgver=0.4.4
+pkgrel=100
+pkgdesc="Library to expose Qualcomm Sensor Core sensors"
+url="https://codeberg.org/DylanVanAssche/libssc"
+arch="all"
+license="GPL-3.0-or-later"
+makedepends="
+	eudev-dev
+	glib-dev
+	libgudev-dev
+	linux-headers
+	libqmi-dev
+	meson
+	protobuf-c-dev
+	protobuf-dev
+	python3-dev
+	py3-gobject3
+	py3-protobuf
+	qrtr-libs
+"
+subpackages="$pkgname-dbg $pkgname-dev $pkgname-pyc"
+builddir="$srcdir/$pkgname"
+source="$pkgname-$pkgver-1.tar.gz::https://codeberg.org/DylanVanAssche/libssc/archive/v$pkgver.tar.gz
+	libssc-0001-proximity-samsung-far-2-no-abort.patch
+	"
+
+# Tests suddenly fail on s390x, disable them for now
+case "$CARCH" in
+	s390x) options="!check";;
+esac
+
+build() {
+	abuild-meson \
+		. output
+	meson compile -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+}
+
+check() {
+	meson test --print-errorlogs -C output
+}
+
+sha512sums="
+9240970f6a70f4900ef2d8fad337dac815ea2602b3b395943326fb086f59d24dcf59b76bdbc6014ebd3c450eaad5393465ca038c165845ffe99bf8e282a5c170  libssc-0.4.4-1.tar.gz
+790f0b20b8c47d69ed173a962653905d19b39449247547e7adb15c068fb205356c2497591c4afb16973992571151ea10393d9c1bb6dc17eb8dc154a5b4ccf59a  libssc-0001-proximity-samsung-far-2-no-abort.patch
+"
