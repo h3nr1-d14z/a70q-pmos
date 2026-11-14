@@ -44,3 +44,25 @@ services_ok && log "qrtr services: rmtfs(14) pd-mapper(64) tftp(4096) OK" || { l
 ( exec 3</dev/subsys_modem; exec sleep 2147483647 ) &
 echo $! > /run/a70q-subsys-modem.pid
 log "modem requested"
+
+# --- WLAN: WCN3990 firmware waits for the board data file over QMI (cnss-daemon's job on
+# Android; downstream icnss never sends it). Then start the built-in qcacld driver.
+mkdir -p /lib/firmware/wlan/qca_cld
+VEND=$(part vendor)
+if [ ! -e /lib/firmware/wlan/qca_cld/WCNSS_qcom_cfg.ini ] && [ -n "$VEND" ]; then
+	mkdir -p /run/a70q-vendor && mount -o ro "$VEND" /run/a70q-vendor &&
+	cp /run/a70q-vendor/firmware/wlan/qca_cld/* /lib/firmware/wlan/qca_cld/ ; umount /run/a70q-vendor 2>/dev/null
+fi
+for i in $(seq 1 60); do
+	WLFW=$(/usr/local/sbin/qrtr-lookup 2>/dev/null | awk '$1==69 {print $4, $5; exit}')
+	[ -n "$WLFW" ] && break; sleep 1
+done
+[ -n "$WLFW" ] || { log "ERROR: WLFW service (69) never appeared"; exit 1; }
+sleep 1   # let icnss finish msa/cap handshake first
+/usr/local/sbin/a70q-bdf $WLFW "$FW/bdwlan.bin" || { log "ERROR: BDF download failed"; exit 1; }
+for i in $(seq 1 20); do grep -q "WLAN FW is ready" /sys/kernel/debug/ipc_logging/icnss/log 2>/dev/null && break; sleep 0.5; done
+echo 1 > /sys/kernel/boot_wlan/boot_wlan 2>/dev/null
+for i in $(seq 1 30); do [ -e /dev/wlan ] && break; sleep 0.5; done
+echo ON > /dev/wlan
+for i in $(seq 1 30); do [ -e /sys/class/net/wlan0 ] && break; sleep 0.5; done
+[ -e /sys/class/net/wlan0 ] && log "wlan0 up ($(cat /sys/class/net/wlan0/address))" || log "ERROR: no wlan0"

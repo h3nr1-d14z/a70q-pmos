@@ -382,7 +382,11 @@ Tiến độ (tất cả kiểm chứng trên máy, script `pmos/userspace/a70q-
   - `tqftpserv` + patch fallback `TQFTPSERV_FW_DIRS` (cùng lý do) → modem tải được `wlanmdsp.mbn`
   - ⭐ Bẫy: phải CHỜ qrtr-ns trả lời (lookup thấy service 52) rồi mới chạy dịch vụ — publish quá sớm thì gói NEW_SERVER mất im lặng → thiếu rmtfs → modem fatal sau ~40s
 - ✅ icnss: QMI WLFW connected, msa_info/msa_ready/cap OK — chip_id 0x140 (WCN3990), fw 0x301a82cf (2019-08-21)
-- ❌ Chưa có `FW_READY_IND` → chưa có wlan0. icnss downstream KHÔNG tự gửi BDF; nghi FW chờ BDF/cal (trên Android có cnss-daemon độc quyền) — điều tra tiếp
+- ✅ **WiFi CHẠY** (scan thấy mạng xung quanh): mảnh thiếu là BDF — icnss downstream KHÔNG gửi board data; Android do cnss-daemon (độc quyền) làm
+  - `pmos/userspace/src/a70q-bdf.c`: QMI WLFW (service 0x45) `BDF_DOWNLOAD` (msg 0x25, đoạn 6144B, file `apnhlos/image/bdwlan.bin` vì board_id 0xff) + `CAL_REPORT` rỗng (msg 0x26) → firmware gửi `FW_READY` ngay (`icnss: WLAN FW is ready`)
+  - qcacld built-in hoãn khởi tạo: `echo 1 > /sys/kernel/boot_wlan/boot_wlan`, rồi `echo ON > /dev/wlan` (việc của wifi HAL Android) → tạo `wlan0` + `p2p0`
+  - Cần `WCNSS_qcom_cfg.ini` (+regdb.bin) từ partition vendor ở `/lib/firmware/wlan/qca_cld/`
+  - Toàn bộ đã gom vào `a70q-modem-up.sh`
 - Debug tốt nhất: `/sys/kernel/debug/ipc_logging/icnss/log` (chi tiết hơn dmesg), `/sys/kernel/debug/icnss/stats`
 
 ### C42. Bộ lọc grep tự gây hiểu nhầm
