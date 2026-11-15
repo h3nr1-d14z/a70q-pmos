@@ -91,4 +91,11 @@ trống) ghi vào RECOVERY bằng `dd`, `reboot-mode recovery`.
   về (`= 0`, `= -517` hoãn, `...` đang chạy) → lần 12: probe thứ 53 là TLMM, đang chạy thì dừng
 - Nguyên nhân: kernel downstream của Samsung bỏ qua đúng 3 nhóm chân trong `msm_gpio_is_valid()` (`pinctrl-msm.c`):
   SPI vân tay `CONFIG_SENSORS_FP_SPI_GPIO` 0–3, SPI eSE `CONFIG_ESE_SPI_GPIO` 6–9, **MST Samsung Pay 37–38**
-  (`MST_GPIO_D_DATA/EN`). Sửa: `gpio-reserved-ranges = <0 4>, <6 4>, <37 2>` — image lần 13 đã build, **chưa thử**
+  (`MST_GPIO_D_DATA/EN`). Sửa: `gpio-reserved-ranges = <0 4>, <6 4>, <37 2>` → lần 13: **TLMM `= 0`**
+- Lần 13–15: không còn probe nào treo, nhưng máy **tự khởi động lại** ở initcall 1913–1919 (`ip_auto_config`,
+  `bpf_tcp_ca_kfunc_init`… — chỗ vặt, thay đổi mỗi lần). Đã thử: `CONFIG_QCOM_WDT=y` (driver tự đặt lại watchdog 30 s
+  nếu bootloader để chạy), tắt `CONFIG_IP_PNP` → vẫn reset. Patch 0006: khi panic vẽ ~140 dòng log cuối lên màn hình,
+  tắt watchdog, `panic=0 oops=panic softlockup_panic=1` → **không hiện log**: không phải panic của kernel mà là reset từ
+  bên ngoài (watchdog/firmware/hypervisor), có vẻ theo thời gian
+- Patch 0007 (lần 16, đã build, **chưa thử**): dòng đồng hồ cập nhật 100 ms (hrtimer) ở dòng 1000: `t=` giây từ lúc
+  boot + thanh ghi watchdog APSS (EN, STS, BARK, BITE) → biết reset xảy ra lúc nào và watchdog có đang chạy không

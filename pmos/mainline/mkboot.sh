@@ -9,7 +9,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../.." && pwd)"
 OUT="${1:-$HERE/out/recovery-mainline.img}"
 LIKE="${LIKE:-$REPO/backups/full/recovery.img}"
-CMDLINE="${CMDLINE:-console=tty0 loglevel=8 ignore_loglevel printk.devkmsg=on panic=10 rdinit=/init}"
+CMDLINE="${CMDLINE:-console=tty0 loglevel=8 ignore_loglevel printk.devkmsg=on panic=0 oops=panic softlockup_panic=1 rdinit=/init}"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 docker run --rm -v "$T":/o -v "$HERE":/a alpine:3.22 sh -ec '
 apk add -q busybox-static cpio >/dev/null

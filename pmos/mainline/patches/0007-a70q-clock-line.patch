@@ -1,0 +1,79 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:47:04.545525320 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:47:04.551896133 +0000
+@@ -10,6 +10,8 @@
+ #include <linux/string.h>
+ #include <linux/kmsg_dump.h>
+ #include <linux/init.h>
++#include <linux/hrtimer.h>
++#include <linux/ktime.h>
+ #include <linux/sprintf.h>
+ #include <asm/early_ioremap.h>
+ 
+@@ -252,3 +254,66 @@
+ 	return kmsg_dump_register(&a70q_dumper);
+ }
+ core_initcall(a70q_kmsg_dump_init);
++
++/*
++ * Clock line at row 1000, redrawn every 100 ms from an hrtimer: seconds since boot and the APSS
++ * watchdog registers (EN, STS, BARK, BITE), to see when an external reset hits and whether the
++ * watchdog is running.
++ */
++#define CL_TOP		1000
++#define CL_SCALE	2
++#define CL_COLS		(FB_WIDTH / (8 * CL_SCALE))
++
++static struct hrtimer cl_timer;
++static u32 __iomem *cl_fb;
++static char cl_text[CL_COLS + 1];
++
++static void cl_draw(const struct font_desc *f)
++{
++	const u8 *data = f->data;
++	int col, y, x, n = strlen(cl_text);
++
++	for (col = 0; col < CL_COLS; col++) {
++		const u8 *g = data + (u8)(col < n ? cl_text[col] : ' ') * 16;
++
++		for (y = 0; y < 16 * CL_SCALE; y++) {
++			u8 bits = g[y / CL_SCALE];
++
++			for (x = 0; x < 8 * CL_SCALE; x++)
++				writel_relaxed(bits & (0x80 >> (x / CL_SCALE)) ? 0xff000000 : 0xffffff00,
++					       cl_fb + y * FB_WIDTH + col * 8 * CL_SCALE + x);
++		}
++	}
++	wmb();
++}
++
++static enum hrtimer_restart cl_tick(struct hrtimer *t)
++{
++	static const struct font_desc *f;
++	u64 ms = ktime_to_ms(ktime_get());
++
++	if (!f)
++		f = find_font("VGA8x16");
++	if (f && cl_fb) {
++		if (kd_wdt)
++			snprintf(cl_text, sizeof(cl_text), "t=%llu.%llu EN=%x STS=%x BARK=%x BITE=%x",
++				 ms / 1000, (ms % 1000) / 100,
++				 readl_relaxed(kd_wdt + 0x8), readl_relaxed(kd_wdt + 0xc),
++				 readl_relaxed(kd_wdt + 0x10), readl_relaxed(kd_wdt + 0x14));
++		else
++			snprintf(cl_text, sizeof(cl_text), "t=%llu.%llu", ms / 1000, (ms % 1000) / 100);
++		cl_draw(f);
++	}
++	hrtimer_forward_now(t, ms_to_ktime(100));
++	return HRTIMER_RESTART;
++}
++
++static int __init a70q_clock_init(void)
++{
++	cl_fb = ioremap(FB_BASE + (unsigned long)CL_TOP * FB_WIDTH * 4,
++			(unsigned long)16 * CL_SCALE * FB_WIDTH * 4);
++	hrtimer_setup(&cl_timer, cl_tick, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++	hrtimer_start(&cl_timer, ms_to_ktime(100), HRTIMER_MODE_REL);
++	return 0;
++}
++core_initcall_sync(a70q_clock_init);

@@ -1,0 +1,95 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:38:19.391543648 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:38:19.399615204 +0000
+@@ -8,6 +8,8 @@
+ #include <linux/io.h>
+ #include <linux/font.h>
+ #include <linux/string.h>
++#include <linux/kmsg_dump.h>
++#include <linux/init.h>
+ #include <linux/sprintf.h>
+ #include <asm/early_ioremap.h>
+ 
+@@ -171,3 +173,82 @@
+ 		ph_draw(fb, i, ph_text[i], f);
+ 	wmb();
+ }
++
++/*
++ * Panic screen: a kmsg dumper that draws the newest kernel log lines over the whole framebuffer
++ * (8x16 font) and stops the APSS watchdog, so the log stays readable with panic=0.
++ */
++#define KD_COLS		(FB_WIDTH / 8)
++#define KD_ROWS		(2400 / 16)
++#define WDT_BASE	0x17c10000UL
++#define WDT_EN		0x8
++
++static u32 __iomem *kd_fb;
++static void __iomem *kd_wdt;
++static char kd_buf[KD_COLS * KD_ROWS];
++static char kd_lines[KD_ROWS][KD_COLS + 1];
++
++static void kd_draw(int row, const char *s, const struct font_desc *f)
++{
++	const u8 *data = f->data;
++	int col, y, x, n = strlen(s);
++
++	for (col = 0; col < KD_COLS; col++) {
++		const u8 *g = data + (u8)(col < n ? s[col] : ' ') * 16;
++
++		for (y = 0; y < 16; y++)
++			for (x = 0; x < 8; x++)
++				writel_relaxed(g[y] & (0x80 >> x) ? 0xffffffff : 0xff000040,
++					       kd_fb + (row * 16 + y) * FB_WIDTH + col * 8 + x);
++	}
++}
++
++static void a70q_kmsg_dump(struct kmsg_dumper *dumper, struct kmsg_dump_detail *detail)
++{
++	const struct font_desc *f = find_font("VGA8x16");
++	struct kmsg_dump_iter iter;
++	size_t len = 0, i;
++	int nl = 0, col = 0, start, r;
++
++	if (kd_wdt)
++		writel_relaxed(0, kd_wdt + WDT_EN);
++	if (!kd_fb || !f)
++		return;
++	kmsg_dump_rewind(&iter);
++	kmsg_dump_get_buffer(&iter, false, kd_buf, sizeof(kd_buf), &len);
++
++	/* split into screen lines (wrapping long ones), keep the last KD_ROWS */
++	memset(kd_lines, 0, sizeof(kd_lines));
++	for (i = 0; i < len; i++) {
++		char c = kd_buf[i];
++
++		if (c == '\n' || col == KD_COLS) {
++			kd_lines[nl % KD_ROWS][col] = 0;
++			nl++;
++			col = 0;
++			memset(kd_lines[nl % KD_ROWS], 0, KD_COLS + 1);
++			if (c == '\n')
++				continue;
++		}
++		kd_lines[nl % KD_ROWS][col++] = (c >= 32 && c < 127) ? c : ' ';
++	}
++	if (col)
++		nl++;
++	start = nl > KD_ROWS ? nl - KD_ROWS : 0;
++	for (r = 0; r < KD_ROWS; r++)
++		kd_draw(r, start + r < nl ? kd_lines[(start + r) % KD_ROWS] : "", f);
++	wmb();
++}
++
++static struct kmsg_dumper a70q_dumper = {
++	.dump = a70q_kmsg_dump,
++	.max_reason = KMSG_DUMP_PANIC,
++};
++
++static int __init a70q_kmsg_dump_init(void)
++{
++	kd_fb = ioremap(FB_BASE, (unsigned long)FB_WIDTH * 2400 * 4);
++	kd_wdt = ioremap(WDT_BASE, 0x1000);
++	return kmsg_dump_register(&a70q_dumper);
++}
++core_initcall(a70q_kmsg_dump_init);
