@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+# Galaxy A70: state-of-charge for the PM6150 QG fuel gauge (replaces Qualcomm's Android daemon;
+# without it the battery % never changes after boot, ERRORS C72).
+description="a70q battery state-of-charge daemon"
+command=/usr/bin/python3
+command_args="/usr/libexec/a70q/a70q-qgd"
+command_background=true
+pidfile=/run/a70q-qgd.pid
+output_log=/var/log/a70q-qgd.log
+error_log=/var/log/a70q-qgd.log
+
+depend() {
+	need localmount
+	after udev-settle
+}

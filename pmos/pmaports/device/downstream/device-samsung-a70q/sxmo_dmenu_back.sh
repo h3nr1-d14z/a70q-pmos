@@ -7,7 +7,8 @@
 #  - every process that shows a menu is registered in $XDG_RUNTIME_DIR/a70q-menu-reg;
 #  - the parent menus of the current one = registered processes among its ancestors, plus
 #    the menus inherited in $A70Q_MENU_STACK (set when a menu was reopened by "Back");
-#  - picking "Back" ends the current menu chain and reopens the previous menu.
+#  - picking "Back" ends the current menu chain and reopens the previous menu;
+#  - menus without a "Close Menu" entry get one (no Esc key on a touch screen).
 REAL=/usr/bin/sxmo_dmenu.sh
 
 case "$1" in
@@ -67,7 +68,20 @@ stack="${A70Q_MENU_STACK:+$A70Q_MENU_STACK$NL}$live"
 stack="$(printf %s "$stack" | sed '/^$/d')"
 
 items="$(cat)"
+# every menu gets a way out on a touch screen: add "Close Menu" when the caller has none
+CLOSE="$icon_cls Close Menu"
+if ! printf '%s\n' "$items" | grep -q "Close Menu"; then
+	items="$CLOSE
+$items"
+	added_close=1
+fi
 if [ -z "$stack" ]; then
+	if [ -n "$added_close" ]; then
+		picked="$(printf '%s\n' "$items" | "$REAL" "$@")" || exit 1
+		[ "$picked" = "$CLOSE" ] && exit 1
+		printf '%s\n' "$picked"
+		exit 0
+	fi
 	printf '%s\n' "$items" | "$REAL" "$@"
 	exit
 fi
@@ -77,6 +91,9 @@ picked="$(printf '%s\n' "$items" | awk -v back="$BACK" '
 	{ print } /Close Menu/ && !done { print back; done = 1 }
 	END { if (!done) print back }' | "$REAL" "$@")"
 ret=$?
+if [ -n "$added_close" ] && [ "$picked" = "$CLOSE" ]; then
+	exit 1
+fi
 if [ "$picked" != "$BACK" ]; then
 	[ -n "$picked" ] && printf '%s\n' "$picked"
 	exit "$ret"

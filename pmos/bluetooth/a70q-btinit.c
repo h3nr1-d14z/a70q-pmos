@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <grp.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -26,6 +27,7 @@
 #define BT_CMD_PWR_CTRL 0xbfad
 #define TIOCPMGET_ 0x544D
 #define TIOCPMPUT_ 0x544E
+#define CTL_FIFO "/run/a70q-bt.ctl"
 #define N_HCI_ 15
 #define HCIUARTSETPROTO_ _IOW('U', 200, int)
 #define HCI_UART_H4 0
@@ -213,7 +215,11 @@ int main(int argc, char **argv) {
 	if (!pb || !nb) return 1;
 	patch_nvm(nb, nlen);
 
-	signal(SIGTERM, on_sig); signal(SIGINT, on_sig); signal(SIGHUP, on_sig);
+	// sigaction without SA_RESTART (musl's signal() restarts read()): the FIFO read below must
+	// return EINTR on SIGTERM so the daemon can exit
+	struct sigaction sa = { .sa_handler = on_sig };
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGTERM, &sa, NULL); sigaction(SIGINT, &sa, NULL); sigaction(SIGHUP, &sa, NULL);
 	pwr = open("/dev/btpower", O_RDWR);
 	if (pwr < 0 || ioctl(pwr, BT_CMD_PWR_CTRL, 1) < 0) { perror("btpower"); return 1; }
 	usleep(300000);
@@ -299,8 +305,39 @@ attach:
 	if (ioctl(tty, HCIUARTSETPROTO_, HCI_UART_H4) < 0) { perror("HCIUARTSETPROTO"); goto fail; }
 	printf("btinit: hci device registered; holding the UART\n");
 	fflush(stdout);
-	while (!stop) pause();
+	// The UART clock vote (TIOCPMGET) keeps the GENI UART's wakeup source active, so the phone
+	// can never suspend while it is held (ERRORS C71). Commands on CTL_FIFO (group video, written
+	// by the Sxmo screen-off/screen-on hooks through a70q-bt-sleep):
+	//   "sleep"  release the vote (Bluetooth must be powered off first: bytes from the controller
+	//            are lost while the UART clock is off)      "wake"  vote again
+	int voted = 1;
+	unlink(CTL_FIFO);
+	if (mkfifo(CTL_FIFO, 0660) == 0) {
+		struct group *g = getgrnam("video");
+		if (g) chown(CTL_FIFO, 0, g->gr_gid);
+		chmod(CTL_FIFO, 0660);
+	}
+	int ctl = open(CTL_FIFO, O_RDWR | O_NONBLOCK);     // RDWR: no EOF when writers close
+	if (ctl >= 0) fcntl(ctl, F_SETFL, 0);              // blocking reads, interrupted by signals
+	while (!stop) {
+		char cmd[64];
+		ssize_t n = ctl >= 0 ? read(ctl, cmd, sizeof(cmd) - 1) : (pause(), -1);
+		if (n <= 0) continue;
+		cmd[n] = 0;
+		if (strstr(cmd, "sleep") && voted) {
+			ioctl(tty, TIOCPMPUT_, 0);
+			voted = 0;
+			printf("btinit: UART clock vote released (suspend allowed)\n");
+		} else if (strstr(cmd, "wake") && !voted) {
+			ioctl(tty, TIOCPMGET_, 0);
+			voted = 1;
+			printf("btinit: UART clock voted again\n");
+		}
+		fflush(stdout);
+	}
+	if (ctl >= 0) { close(ctl); unlink(CTL_FIFO); }
 	ld = 0;                                            // N_TTY: detaches hci0
+	if (!voted) ioctl(tty, TIOCPMGET_, 0);             // balance the vote before the final PUT
 	ioctl(tty, TIOCSETD, &ld);
 	ioctl(tty, TIOCPMPUT_, 0);
 	close(tty);

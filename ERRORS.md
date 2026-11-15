@@ -386,3 +386,41 @@ Tiến độ (tất cả kiểm chứng trên máy, nay là `/usr/libexec/a70q/a
 - **Đừng xoá file đang dùng trước khi chắc bản mới cài được**: xoá `a70q-bonsaid` trên máy trước khi upgrade, build
   lại hỏng → bonsaid chết lần hai
 
+### C71. Máy không bao giờ ngủ: UART Bluetooth giữ wakeup source, Sxmo bị tắt tự khoá màn hình
+- **Triệu chứng** (đo qua đêm 2026-11-14→15, `pmos/tools/a70q-batlog.py`): 12,6 h rút sạc, `suspend_stats success: 0`;
+  Sxmo ở trạng thái `unlock` gần như cả đêm
+- **Nguyên nhân 1**: `~/.cache/sxmo/sxmo.noidle` tồn tại từ lần đăng nhập đầu (C52 đã ghi phải xoá cùng
+  `sxmo.nosuspend` nhưng chỉ xoá `nosuspend`) → `sxmo_hook_unlock.sh` không chạy swayidle → màn hình không tự tắt
+- **Nguyên nhân 2**: `/sys/kernel/debug/wakeup_sources`: `a8c000.qcom,qup_uart` active từ lúc boot. `a70q-btinit` giữ
+  phiếu bầu clock UART (`TIOCPMGET`, cần cho C59) suốt đời → wakeup source luôn active → không suspend được dù
+  màn hình đã tắt (C51 kiểm tra suspend trước khi có Bluetooth)
+- **Cách sửa**: xoá `sxmo.noidle` (bật/tắt lại bằng Config → Auto-screen-off). `a70q-btinit` (userspace r4) nhận
+  lệnh `sleep`/`wake` qua FIFO `/run/a70q-bt.ctl` (root:video): nhả/giữ lại phiếu bầu. Hook Sxmo `screenoff` →
+  `a70q-bt-sleep sleep` (tắt BT rồi nhả clock, trừ khi đang có thiết bị BT kết nối); `lock`/`unlock` → `wake`
+  (giữ clock, bật lại BT nếu trước đó bật, kết nối lại tai nghe) (device r48). Kiểm chứng: tắt màn hình →
+  `qup_uart active_since=0`, BT Powered: no; mở → BT Powered: yes. Khi cắm USB vẫn còn wakelock `usb_notify`/`ssusb`
+  (đúng: không ngủ khi nối máy tính)
+- `sigaction` không `SA_RESTART`: `signal()` của musl khởi động lại `read()` trên FIFO → SIGTERM không thoát được
+
+### C72. % pin đứng yên: driver QG chờ userspace tính SOC
+- **Triệu chứng**: cả đêm báo 97% trong khi điện áp 4,20 → 3,83 V (≈45–53% theo bảng OCV); `bms/capacity` 102,
+  `soh` -22, `charge_counter` = `charge_full` không đổi
+- **Nguyên nhân**: `qpnp-qg.c` chỉ đo: đưa FIFO điện áp/dòng (`struct qg_kernel_data`) qua `/dev/qg` và đợi userspace
+  ghi `QG_SYS_SOC` (0–10000) lại (`qg_device_write` → `process_udata_work`); trên Android là daemon đóng của Qualcomm.
+  Không có nó SOC giữ giá trị tính lúc boot (từ OCV đo khi đang sạc → 102) → kernel cũng không tự tắt máy khi cạn pin
+- **Cách sửa**: `a70q-qgd` (device r49, dịch vụ OpenRC): neo SOC theo bảng OCV→SOC của hồ sơ pin
+  (`/dev/qg_battery` ioctl `BPIOCXSOC`; bảng `OCV1` khi sạc, `OCV2` khi xả) mỗi khi kernel báo `QG_GOOD_OCV_UV`; đếm
+  coulomb từng mẫu FIFO (I > 0 = xả, µA; mỗi mẫu `count × interval` ms, 5 mẫu ≈ 62,6 s = `QG_FIFO_TIME_DELTA`); kéo dần
+  về SOC theo điện áp khi |I| < 50 mA; 100% khi Samsung báo Full; lưu `/var/lib/a70q-qgd/soc`
+- Kiểm chứng: dmesg `process_udata_work: udata update`, capacity 102 → 100 (đang sạc, Full). ⚠️ Chưa kiểm tra một chu
+  kỳ xả thật
+- `vulkaninfo` báo "I can't KHR_display / vkEnumeratePhysicalDevices failed" sau khi Alpine lên Mesa 26.3: không phải
+  lỗi GPU — vulkaninfo bật mọi extension kể cả `VK_KHR_display` (sway giữ màn hình). Zink trên turnip-kgsl vẫn chạy
+  (`eglinfo -p wayland`)
+
+### C73. Menu Binaries không đóng được trên màn hình cảm ứng
+- Sxmo chạy thẳng `bemenu-run` (không qua `sxmo_dmenu.sh`): không có "Close Menu", chỉ đóng bằng Esc; mỗi lần chạm lại
+  mở thêm một menu (3 menu chồng nhau)
+- **Cách sửa**: `sxmo_brun.sh` riêng (liệt kê chương trình trong PATH, có Close Menu, qua menu chung); wrapper menu tự
+  thêm "Close Menu" cho mọi menu chưa có (device r48)
+

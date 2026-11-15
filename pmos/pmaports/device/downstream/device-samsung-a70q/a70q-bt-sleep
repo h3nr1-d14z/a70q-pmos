@@ -1,0 +1,34 @@
+#!/bin/sh
+# a70q-bt-sleep sleep|wake: let the phone suspend with Bluetooth enabled (ERRORS C71).
+# a70q-btinit holds a UART clock vote for the Bluetooth chip, which keeps a kernel wakeup source
+# active: no suspend at all while it is held. On screen off (Sxmo screenoff hook) Bluetooth is
+# powered off and the vote released; on screen on (lock/unlock hooks) the vote is taken again,
+# Bluetooth powered back on if it was on, and paired headphones reconnected.
+# Nothing is done while a Bluetooth device is connected (headphones playing with the screen off).
+CTL=/run/a70q-bt.ctl
+STATE="${XDG_RUNTIME_DIR:-/tmp}/a70q-bt-slept"
+[ -p "$CTL" ] || exit 0
+case "$1" in
+sleep)
+	[ -e "$STATE" ] && exit 0
+	[ -n "$(bluetoothctl devices Connected 2>/dev/null)" ] && exit 0
+	if bluetoothctl show 2>/dev/null | grep -q "Powered: yes"; then
+		bluetoothctl power off >/dev/null 2>&1
+		echo on > "$STATE"
+	else
+		echo off > "$STATE"
+	fi
+	echo sleep > "$CTL"
+	;;
+wake)
+	[ -e "$STATE" ] || exit 0
+	echo wake > "$CTL"
+	sleep 0.3
+	if [ "$(cat "$STATE")" = on ]; then
+		bluetoothctl power on >/dev/null 2>&1
+		setsid -f /usr/libexec/a70q/a70q-bt-reconnect >/dev/null 2>&1
+	fi
+	rm -f "$STATE"
+	;;
+esac
+exit 0

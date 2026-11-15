@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=47
+pkgrel=49
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -15,6 +15,8 @@ depends="
 	wpa_supplicant
 	bluez-obexd
 	dconf
+	python3
+	py3-gobject3
 	hexagonrpcd
 	iio-sensor-proxy
 	linux-samsung-a70q
@@ -75,6 +77,13 @@ source="
 	a70q-battery-saver
 	sxmo_hook_battery.sh
 	a70q-help
+	a70q-bt-sleep
+	sxmo_hook_screenoff.sh
+	sxmo_hook_lock.sh
+	sxmo_hook_unlock.sh
+	sxmo_brun.sh
+	a70q-qgd.py
+	a70q-qgd.initd
 	50-a70q.gschema.override
 "
 options="!archcheck !check"
@@ -142,6 +151,17 @@ package() {
 	install -Dm755 "$srcdir"/sxmo_hook_battery.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_battery.sh
 	# gesture/button cheat sheet (Quick settings, System menu)
 	install -Dm755 "$srcdir"/a70q-help "$pkgdir"/usr/libexec/a70q/a70q-help
+	# Bluetooth UART clock released on screen off so the phone can suspend (ERRORS C71)
+	install -Dm755 "$srcdir"/a70q-bt-sleep "$pkgdir"/usr/libexec/a70q/a70q-bt-sleep
+	for h in screenoff lock unlock; do
+		install -Dm755 "$srcdir"/sxmo_hook_$h.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_$h.sh
+	done
+	# Binaries menu with a Close entry (Sxmo runs bemenu-run: no way out on a touch screen)
+	install -Dm755 "$srcdir"/sxmo_brun.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_brun.sh
+	# battery state-of-charge daemon for the QG fuel gauge (ERRORS C72), default runlevel
+	install -Dm755 "$srcdir"/a70q-qgd.py "$pkgdir"/usr/libexec/a70q/a70q-qgd
+	install -Dm755 "$srcdir"/a70q-qgd.initd "$pkgdir"/etc/init.d/a70q-qgd
+	ln -s /etc/init.d/a70q-qgd "$pkgdir"/etc/runlevels/default/a70q-qgd
 	install -Dm644 "$srcdir"/50-a70q.gschema.override "$pkgdir"/usr/share/glib-2.0/schemas/50-a70q.gschema.override
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
@@ -181,7 +201,7 @@ d7c2b37f83cc210275ab705fd22c903ea522ae22146f4cd81a2f71bcff1e5ed88cd40af738149e43
 fb95796f354e772dc6e7118838f0988f79562024ec0fa62a067eaf67a88189a7eee0c6460c4e62eecc275ccacc4e1c2d1b29598e3d15716c27af3a893e98e874  HiFi.conf
 73c4876220eafbcdabd1048aededbeb5494e49e2a19a3f34d5a8ef33f3191961b5ae35d05310800e84301b4af660719a6b3f3ad3abc5f3307686d0cc025a4310  50-a70q-elogind.conf
 ad43556a3b5c6d144b7993ae866847bddcc3ca05c0126199e8539a150d7472ea6a35ec98352970170e2cd820e452cfa644d36d0d3e697917982a4dac58acc246  wlopm-retry.sh
-50eeafa5542cdda58ad15f80e60271ceb9f0181d1e34ecc60ff6cfe8bea7eac05302e578e0d7b86cec908a98e75ae803abd2e97364bc3f07d87d23e1a32f560e  sxmo_hook_postwake.sh
+dac22437ce2187aed54057c7b5f349dfcfd03572fd164fc0542962c7b6d41ebe77bf80a2ee6e31c57b720868eb43ab3fc4ea3639dc4d1c5a9b84c262c4137bca  sxmo_hook_postwake.sh
 c75242a7a48c6e76c043027bc23d08a4f628249940ed2f7ca176d331bb0c8aac0c27fd214c5ae19c52ea90afe8d9d6e1015fc31185ce8f3df92b5f377fbef7c1  50-a70q-sway.conf
 778bf73f0ac657d8fa066d7723daaee22f5469ba98ff88d92be58b2782bdf00cafeab336a11ce3cc90b36991a6044c733a088dd4463457829046c85cb16a9fa1  sxmo_soundmonitor.sh
 0db24f9be0c900174a83c57eaa862eeab1b121f329673c284272ef0f19550f13ca52c1251db552de572400ff69085963018a897269ebec20619326a38a85c479  sxmo_soundmonitor.service
@@ -196,7 +216,7 @@ ff6abee8e9893f4c62757383bbdf5732982422a008b51ef8a29dfa2dada7d02fbc2390fd09289892
 67f47c7b6cbf8c2351a6e6a332f7df9ebe08e91f9a06e0433b66e42139295290f04fe8e08f9ef8246c93e9704175ab129c4daab51839c51a6c197f8e5ee2a99b  90-a70q-automount.rules
 344ea26853ee0bd0d647a8e07da69fa26892ad2750dc209e5b4935553ecab44abf8419daa5823a7afc98797bc84e537c4cf414e69a6c8772fc9115c7618a12fe  a70q-automount
 7a28939bde549e079a1b3863e10a2e2474781b8f173fbef439ceb34be14182991b50f45c59a68c83420e346e42db1a7c5eeb286fd807db8ac666f0dfb15455df  a70q-statusbar.py
-cffc4fa15407a6021f87e17c8f518b8d849b12365982c2ec820fb648475a04dbc2df9a4c80aa5b252e23555914eb2c1dd6afffdff5382356b85ecb13ce7cf233  sxmo_dmenu_back.sh
+23b4e663b5f148a7ae452da1a20adc7a3302ae740f44e89d90ccf8ddc316b6a71258b86d079b52dba3e91020a1dccf56a83575a2d3c9287582155683762e1a94  sxmo_dmenu_back.sh
 b2f7b302eb902e1cccbecf120082604b6278a0535176e5701e5807240deba1ed0b17dc908e75333720e6dce83ceaec49d7417eeff79d0db71a3b36fd6f18b040  a70q-autobrightness.py
 674e6a7199596135be7a7afac240b757a0912eb5ea9b6fc6e571a447c56993cead7cdd55417b3f9744841a3f538119bd2a40f8b2f95b560bbf62d9919010dec6  a70q-autobrightness.service
 01755591819d89ef81a8e6919bac9671b01a5f4ca6c6b2bfc3ad7e6a1be0adacc7627ada1d4a04ca23ff222886cea64784d9d9d846e036fef88fa7685ff8792c  sxmo_hook_start.sh
@@ -220,5 +240,12 @@ ca46fdf2d09d27e3c47c9258f6d07052d11a42173acc0f02cfbfa917abdf072b73f7c6e827a95bed
 14f65b55989ad2ca55e22644819407b82b8c501a1793537e2071f2cea7cba75c3479672202dea9fee9806b4b91d1da657a41a8c8bb68c26c37f39fdfa31dcdd0  a70q-battery-saver
 eeec700b48b53e397be3109511b68fc57b8e3fc847937b1d45e8515208ec7fcbe847554cf667575fa4353afdd23f26f8c294e9bfc457aab64e55e8e3c87083cc  sxmo_hook_battery.sh
 6a5a8b8356cdb205bcd6aa099368a79e94560fba97be7a2fc4cbfe62afd3d6622e8c58f938bff008f532746d307f099f0c5ae7f097a264e472e8805b2a77c798  a70q-help
+d103770aba3cea1887edaae364c2ef5ed1033a3d9a7f0fb4872fd3025e66d72d8289800ec56d524325efb963aa0a1342011b37996e76fb23ba92e85688378af6  a70q-bt-sleep
+0f82f877b4d13222d5c947323b424839db4a93af5bee906cca2c2a2747ba4e9d7af455644f8b9e6ece8f1bc64098bb621207c629006c8562789d3d79a6fd2e61  sxmo_hook_screenoff.sh
+8edd71dfbcbf0932cdb7b5019b99d3283158795581572c544816316c89aa1706729b8e708b53167a0629f3194c553c31b91e30dfc292e540b027eaa146de38db  sxmo_hook_lock.sh
+48c99907282208e0b46ae6cc72502de235ed45c89b92e74747cfe766a4aa1874e96f5f51e99b152a8a0cebbe7025d94e55dc6bd6d91d773bd5bc89c72b2eed6f  sxmo_hook_unlock.sh
+956fba03ebca2468f620e74951c4d1b1a17d9c8943a71fa99fbbd5b8ef27be50726b49e01ee625b163382cc2c1f86313dd3f8e0fb60697b94e3064187d788ba7  sxmo_brun.sh
+52767386585f8d6e3ede6248efb1573b76f94f46e464d68fb7920b963b69c27033f41eb4a6914e532ec40761ff2cb088cb3d87d59dc9fc556438de27d9be997e  a70q-qgd.py
+7769e0e8219821ab01e47d142cffb4ee82cc0b8f18b2716b4847387594ab8e983192ab97e18608b363c34301a225765d92670bd629d96e096107cb2aa249186a  a70q-qgd.initd
 bd17d633579c0c3c384c7af56cffaa9e7ca2ff7af0e4665060b7500e7c57cc9c9618c7aa1d0cc122d6c4a78ac4f8d113436e7cacd23e8325ef2269801a4fefb6  50-a70q.gschema.override
 "

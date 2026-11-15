@@ -18,11 +18,11 @@ English: [README.en.md](README.en.md), [INSTALL.en.md](INSTALL.en.md).
 | Cảm ứng, phím, nút nguồn | ✅ | |
 | GPU Adreno 612 | ✅ | turnip-kgsl (Vulkan 1.3) + Zink (GL/GLES); sway render bằng Vulkan (wlroots có patch) |
 | Âm thanh | ✅ | loa, tai nghe (tự chuyển theo jack, kernel r18), mic chính; PipeWire + UCM |
-| Suspend + nút nguồn | ✅ | ngủ khi tắt màn hình, nút nguồn đánh thức; WiFi giữ kết nối (ERRORS C51–C52) |
+| Suspend + nút nguồn | ✅ | tự tắt màn hình sau 120 s (Config → Auto-screen-off), ngủ khi tắt màn hình kể cả khi bật Bluetooth (C71); nút nguồn đánh thức; WiFi giữ kết nối |
 | Đèn pin, rung, độ sáng | ✅ | qua Sxmo (ERRORS C56); máy không có LED thông báo |
 | Bluetooth | ✅ | WCN3988, BlueZ; quét/bật OK (ERRORS C59) |
 | Xoay tự động, cảm biến ánh sáng/tiệm cận/la bàn | ✅ | qua Sensor Core ADSP + iio-sensor-proxy (ERRORS C61) |
-| % pin trên thanh trạng thái | ✅ | `SXMO_BAR_SHOW_BAT_PER=1` (device r29) |
+| % pin trên thanh trạng thái | ✅ | `SXMO_BAR_SHOW_BAT_PER=1`; % tính bởi `a70q-qgd` (driver QG cần daemon userspace, C72) |
 | Bàn phím ảo | ✅ | wvkbd: vuốt từ mép dưới lên, hoặc Volume Down khi không mở menu |
 | NFC | ❌ | không có chip trả lời trên SM-A705F; driver tắt để boot nhanh (C66) |
 | Phát WiFi (hotspot) | ✅ | menu Sxmo Networks → Create Wifi Hotspot (wlan0 chuyển sang AP, 10.42.0.1); chưa thể vừa phát vừa nối WiFi |
