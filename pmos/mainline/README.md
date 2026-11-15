@@ -36,7 +36,7 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | boot tới initramfs, framebuffer, log qua ramoops | kernel chạy, start_kernel xong; đang gỡ từng driver treo khi probe (interconnect QoS ✅, TLMM ✅, cpufreq-hw: tạm tắt, chờ thử) — "Nhật ký thử" |
+| 1 | boot tới initramfs, framebuffer, log qua ramoops | kernel chạy, start_kernel xong; đang gỡ từng driver treo khi probe (TLMM: chân secure 0–3, 6–9, 37–38; cpufreq, smp2p, interconnect, crypto… tạm tắt) — "Nhật ký thử" |
 | 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | |
 | 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | |
 | 4 | panel S6E3FC2 AMS670TA01 (biến thể driver s6e3fc2x01), cảm ứng IST40xx (driver mới) | |
@@ -79,7 +79,16 @@ trống) ghi vào RECOVERY bằng `dd`, `reboot-mode recovery`.
   Sửa: `gpio-reserved-ranges = <0 4>, <6 4>` (SPI vân tay `spi@888000` = gpio0-3, eSE `spi@a88000` = gpio6-9, lấy từ
   DT downstream) → **qua được**
 - Lần 7: dừng ở `18323000.cpufreq` / `qcom-cpufreq-hw` rồi khởi động lại. Downstream dùng driver OSM riêng
-  (`qcom,clk-cpu-osm-sm6150`). Tạm `status = "disabled"` cho `cpufreq_hw` (CPU giữ xung của bootloader) — image đã
-  build, **chưa thử** (lần 8)
+  (`qcom,clk-cpu-osm-sm6150`). Tạm `status = "disabled"` cho `cpufreq_hw` (CPU giữ xung của bootloader) → qua
 - Ghi chú: khi treo kiểu "khởi động lại" thì vòng lặp recovery tự lặp lại (bootloader giữ cờ recovery) → vẫn phải vào
   Download Mode để thoát
+- Lần 8: `smp2p-cdsp` / `qcom_smp2p` → khởi động lại. Tắt `smp2p-adsp`/`smp2p-cdsp` (chưa dùng DSP)
+- Lần 9: `1dc4000.dma-controller` / `bam-dma-engine` (BAM của crypto engine). Thay vì dò từng cái: tắt 93 thiết bị
+  mốc 1 không cần (CoreSight, OSM L3, TRNG, QFPROM, GPU/GMU/GPUCC, BWMON, LLCC, videocc/camcc/dispcc, 2 SMMU, crypto)
+- Lần 10: `interconnect@9680000` (gem_noc) dù đã bỏ QoS → khi đăng ký, icc-rpmh bỏ phiếu băng thông tối đa qua RPMh.
+  Tắt toàn bộ interconnect (giữ phiếu của bootloader)
+- Lần 11: lại `3100000.pinctrl` (các lần trước có lẽ chỉ bị hoãn). Patch 0005: hiện 12 lần probe gần nhất kèm mã trả
+  về (`= 0`, `= -517` hoãn, `...` đang chạy) → lần 12: probe thứ 53 là TLMM, đang chạy thì dừng
+- Nguyên nhân: kernel downstream của Samsung bỏ qua đúng 3 nhóm chân trong `msm_gpio_is_valid()` (`pinctrl-msm.c`):
+  SPI vân tay `CONFIG_SENSORS_FP_SPI_GPIO` 0–3, SPI eSE `CONFIG_ESE_SPI_GPIO` 6–9, **MST Samsung Pay 37–38**
+  (`MST_GPIO_D_DATA/EN`). Sửa: `gpio-reserved-ranges = <0 4>, <6 4>, <37 2>` — image lần 13 đã build, **chưa thử**

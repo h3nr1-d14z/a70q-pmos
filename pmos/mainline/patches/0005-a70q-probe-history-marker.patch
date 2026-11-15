@@ -1,0 +1,110 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:04:54.997401525 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:04:55.004873991 +0000
+@@ -8,6 +8,7 @@
+ #include <linux/io.h>
+ #include <linux/font.h>
+ #include <linux/string.h>
++#include <linux/sprintf.h>
+ #include <asm/early_ioremap.h>
+ 
+ #define FB_BASE		0x9c000000UL
+@@ -111,3 +112,62 @@
+ 	a70q_text_line(fb, 1, b ? b : "?", f);
+ 	wmb();
+ }
++
++/*
++ * Probe history: the last PH_LINES driver probes (2x font, 16x32 px cells, from line 600), each
++ * "<n> <device> <driver> = <ret>", or "..." while the probe is still running.
++ */
++#define PH_LINES	12
++#define PH_SCALE	2
++#define PH_COLS		(FB_WIDTH / (8 * PH_SCALE))
++#define PH_LH		(16 * PH_SCALE)
++
++static char ph_text[PH_LINES][PH_COLS + 1];
++static unsigned int ph_count;
++
++static void ph_draw(u32 __iomem *fb, int line, const char *s, const struct font_desc *f)
++{
++	const u8 *data = f->data;
++	int col, y, x, n = strlen(s);
++
++	for (col = 0; col < PH_COLS; col++) {
++		const u8 *g = data + (u8)(col < n ? s[col] : ' ') * 16;
++
++		for (y = 0; y < PH_LH; y++) {
++			u8 bits = g[y / PH_SCALE];
++
++			for (x = 0; x < 8 * PH_SCALE; x++)
++				writel_relaxed(bits & (0x80 >> (x / PH_SCALE)) ? 0xffffffff : 0xff000000,
++					       fb + (line * PH_LH + y) * FB_WIDTH + col * 8 * PH_SCALE + x);
++		}
++	}
++}
++
++void a70q_probe_mark(const char *dev, const char *drv, bool done, int ret)
++{
++	static u32 __iomem *fb;
++	const struct font_desc *f = find_font("VGA8x16");
++	int i;
++
++	if (!f)
++		return;
++	if (!fb)
++		fb = ioremap(FB_BASE + (unsigned long)TXT_TOP * FB_WIDTH * 4,
++			     PH_LINES * PH_LH * FB_WIDTH * 4);
++	if (!fb)
++		return;
++	if (!done) {
++		memmove(ph_text[0], ph_text[1], sizeof(ph_text[0]) * (PH_LINES - 1));
++		snprintf(ph_text[PH_LINES - 1], PH_COLS + 1, "%u %s %s ...", ++ph_count,
++			 dev ? dev : "?", drv ? drv : "?");
++	} else {
++		char *last = ph_text[PH_LINES - 1];
++		char *p = strstr(last, " ...");
++
++		if (p)
++			snprintf(p, PH_COLS + 1 - (p - last), " = %d", ret);
++	}
++	for (i = 0; i < PH_LINES; i++)
++		ph_draw(fb, i, ph_text[i], f);
++	wmb();
++}
+diff -ruN a/drivers/base/dd.c b/drivers/base/dd.c
+--- a/drivers/base/dd.c	2026-11-15 14:04:54.996401569 +0000
++++ b/drivers/base/dd.c	2026-11-15 14:04:55.005019401 +0000
+@@ -625,7 +625,7 @@
+ 	int ret = 0;
+ 
+ 	if (system_state < SYSTEM_RUNNING)
+-		a70q_text_mark(dev_name(dev), drv->name);
++		a70q_probe_mark(dev_name(dev), drv->name, false, 0);
+ 
+ 	if (dev->bus->probe)
+ 		ret = dev->bus->probe(dev);
+@@ -651,6 +651,8 @@
+ 		break;
+ 	}
+ 
++	if (system_state < SYSTEM_RUNNING)
++		a70q_probe_mark(NULL, NULL, true, ret);
+ 	return ret;
+ }
+ 
+diff -ruN a/include/linux/a70q_mark.h b/include/linux/a70q_mark.h
+--- a/include/linux/a70q_mark.h	2026-11-15 14:04:54.998401481 +0000
++++ b/include/linux/a70q_mark.h	2026-11-15 14:04:55.004840575 +0000
+@@ -6,9 +6,11 @@
+ void a70q_mark(int stage, u32 argb, bool early);
+ void a70q_initcall_mark(unsigned int idx);
+ void a70q_text_mark(const char *a, const char *b);
++void a70q_probe_mark(const char *dev, const char *drv, bool done, int ret);
+ #else
+ static inline void a70q_mark(int stage, u32 argb, bool early) { }
+ static inline void a70q_initcall_mark(unsigned int idx) { }
+ static inline void a70q_text_mark(const char *a, const char *b) { }
++static inline void a70q_probe_mark(const char *dev, const char *drv, bool done, int ret) { }
+ #endif
+ #endif
