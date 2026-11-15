@@ -1,0 +1,23 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 17:35:06.430460676 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 17:35:06.437792679 +0000
+@@ -412,8 +412,17 @@
+ 	if (IS_ERR_OR_NULL(sdev))
+ 		return;
+ 	map = dev_get_regmap(&sdev->dev, NULL);
+-	if (map)
+-		regmap_update_bits(map, 0x88f, 0xfe, PON_NORMALBOOT << 1);
++	if (!map)
++		return;
++	regmap_update_bits(map, 0x88f, 0xfe, PON_NORMALBOOT << 1);
++	/*
++	 * PS_HOLD reset type: warm reset (keeps DDR, so ramoops survives) instead of the hard reset
++	 * the PMIC defaults to; same sequence as qpnp_pon_reset_config() downstream.
++	 */
++	regmap_update_bits(map, 0x85b, 0x80, 0);
++	udelay(500);
++	regmap_update_bits(map, 0x85a, 0x0f, 0x1);
++	regmap_update_bits(map, 0x85b, 0x80, 0x80);
+ }
+ 
+ static int __init a70q_pon_init(void)

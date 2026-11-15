@@ -139,6 +139,8 @@
 			console-size = <0x40000>;
 			ftrace-size = <0x40000>;
 			pmsg-size = <0x40000>;
+			/* also store the log on restart/poweroff (KMSG_DUMP_SHUTDOWN), read back by pmOS */
+			max-reason = <4>;
 		};
 
 		sec_debug_mem: sec-debug@a1400000 {

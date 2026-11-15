@@ -16,6 +16,23 @@ Kernel mainline được nạp vào **RECOVERY**, không đụng BOOT:
 Recovery gốc (LineageOS recovery) đã sao lưu: `backups/full/recovery.img` (sha256 `fc034fd4…`), ghi lại bằng
 `dd` hoặc `flash.sh --RECOVERY backups/full/recovery.img`.
 
+## Thử tự động, không cần Download Mode (từ 2026-11-16)
+
+```sh
+SSHPW=... pmos/mainline/remote-test.sh   # pmOS đang chạy, USB hoặc HOST=<IP WiFi>
+```
+
+Script chép `out/recovery-mainline.img` qua SSH, `dd` vào RECOVERY (kiểm sha256), `reboot-mode recovery`, chờ pmOS
+quay lại rồi lấy `/sys/fs/pstore`. Kernel mainline tự đưa máy về khởi động thường (patch 0010/0011): ghi IMEM
+`restart_reason` (`0x146aa65c`) = 0 và PMIC `SOFT_RB_SPARE` (`0x88f` bit 7:1) = `NORMALBOOT` (0x14) — đúng giá trị
+`sec_debug_update_restart_reason()` của Samsung ghi khi reboot thường (cờ recovery "dính" trước đây là do khởi động lại
+bằng phím, không ai ghi lại hai ô này) — và bật watchdog APSS (bite 60 s) để treo cứng cũng tự reset. Panic → reboot
+sau 10 s. Đã chạy 5 vòng liên tiếp không đụng tay (~55 s/vòng).
+
+Chưa lấy được log qua pstore: sau mỗi vòng `/sys/fs/pstore` rỗng, PON ghi "Hard Reset / cold boot" dù đã thử đặt
+PS_HOLD = warm reset (patch 0012) và `reboot=warm`; init ghi dmesg vào `/dev/pmsg0` cũng không thấy. pmsg của chính
+pmOS thì vẫn sống qua reboot → nghi ramoops chưa hoạt động trong mainline. Kênh log tiếp theo: USB gadget (mốc 2).
+
 ## Build
 
 ```sh

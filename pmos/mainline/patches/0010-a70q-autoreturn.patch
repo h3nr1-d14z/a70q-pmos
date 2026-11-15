@@ -1,0 +1,79 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 17:13:19.936764716 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 17:13:19.943709885 +0000
+@@ -247,7 +247,7 @@
+ 	wmb();
+ 	/* restart/poweroff/emergency: keep the log on screen for 30 s before it happens */
+ 	if (detail->reason != KMSG_DUMP_PANIC)
+-		mdelay(30000);
++		mdelay(10000);
+ }
+ 
+ static struct kmsg_dumper a70q_dumper = {
+@@ -362,6 +362,58 @@
+ 	iounmap(fb);
+ }
+ 
++/*
++ * Unattended testing: the bootloader keeps booting RECOVERY after "reboot recovery" until something
++ * rewrites the restart reason. Write "normal" as early as possible (IMEM restart_reason, Samsung
++ * value 0x77665501) and clear the PMIC SOFT_RB_SPARE reason bits once SPMI is up, so any later
++ * reset (watchdog, panic, test end) returns to the normal boot (pmOS). The APSS watchdog is started
++ * here too (qcom-wdt finds it running and pets it), so a hard hang also ends in a reset.
++ */
++#define IMEM_BASE		0x146aa000UL
++#define IMEM_RESTART_REASON	0x65c
++#define RESTART_NORMAL		0x77665501
++#define WDT_RST			0x4
++#define WDT_BARK		0x10
++#define WDT_BITE		0x14
++
++static int __init a70q_autoreturn_early(void)
++{
++	void __iomem *imem = ioremap(IMEM_BASE, 0x1000);
++
++	if (imem) {
++		writel_relaxed(RESTART_NORMAL, imem + IMEM_RESTART_REASON);
++		iounmap(imem);
++	}
++	if (kd_wdt) {
++		/* 32768 Hz sleep clock: bark 50 s, bite 60 s */
++		writel_relaxed(0, kd_wdt + WDT_EN);
++		writel_relaxed(1, kd_wdt + WDT_RST);
++		writel_relaxed(50 * 32768, kd_wdt + WDT_BARK);
++		writel_relaxed(60 * 32768, kd_wdt + WDT_BITE);
++		writel_relaxed(1, kd_wdt + WDT_EN);
++	}
++	wmb();
++	return 0;
++}
++core_initcall_sync(a70q_autoreturn_early);
++
++static void a70q_clear_pon_reason(void)
++{
++	struct device_node *np = of_find_node_by_path("/soc@0/spmi@c440000/pmic@0");
++	struct spmi_device *sdev;
++	struct regmap *map;
++
++	if (!np)
++		return;
++	sdev = spmi_find_device_by_of_node(np);
++	of_node_put(np);
++	if (IS_ERR_OR_NULL(sdev))
++		return;
++	map = dev_get_regmap(&sdev->dev, NULL);
++	if (map)
++		regmap_update_bits(map, 0x88f, 0xfe, 0);
++}
++
+ static int __init a70q_pon_init(void)
+ {
+ 	struct device_node *np = of_find_node_by_path("/soc@0/spmi@c440000/pmic@0");
+@@ -395,6 +447,7 @@
+ 			 v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[8], v[9], v[10]);
+ out:
+ 	pon_draw();
++	a70q_clear_pon_reason();
+ 	return 0;
+ }
+ late_initcall(a70q_pon_init);

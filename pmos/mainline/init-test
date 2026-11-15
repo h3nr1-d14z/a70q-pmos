@@ -11,7 +11,15 @@ msg "cmdline: $(cat /proc/cmdline)"
 msg "memory: $(grep MemTotal /proc/meminfo)"
 msg "cpus online: $(cat /sys/devices/system/cpu/online)"
 ls /sys/class/graphics /sys/class/drm 2>/dev/null | tr '\n' ' ' > /dev/kmsg
-msg "rebooting in 30 s"
-sleep 30
+msg "rebooting in 10 s"
+sleep 10
+# The bootloader overwrites the first half of the ramoops area (dmesg/console records); pmsg at its
+# end survives the reset, so hand the whole kernel log to pmOS through /dev/pmsg0.
+if [ -c /dev/pmsg0 ]; then
+	{ echo "=== a70q mainline dmesg ==="; dmesg; echo "=== end ==="; } | tail -c 250000 > /dev/pmsg0
+else
+	msg "no /dev/pmsg0"
+fi
+sync
 echo s > /proc/sysrq-trigger
 echo b > /proc/sysrq-trigger

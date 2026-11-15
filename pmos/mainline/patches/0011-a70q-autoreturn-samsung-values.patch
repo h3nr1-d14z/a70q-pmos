@@ -1,0 +1,30 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 17:22:12.897551589 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 17:22:12.905122544 +0000
+@@ -365,13 +365,15 @@
+ /*
+  * Unattended testing: the bootloader keeps booting RECOVERY after "reboot recovery" until something
+  * rewrites the restart reason. Write "normal" as early as possible (IMEM restart_reason, Samsung
+- * value 0x77665501) and clear the PMIC SOFT_RB_SPARE reason bits once SPMI is up, so any later
++ * value 0) and set the PMIC SOFT_RB_SPARE reason to NORMALBOOT (0x14) once SPMI is up, so any later
+  * reset (watchdog, panic, test end) returns to the normal boot (pmOS). The APSS watchdog is started
+  * here too (qcom-wdt finds it running and pets it), so a hard hang also ends in a reset.
+  */
+ #define IMEM_BASE		0x146aa000UL
+ #define IMEM_RESTART_REASON	0x65c
+-#define RESTART_NORMAL		0x77665501
++/* what the Samsung kernel writes on a normal reboot (sec_debug_update_restart_reason) */
++#define RESTART_NORMAL		0x0
++#define PON_NORMALBOOT		0x14
+ #define WDT_RST			0x4
+ #define WDT_BARK		0x10
+ #define WDT_BITE		0x14
+@@ -411,7 +413,7 @@
+ 		return;
+ 	map = dev_get_regmap(&sdev->dev, NULL);
+ 	if (map)
+-		regmap_update_bits(map, 0x88f, 0xfe, 0);
++		regmap_update_bits(map, 0x88f, 0xfe, PON_NORMALBOOT << 1);
+ }
+ 
+ static int __init a70q_pon_init(void)
