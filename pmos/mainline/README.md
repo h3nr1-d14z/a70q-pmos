@@ -36,7 +36,7 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | boot tới initramfs, framebuffer, log qua ramoops | lần thử 1 (2026-11-15): **treo ở logo**, pstore trống sau đó — chưa biết kernel có được nhảy vào không (xem "Nhật ký thử") |
+| 1 | boot tới initramfs, framebuffer, log qua ramoops | kernel chạy, start_kernel xong; đang gỡ từng driver treo khi probe (interconnect QoS ✅, TLMM ✅, cpufreq-hw: tạm tắt, chờ thử) — "Nhật ký thử" |
 | 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | |
 | 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | |
 | 4 | panel S6E3FC2 AMS670TA01 (biến thể driver s6e3fc2x01), cảm ứng IST40xx (driver mới) | |
@@ -71,7 +71,15 @@ trống) ghi vào RECOVERY bằng `dd`, `reboot-mode recovery`.
   (`initcalls.sh 1898`, thứ tự theo `System.map`)
 - 0004: tên thiết bị + driver vẽ bằng font VGA 8x16 ×3 trước mỗi probe → **`1700000.interconnect` / `qnoc-qcs615`**
   (aggre1_noc): `icc-rpmh` bật clock AXI rồi ghi thanh ghi QoS của NoC → treo. Sửa: bỏ `reg` khỏi 6 NoC có QoS trong
-  DTS → driver bỏ qua QoS (`skip_qos_config`), vẫn bỏ phiếu băng thông qua RPMh. Chưa thử lại
+  DTS → driver bỏ qua QoS (`skip_qos_config`), vẫn bỏ phiếu băng thông qua RPMh → **qua được**
 - Vào recovery: chỉ `reboot-mode recovery` là chắc chắn (tổ hợp phím có lúc vào boot thường, giữ Volume Up còn làm
   initramfs pmOS vào debug shell). Mỗi lần thử: Download Mode → `flash.sh --RECOVERY <image>` (heimdall khởi động lại
   xoá cờ recovery → pmOS) → `reboot-mode recovery` qua SSH
+- Lần 6: dừng ở `3100000.pinctrl` / `qcs615-tlmm` rồi **khởi động lại** (XPU reset khi đọc chân của secure world).
+  Sửa: `gpio-reserved-ranges = <0 4>, <6 4>` (SPI vân tay `spi@888000` = gpio0-3, eSE `spi@a88000` = gpio6-9, lấy từ
+  DT downstream) → **qua được**
+- Lần 7: dừng ở `18323000.cpufreq` / `qcom-cpufreq-hw` rồi khởi động lại. Downstream dùng driver OSM riêng
+  (`qcom,clk-cpu-osm-sm6150`). Tạm `status = "disabled"` cho `cpufreq_hw` (CPU giữ xung của bootloader) — image đã
+  build, **chưa thử** (lần 8)
+- Ghi chú: khi treo kiểu "khởi động lại" thì vòng lặp recovery tự lặp lại (bootloader giữ cờ recovery) → vẫn phải vào
+  Download Mode để thoát
