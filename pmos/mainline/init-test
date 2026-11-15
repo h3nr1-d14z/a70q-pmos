@@ -1,0 +1,17 @@
+#!/bin/busybox sh
+# a70q mainline milestone-1 initramfs: prove the kernel reached userspace, then reboot so the
+# downstream system boots again and reads this boot's log from ramoops (/sys/fs/pstore).
+/bin/busybox --install -s /bin
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+mount -t devtmpfs devtmpfs /dev 2>/dev/null
+msg() { echo "A70Q-MAINLINE: $*" > /dev/kmsg; echo "A70Q-MAINLINE: $*" > /dev/tty0 2>/dev/null; }
+msg "initramfs reached, kernel $(uname -r)"
+msg "cmdline: $(cat /proc/cmdline)"
+msg "memory: $(grep MemTotal /proc/meminfo)"
+msg "cpus online: $(cat /sys/devices/system/cpu/online)"
+ls /sys/class/graphics /sys/class/drm 2>/dev/null | tr '\n' ' ' > /dev/kmsg
+msg "rebooting in 30 s"
+sleep 30
+echo s > /proc/sysrq-trigger
+echo b > /proc/sysrq-trigger

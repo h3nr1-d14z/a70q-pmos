@@ -59,3 +59,4 @@ Skip (reinstall duoc): system, vendor, product, userdata, cache, hidden, omr, pa
 
 lshal full dump: backups/hals-lshal.txt
 MISMATCH: KHONG - tat ca khop 100%
+| recovery | 82825216 | `fc034fd4` (sha256 fc034fd4604b8a196a9acf883614b5deee6595dc7bd692bc86c53d4e7366fd5f, LineageOS recovery, 2026-11-15) |

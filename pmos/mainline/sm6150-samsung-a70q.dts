@@ -1,0 +1,180 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Samsung Galaxy A70 (SM-A705F, a70q) on mainline Linux — milestone 1: boot to an initramfs with
+ * the bootloader's framebuffer (simple-framebuffer) and the console in ramoops, so the downstream
+ * kernel can read the log after the next boot (/sys/fs/pstore). No regulators, UFS or USB yet.
+ *
+ * All addresses below come from the running downstream device tree
+ * (pmos/mainline/ref/a70q-downstream.dts, `dtc -I fs /proc/device-tree`). Samsung moved several
+ * firmware regions away from the Qualcomm defaults used by talos.dtsi (four of them would sit
+ * inside Samsung's modem region), so those are overridden and Samsung's extra carve-outs added.
+ */
+/dts-v1/;
+
+#include "talos.dtsi"
+
+/ {
+	model = "Samsung Galaxy A70 (SM-A705F)";
+	compatible = "samsung,a70q", "qcom,sm6150";
+	chassis-type = "handset";
+
+	/* Samsung's sboot picks the DTB by these (same values as the downstream DT) */
+	qcom,msm-id = <355 0x0>;
+	qcom,board-id = <0x22 0xd>;
+
+	/* board clocks referenced by talos.dtsi (downstream: sleep-clk 0x7d00 = 32000 Hz) */
+	clocks {
+		sleep_clk: sleep-clk {
+			compatible = "fixed-clock";
+			clock-frequency = <32000>;
+			#clock-cells = <0>;
+		};
+
+		xo_board_clk: xo-board-clk {
+			compatible = "fixed-clock";
+			clock-frequency = <38400000>;
+			#clock-cells = <0>;
+		};
+	};
+
+	chosen {
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
+
+		/* continuous splash buffer left by the bootloader: 1080x2400 ARGB8888 */
+		framebuffer@9c000000 {
+			compatible = "simple-framebuffer";
+			reg = <0x0 0x9c000000 0x0 (1080 * 2400 * 4)>;
+			width = <1080>;
+			height = <2400>;
+			stride = <(1080 * 4)>;
+			format = "a8r8g8b8";
+		};
+	};
+
+	reserved-memory {
+		hyp_mem: hyp@85700000 {
+			reg = <0x0 0x85700000 0x0 0x600000>;
+			no-map;
+		};
+
+		xbl_aop_mem: xbl-aop@85d00000 {
+			reg = <0x0 0x85d00000 0x0 0x240000>;
+			no-map;
+		};
+
+		sec_apps_mem: sec-apps@85fff000 {
+			reg = <0x0 0x85fff000 0x0 0x1000>;
+			no-map;
+		};
+
+		removed_mem: removed@86200000 {
+			reg = <0x0 0x86200000 0x0 0x5600000>;
+			no-map;
+		};
+
+		camera_mem: camera@8cb00000 {
+			reg = <0x0 0x8cb00000 0x0 0x500000>;
+			no-map;
+		};
+
+		modem_mem: modem@8d000000 {
+			reg = <0x0 0x8d000000 0x0 0x8c00000>;
+			no-map;
+		};
+
+		wlan_msa_mem: wlan-msa@96100000 {
+			reg = <0x0 0x96100000 0x0 0x200000>;
+			no-map;
+		};
+
+		ips_fw_mem: ips-fw@9a900000 {
+			reg = <0x0 0x9a900000 0x0 0x10000>;
+			no-map;
+		};
+
+		ipa_gsi_mem: ipa-gsi@9a910000 {
+			reg = <0x0 0x9a910000 0x0 0x5000>;
+			no-map;
+		};
+
+		cont_splash_mem: cont-splash@9c000000 {
+			reg = <0x0 0x9c000000 0x0 0xf00000>;
+			no-map;
+		};
+
+		dfps_data_mem: dfps-data@9cf00000 {
+			reg = <0x0 0x9cf00000 0x0 0x100000>;
+			no-map;
+		};
+
+		qseecom_mem: qseecom@9e400000 {
+			reg = <0x0 0x9e400000 0x0 0x2400000>;
+			no-map;
+		};
+
+		ss_plog_mem: ss-plog@a1100000 {
+			reg = <0x0 0xa1100000 0x0 0x200000>;
+			no-map;
+		};
+
+		/* same layout as the downstream ramoops node: the downstream kernel reads it back */
+		ramoops@a1300000 {
+			compatible = "ramoops";
+			reg = <0x0 0xa1300000 0x0 0x100000>;
+			record-size = <0x40000>;
+			console-size = <0x40000>;
+			ftrace-size = <0x40000>;
+			pmsg-size = <0x40000>;
+		};
+
+		sec_debug_mem: sec-debug@a1400000 {
+			reg = <0x0 0xa1400000 0x0 0x800000>;
+			no-map;
+		};
+
+		cdsp_sec_mem: cdsp-sec@a4000000 {
+			reg = <0x0 0xa4000000 0x0 0xc00000>;
+			no-map;
+		};
+
+		/* Samsung uH hypervisor / RKP / TIMA */
+		tima_mem: tima@b0100000 {
+			reg = <0x0 0xb0100000 0x0 0x100000>;
+			no-map;
+		};
+
+		rkp_mem: rkp@b0200000 {
+			reg = <0x0 0xb0200000 0x0 0x200000>;
+			no-map;
+		};
+
+		uh_heap_mem: uh-heap@b0400000 {
+			reg = <0x0 0xb0400000 0x0 0x1400000>;
+			no-map;
+		};
+
+		modem_shared_mem: modem-shared@ba000000 {
+			reg = <0x0 0xba000000 0x0 0x6000000>;
+			no-map;
+		};
+	};
+};
+
+/* Qualcomm default carve-outs from talos.dtsi, moved by Samsung (values from the downstream DT) */
+&pil_video_mem {
+	reg = <0x0 0x95c00000 0x0 0x500000>;
+};
+
+&rproc_cdsp_mem {
+	reg = <0x0 0x96300000 0x0 0x1e00000>;
+};
+
+&rproc_adsp_mem {
+	reg = <0x0 0x98100000 0x0 0x2800000>;
+};
+
+&pil_gpu_mem {
+	reg = <0x0 0x9a915000 0x0 0x2000>;
+};
