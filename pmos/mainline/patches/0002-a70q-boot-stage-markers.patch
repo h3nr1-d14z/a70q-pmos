@@ -1,0 +1,133 @@
+diff -ruN a/arch/arm64/kernel/Makefile b/arch/arm64/kernel/Makefile
+--- a/arch/arm64/kernel/Makefile	2026-11-15 09:49:10.127137323 +0000
++++ b/arch/arm64/kernel/Makefile	2026-11-15 09:49:10.139547611 +0000
+@@ -29,7 +29,7 @@
+ KCOV_INSTRUMENT_irq.o := n
+ 
+ # Object file lists.
+-obj-y			:= debug-monitors.o entry.o irq.o fpsimd.o		\
++obj-y			:= a70q-mark.o debug-monitors.o entry.o irq.o fpsimd.o		\
+ 			   entry-common.o process.o ptrace.o			\
+ 			   setup.o signal.o sys.o stacktrace.o time.o traps.o	\
+ 			   io.o vdso.o hyp-stub.o psci.o cpu_ops.o		\
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	1970-01-01 00:00:00.000000000 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 09:49:10.129137443 +0000
+@@ -0,0 +1,33 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * a70q bring-up without UART: paint a 40-line band of the bootloader splash framebuffer
++ * (0x9c000000, 1080 px ARGB8888, still scanned out) for each boot stage reached, below the green
++ * band painted at kernel entry (head.S). The last band visible tells where the boot stops.
++ */
++#include <linux/a70q_mark.h>
++#include <linux/io.h>
++#include <asm/early_ioremap.h>
++
++#define FB_BASE		0x9c000000UL
++#define FB_WIDTH	1080
++#define BAND_LINES	40
++#define BAND_TOP	200
++
++void a70q_mark(int stage, u32 argb, bool early)
++{
++	unsigned long off = (unsigned long)(BAND_TOP + stage * BAND_LINES) * FB_WIDTH * 4;
++	size_t len = BAND_LINES * FB_WIDTH * 4;
++	u32 __iomem *p;
++	size_t i;
++
++	p = early ? early_ioremap(FB_BASE + off, len) : ioremap(FB_BASE + off, len);
++	if (!p)
++		return;
++	for (i = 0; i < len / 4; i++)
++		writel_relaxed(argb, p + i);
++	wmb();
++	if (early)
++		early_iounmap(p, len);
++	else
++		iounmap(p);
++}
+diff -ruN a/arch/arm64/kernel/setup.c b/arch/arm64/kernel/setup.c
+--- a/arch/arm64/kernel/setup.c	2026-11-15 09:49:10.126672920 +0000
++++ b/arch/arm64/kernel/setup.c	2026-11-15 09:49:10.139441230 +0000
+@@ -7,6 +7,7 @@
+  */
+ 
+ #include <linux/acpi.h>
++#include <linux/a70q_mark.h>
+ #include <linux/export.h>
+ #include <linux/kernel.h>
+ #include <linux/stddef.h>
+@@ -288,6 +289,7 @@
+ 
+ 	early_fixmap_init();
+ 	early_ioremap_init();
++	a70q_mark(1, 0xff0000ff, true);	/* blue: setup_arch, early ioremap */
+ 
+ 	setup_machine_fdt(__fdt_pointer);
+ 
+@@ -332,6 +334,7 @@
+ 	arm64_memblock_init();
+ 
+ 	paging_init();
++	a70q_mark(2, 0xffffff00, true);	/* yellow: paging_init done */
+ 
+ 	acpi_table_upgrade();
+ 
+diff -ruN a/include/linux/a70q_mark.h b/include/linux/a70q_mark.h
+--- a/include/linux/a70q_mark.h	1970-01-01 00:00:00.000000000 +0000
++++ b/include/linux/a70q_mark.h	2026-11-15 09:49:10.129137443 +0000
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _LINUX_A70Q_MARK_H
++#define _LINUX_A70Q_MARK_H
++#include <linux/types.h>
++#ifdef CONFIG_ARM64
++void a70q_mark(int stage, u32 argb, bool early);
++#else
++static inline void a70q_mark(int stage, u32 argb, bool early) { }
++#endif
++#endif
+diff -ruN a/init/main.c b/init/main.c
+--- a/init/main.c	2026-11-15 09:49:10.128137383 +0000
++++ b/init/main.c	2026-11-15 09:49:10.139704204 +0000
+@@ -13,6 +13,7 @@
+ #define DEBUG		/* Enable initcall_debug */
+ 
+ #include <linux/types.h>
++#include <linux/a70q_mark.h>
+ #include <linux/export.h>
+ #include <linux/extable.h>
+ #include <linux/module.h>
+@@ -1047,6 +1048,7 @@
+ 	sort_main_extable();
+ 	trap_init();
+ 	mm_core_init();
++	a70q_mark(3, 0xff00ffff, false);	/* cyan: memory management up */
+ 	maple_tree_init();
+ 	poking_init();
+ 	ftrace_init();
+@@ -1187,6 +1189,7 @@
+ 	kcsan_init();
+ 
+ 	/* Do the rest non-__init'ed, we're now alive */
++	a70q_mark(4, 0xffff00ff, false);	/* magenta: start_kernel done */
+ 	rest_init();
+ 
+ 	/*
+@@ -1587,6 +1590,7 @@
+ 
+ 	do_sysctl_args();
+ 
++	a70q_mark(6, 0xffffffff, false);	/* white: starting userspace */
+ 	if (ramdisk_execute_command) {
+ 		ret = run_init_process(ramdisk_execute_command);
+ 		if (!ret)
+@@ -1673,6 +1677,7 @@
+ 	page_alloc_init_late();
+ 
+ 	do_basic_setup();
++	a70q_mark(5, 0xffff0000, false);	/* red: all initcalls (drivers) done */
+ 
+ 	kunit_run_all_tests();
+ 

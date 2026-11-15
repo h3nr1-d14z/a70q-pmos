@@ -1,0 +1,62 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 11:45:27.193185017 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 11:45:27.201480569 +0000
+@@ -31,3 +31,31 @@
+ 	else
+ 		iounmap(p);
+ }
++
++/*
++ * Index of the initcall about to run, as 16 squares (bit 15 left): white = 1, dark grey = 0,
++ * 56x56 px, from line 520. If an initcall hangs, its index stays on screen; map it with the
++ * order of the __initcall_* symbols in System.map (pmos/mainline/initcalls.sh).
++ */
++#define IDX_TOP		520
++#define IDX_SIZE	56
++#define IDX_STEP	66
++
++void a70q_initcall_mark(unsigned int idx)
++{
++	static u32 __iomem *fb;
++	int bit, y, x;
++
++	if (!fb)
++		fb = ioremap(FB_BASE + (unsigned long)IDX_TOP * FB_WIDTH * 4, IDX_SIZE * FB_WIDTH * 4);
++	if (!fb)
++		return;
++	for (bit = 0; bit < 16; bit++) {
++		u32 c = (idx >> (15 - bit)) & 1 ? 0xffffffff : 0xff303030;
++
++		for (y = 0; y < IDX_SIZE; y++)
++			for (x = 0; x < IDX_SIZE; x++)
++				writel_relaxed(c, fb + y * FB_WIDTH + 12 + bit * IDX_STEP + x);
++	}
++	wmb();
++}
+diff -ruN a/include/linux/a70q_mark.h b/include/linux/a70q_mark.h
+--- a/include/linux/a70q_mark.h	2026-11-15 11:45:27.194185028 +0000
++++ b/include/linux/a70q_mark.h	2026-11-15 11:45:27.201448610 +0000
+@@ -4,7 +4,9 @@
+ #include <linux/types.h>
+ #ifdef CONFIG_ARM64
+ void a70q_mark(int stage, u32 argb, bool early);
++void a70q_initcall_mark(unsigned int idx);
+ #else
+ static inline void a70q_mark(int stage, u32 argb, bool early) { }
++static inline void a70q_initcall_mark(unsigned int idx) { }
+ #endif
+ #endif
+diff -ruN a/init/main.c b/init/main.c
+--- a/init/main.c	2026-11-15 11:45:27.193185017 +0000
++++ b/init/main.c	2026-11-15 11:45:27.201556778 +0000
+@@ -1354,6 +1354,10 @@
+ 
+ int __init_or_module do_one_initcall(initcall_t fn)
+ {
++	static unsigned int a70q_idx;
++
++	if (system_state < SYSTEM_RUNNING)
++		a70q_initcall_mark(a70q_idx++);
+ 	int count = preempt_count();
+ 	char msgbuf[64];
+ 	int ret;

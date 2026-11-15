@@ -178,3 +178,16 @@
 &pil_gpu_mem {
 	reg = <0x0 0x9a915000 0x0 0x2000>;
 };
+
+/*
+ * Interconnect QoS: icc-rpmh writes the NoC QoS registers at probe (enabling the aggre1 AXI clocks
+ * first); on this phone probing aggre1_noc hung the CPU (bring-up marker: last probe
+ * "1700000.interconnect / qnoc-qcs615"), the registers are presumably locked by the secure
+ * firmware. Without "reg" the driver skips QoS (skip_qos_config) and only votes bandwidth via RPMh.
+ */
+&aggre1_noc { /delete-property/ reg; };
+&config_noc { /delete-property/ reg; };
+&dc_noc { /delete-property/ reg; };
+&gem_noc { /delete-property/ reg; };
+&mmss_noc { /delete-property/ reg; };
+&system_noc { /delete-property/ reg; };

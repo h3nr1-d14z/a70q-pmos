@@ -1,0 +1,101 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 11:59:25.581240900 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 11:59:25.590539739 +0000
+@@ -6,6 +6,8 @@
+  */
+ #include <linux/a70q_mark.h>
+ #include <linux/io.h>
++#include <linux/font.h>
++#include <linux/string.h>
+ #include <asm/early_ioremap.h>
+ 
+ #define FB_BASE		0x9c000000UL
+@@ -59,3 +61,53 @@
+ 	}
+ 	wmb();
+ }
++
++/*
++ * Two lines of text (VGA 8x16 font, scaled x3) at line 600: written before every driver probe,
++ * so the last device/driver probed stays on screen if a probe hangs.
++ */
++#define TXT_TOP		600
++#define TXT_SCALE	3
++#define TXT_LINE	(16 * TXT_SCALE)
++
++static void a70q_text_line(u32 __iomem *fb, int line, const char *s, const struct font_desc *f)
++{
++	const u8 *data = f->data;
++	int col, y, x, n = strlen(s);
++
++	if (n > FB_WIDTH / (8 * TXT_SCALE))
++		n = FB_WIDTH / (8 * TXT_SCALE);
++	for (col = 0; col < n; col++) {
++		const u8 *g = data + (u8)s[col] * 16;
++
++		for (y = 0; y < 16 * TXT_SCALE; y++) {
++			u8 bits = g[y / TXT_SCALE];
++
++			for (x = 0; x < 8 * TXT_SCALE; x++) {
++				u32 c = bits & (0x80 >> (x / TXT_SCALE)) ? 0xffffffff : 0xff000000;
++
++				writel_relaxed(c, fb + (line * TXT_LINE + y) * FB_WIDTH +
++					       col * 8 * TXT_SCALE + x);
++			}
++		}
++	}
++}
++
++void a70q_text_mark(const char *a, const char *b)
++{
++	static u32 __iomem *fb;
++	const struct font_desc *f = find_font("VGA8x16");
++	int i;
++
++	if (!f)
++		return;
++	if (!fb)
++		fb = ioremap(FB_BASE + (unsigned long)TXT_TOP * FB_WIDTH * 4, 2 * TXT_LINE * FB_WIDTH * 4);
++	if (!fb)
++		return;
++	for (i = 0; i < 2 * TXT_LINE * FB_WIDTH; i++)
++		writel_relaxed(0xff000000, fb + i);
++	a70q_text_line(fb, 0, a ? a : "?", f);
++	a70q_text_line(fb, 1, b ? b : "?", f);
++	wmb();
++}
+diff -ruN a/drivers/base/dd.c b/drivers/base/dd.c
+--- a/drivers/base/dd.c	2026-11-15 11:59:25.580663415 +0000
++++ b/drivers/base/dd.c	2026-11-15 11:59:25.594139062 +0000
+@@ -18,6 +18,7 @@
+ 
+ #include <linux/debugfs.h>
+ #include <linux/device.h>
++#include <linux/a70q_mark.h>
+ #include <linux/delay.h>
+ #include <linux/dma-map-ops.h>
+ #include <linux/init.h>
+@@ -623,6 +624,9 @@
+ {
+ 	int ret = 0;
+ 
++	if (system_state < SYSTEM_RUNNING)
++		a70q_text_mark(dev_name(dev), drv->name);
++
+ 	if (dev->bus->probe)
+ 		ret = dev->bus->probe(dev);
+ 	else if (drv->probe)
+diff -ruN a/include/linux/a70q_mark.h b/include/linux/a70q_mark.h
+--- a/include/linux/a70q_mark.h	2026-11-15 11:59:25.583240847 +0000
++++ b/include/linux/a70q_mark.h	2026-11-15 11:59:25.590501074 +0000
+@@ -5,8 +5,10 @@
+ #ifdef CONFIG_ARM64
+ void a70q_mark(int stage, u32 argb, bool early);
+ void a70q_initcall_mark(unsigned int idx);
++void a70q_text_mark(const char *a, const char *b);
+ #else
+ static inline void a70q_mark(int stage, u32 argb, bool early) { }
+ static inline void a70q_initcall_mark(unsigned int idx) { }
++static inline void a70q_text_mark(const char *a, const char *b) { }
+ #endif
+ #endif

@@ -1,0 +1,25 @@
+--- a/arch/arm64/kernel/head.S
++++ b/arch/arm64/kernel/head.S
+@@ -83,6 +83,22 @@
+ 	 */
+ 
+ SYM_CODE_START(primary_entry)
++	/*
++	 * a70q bring-up (no UART): paint the first 200 lines of the bootloader's splash framebuffer
++	 * (0x9c000000, 1080 px ARGB8888, still scanned out by the display) green, before anything
++	 * else: visible proof that the bootloader jumped into this kernel. MMU and caches are off
++	 * here, so the stores reach memory. Only x9-x11 are used (x0 = FDT from the bootloader).
++	 */
++	movz	x9, #0x9c00, lsl #16
++	movz	w10, #0xff00, lsl #16
++	movk	w10, #0xff00
++	movz	x11, #0x4bc0
++	movk	x11, #0x3, lsl #16		// 1080 * 200 = 0x34bc0 pixels
++1:	str	w10, [x9], #4
++	subs	x11, x11, #1
++	b.ne	1b
++	dsb	sy
++
+ 	bl	record_mmu_state
+ 	bl	preserve_boot_args
+ 
