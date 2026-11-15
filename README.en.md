@@ -49,3 +49,9 @@ partition) and the Sxmo (sway) UI. Documentation is mostly Vietnamese; English: 
 | `pmos/kernel/` | fast kernel builds in Docker + kernel patches |
 | `ERRORS.md` | every problem met: symptom → cause → fix (Vietnamese) |
 | `pmos/research/` | research notes (e.g. mainline kernel feasibility) |
+
+## License
+
+MIT (`LICENSE`) for the scripts, configuration and documentation in this repository. Kernel patches
+(`pmos/kernel/patches`, `linux-samsung-a70q/*.patch`) are GPL-2.0 like the Linux kernel; APKBUILDs derived
+from Alpine/postmarketOS keep their original licenses; sources and firmware fetched at build time keep theirs.

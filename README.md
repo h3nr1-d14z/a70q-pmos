@@ -65,3 +65,9 @@ English: [README.en.md](README.en.md), [INSTALL.en.md](INSTALL.en.md).
 SM-A705F/DS (XXV), SoC Qualcomm SM6150 (Snapdragon 675), GPU Adreno 612, UFS 128GB, RAM 6GB.
 Bootloader đã unlock; vbmeta tắt verify. Kernel từ `a70q-lineage/android_kernel_samsung_sm6150`
 nhánh `lineage-22.2` @ 699d9d7da.
+
+## Giấy phép
+
+MIT (`LICENSE`) cho script, cấu hình và tài liệu của repo. Patch kernel (`pmos/kernel/patches`,
+`linux-samsung-a70q/*.patch`) theo GPL-2.0 như kernel Linux; APKBUILD lấy từ Alpine/postmarketOS giữ giấy
+phép gốc của chúng; mã nguồn và firmware tải về khi build giữ giấy phép riêng.
