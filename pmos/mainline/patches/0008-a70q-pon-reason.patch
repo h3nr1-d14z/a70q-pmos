@@ -1,0 +1,91 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:59:44.629443658 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-15 14:59:44.636685618 +0000
+@@ -11,6 +11,10 @@
+ #include <linux/kmsg_dump.h>
+ #include <linux/init.h>
+ #include <linux/hrtimer.h>
++#include <linux/of.h>
++#include <linux/spmi.h>
++#include <linux/regmap.h>
++#include <linux/err.h>
+ #include <linux/ktime.h>
+ #include <linux/sprintf.h>
+ #include <asm/early_ioremap.h>
+@@ -317,3 +321,76 @@
+ 	return 0;
+ }
+ core_initcall_sync(a70q_clock_init);
++
++/*
++ * PM6150 PON reasons of the previous reset (gen2 PON at 0x800: PON_REASON1/2 0xc0/0xc1,
++ * WARM_RESET_REASON1/2 0xc2/0xc3, ON_REASON 0xc4, POFF_REASON1/2 0xc5/0xc6, FAULT_REASON1/2
++ * 0xc8/0xc9, S3_RESET_REASON 0xca), read once over SPMI and drawn under the clock line.
++ */
++static char pon_text[CL_COLS + 1] = "PON: not read";
++
++static void pon_draw(void)
++{
++	const struct font_desc *f = find_font("VGA8x16");
++	u32 __iomem *fb;
++	const u8 *data;
++	int col, y, x, n = strlen(pon_text);
++
++	if (!f)
++		return;
++	data = f->data;
++	fb = ioremap(FB_BASE + (unsigned long)(CL_TOP + 40) * FB_WIDTH * 4,
++		     (unsigned long)16 * CL_SCALE * FB_WIDTH * 4);
++	if (!fb)
++		return;
++	for (col = 0; col < CL_COLS; col++) {
++		const u8 *g = data + (u8)(col < n ? pon_text[col] : ' ') * 16;
++
++		for (y = 0; y < 16 * CL_SCALE; y++) {
++			u8 bits = g[y / CL_SCALE];
++
++			for (x = 0; x < 8 * CL_SCALE; x++)
++				writel_relaxed(bits & (0x80 >> (x / CL_SCALE)) ? 0xff000000 : 0xff00ffff,
++					       fb + y * FB_WIDTH + col * 8 * CL_SCALE + x);
++		}
++	}
++	wmb();
++	iounmap(fb);
++}
++
++static int __init a70q_pon_init(void)
++{
++	struct device_node *np = of_find_node_by_path("/soc@0/spmi@c440000/pmic@0");
++	struct spmi_device *sdev;
++	struct regmap *map;
++	unsigned int v[11];
++	int i, rc = 0;
++
++	if (!np) {
++		snprintf(pon_text, sizeof(pon_text), "PON: no pmic node");
++		goto out;
++	}
++	sdev = spmi_find_device_by_of_node(np);
++	of_node_put(np);
++	if (IS_ERR_OR_NULL(sdev)) {
++		snprintf(pon_text, sizeof(pon_text), "PON: no spmi dev");
++		goto out;
++	}
++	map = dev_get_regmap(&sdev->dev, NULL);
++	if (!map) {
++		snprintf(pon_text, sizeof(pon_text), "PON: no regmap");
++		goto out;
++	}
++	for (i = 0; i < 11 && !rc; i++)
++		rc = regmap_read(map, 0x8c0 + i, &v[i]);
++	if (rc)
++		snprintf(pon_text, sizeof(pon_text), "PON: read err %d", rc);
++	else
++		snprintf(pon_text, sizeof(pon_text),
++			 "PON %02x%02x W%02x%02x O%02x P%02x%02x F%02x%02x S%02x",
++			 v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[8], v[9], v[10]);
++out:
++	pon_draw();
++	return 0;
++}
++late_initcall(a70q_pon_init);

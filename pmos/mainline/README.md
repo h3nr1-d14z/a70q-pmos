@@ -36,7 +36,7 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | boot tới initramfs, framebuffer, log qua ramoops | kernel chạy, start_kernel xong; đang gỡ từng driver treo khi probe (TLMM: chân secure 0–3, 6–9, 37–38; cpufreq, smp2p, interconnect, crypto… tạm tắt) — "Nhật ký thử" |
+| 1 | boot tới initramfs, framebuffer, log qua ramoops | ✅ 2026-11-16 (lần 22): tới `/init`, log hiện trên màn hình. Cần: TLMM bỏ chân secure 0–3/6–9/37–38, không PSCI cpuidle; nhiều thiết bị đang tạm tắt — "Nhật ký thử" |
 | 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | |
 | 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | |
 | 4 | panel S6E3FC2 AMS670TA01 (biến thể driver s6e3fc2x01), cảm ứng IST40xx (driver mới) | |
@@ -97,5 +97,16 @@ trống) ghi vào RECOVERY bằng `dd`, `reboot-mode recovery`.
   nếu bootloader để chạy), tắt `CONFIG_IP_PNP` → vẫn reset. Patch 0006: khi panic vẽ ~140 dòng log cuối lên màn hình,
   tắt watchdog, `panic=0 oops=panic softlockup_panic=1` → **không hiện log**: không phải panic của kernel mà là reset từ
   bên ngoài (watchdog/firmware/hypervisor), có vẻ theo thời gian
-- Patch 0007 (lần 16, đã build, **chưa thử**): dòng đồng hồ cập nhật 100 ms (hrtimer) ở dòng 1000: `t=` giây từ lúc
+- Patch 0007 (lần 16): dòng đồng hồ cập nhật 100 ms (hrtimer) ở dòng 1000: `t=` giây từ lúc
   boot + thanh ghi watchdog APSS (EN, STS, BARK, BITE) → biết reset xảy ra lúc nào và watchdog có đang chạy không
+- Lần 16: reset ở **t=7.5 s**, watchdog APSS tắt (`EN=0`) → không phải nó. Patch 0008 đọc lý do reset trước từ PON của
+  PM6150 qua SPMI (node `pmic@0` không con): `PON 01` (hard reset), `POFF 02` = **PS_HOLD** (SoC chủ động reset),
+  FAULT2 bit 4 OTST3 (cờ cũ). Máy không nóng → không phải nhiệt. Lần 18: patch 0009 in log lên màn hình cả khi kernel tự
+  restart/poweroff (giữ 30 s) → không thấy → kernel không tự reset. Lần 19: thêm trang `kaslr_region@80001000` → không đổi
+- Lần 20: chờ 15 s ở `arch_initcall` → reset ở **t=22.5** → không phải hẹn giờ mà theo **bước khởi động**, ngay sau probe
+  của `power-domain-cpu0..7` (cpuidle-psci-domain, chuyển PSCI sang OSI mode). Lần 21: `cpuidle.off=1` → vẫn reset
+- **Lần 22: bỏ `CONFIG_ARM_PSCI_CPUIDLE` + `CONFIG_ARM_PSCI_CPUIDLE_DOMAIN` → qua: dải đỏ (initcall xong), dải trắng
+  (chạy `/init`), log trên màn hình có `initramfs reached` / `a70q mainline: reboot in 30s` → MỐC 1 ĐẠT** (2026-11-16)
+- Thủ phạm thật của các lần "khởi động lại" từ lần 13: PSCI domain/OSI. Một số thiết bị tắt ở lần 7–11 (cpufreq,
+  smp2p, crypto BAM, interconnect…) có thể không hỏng thật — sẽ bật lại từng cái ở mốc 2 để kiểm tra
+- `A70Q-MAINLINE` không hiện trên `tty0`: chưa có fbcon trên framebuffer (simpledrm chưa gắn / chưa có console chữ)

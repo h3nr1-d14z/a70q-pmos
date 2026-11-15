@@ -11,6 +11,7 @@
  */
 /dts-v1/;
 
+#include <dt-bindings/spmi/spmi.h>
 #include "talos.dtsi"
 
 / {
@@ -54,6 +55,17 @@
 	};
 
 	reserved-memory {
+		/*
+		 * Samsung KASLR info page written by the bootloader (downstream: removed-dma-pool, i.e.
+		 * not kernel memory). It was the only downstream carve-out missing here, and the phone
+		 * was reset by the secure side (PON POFF reason PS_HOLD, no kernel panic) ~7.5 s in, as
+		 * memory use grew.
+		 */
+		kaslr_mem: kaslr@80001000 {
+			reg = <0x0 0x80001000 0x0 0x1000>;
+			no-map;
+		};
+
 		hyp_mem: hyp@85700000 {
 			reg = <0x0 0x85700000 0x0 0x600000>;
 			no-map;
@@ -356,3 +368,25 @@
 &mmss_noc { status = "disabled"; };
 &dc_noc { status = "disabled"; };
 &gem_noc { status = "disabled"; };
+
+/*
+ * PM6150 (USID 0) without children, only so the SPMI PMIC driver creates its regmap: the bring-up
+ * patch reads the PON registers (reason of the previous reset) through it.
+ */
+&spmi_bus {
+	pmic@0 {
+		compatible = "qcom,pm6150", "qcom,spmi-pmic";
+		reg = <0x0 SPMI_USID>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
+};
+
+/*
+ * The phone reset ~7.5 s after kernel start with PON POFF reason PS_HOLD (SoC-initiated) and no
+ * panic. Suspect: a thermal zone reaching its critical trip (PMIC fault flag OTST3 was set) and the
+ * kernel shutting down. tsens off to test it (no thermal zones in milestone 1).
+ */
+&tsens0 {
+	status = "disabled";
+};
