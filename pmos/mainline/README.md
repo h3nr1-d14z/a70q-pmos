@@ -36,7 +36,7 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
-| 1 | boot tới initramfs, framebuffer, log qua ramoops | image đã build (7.3.4), chưa thử trên máy |
+| 1 | boot tới initramfs, framebuffer, log qua ramoops | lần thử 1 (2026-11-15): **treo ở logo**, pstore trống sau đó — chưa biết kernel có được nhảy vào không (xem "Nhật ký thử") |
 | 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | |
 | 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | |
 | 4 | panel S6E3FC2 AMS670TA01 (biến thể driver s6e3fc2x01), cảm ứng IST40xx (driver mới) | |
@@ -45,3 +45,19 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 Rủi ro đã biết: sboot áp DTBO (phân vùng DTBO hoặc recovery_dtbo) lên DTB — `mkboot.sh` để `recovery_dtbo`
 trống; chưa biết sboot xử lý thế nào khi overlay không khớp DTB mainline. Hypervisor uH/RKP của Samsung chạy ở
 EL2: kernel mainline không gọi RKP (các port mainline máy Samsung Snapdragon khác vẫn boot được).
+
+## Nhật ký thử
+
+**Lần 1 (2026-11-15)**: `recovery-mainline.img` (7.3.4, Image.gz + DTB nối, header từ recovery gốc, `recovery_dtbo`
+trống) ghi vào RECOVERY bằng `dd`, `reboot-mode recovery`.
+- Kết quả: logo Samsung đứng yên. Giữ Volume Down + Power để khởi động lại → **lại vào recovery** (bootloader giữ
+  yêu cầu recovery khi kernel không xoá nó) → phải vào Download Mode và ghi `pmos/out/boot-r22.img` (kernel
+  downstream đang dùng) vào RECOVERY để thoát vòng lặp. Recovery của LineageOS vẫn ở `backups/full/recovery.img`.
+- Sau đó pmOS lên, `/sys/fs/pstore` trống (mất cả log của lần downstream trước) → không có log mainline.
+- **Bài học về cách thử**: luôn giữ một image khởi động được trong RECOVERY giữa các lần thử; mỗi lần thử mainline treo
+  tốn một vòng Download Mode bằng tay.
+- Nghi vấn cần loại trừ lần sau, theo thứ tự: (1) bootloader không nhảy vào kernel — DTB không được chấp nhận (sboot
+  chọn DTB theo msm-id/board-id, có thể cần thêm thuộc tính, hoặc việc áp DTBO thất bại) hoặc vị trí nạp kernel
+  (mainline `text_offset` = 0, vùng `kaslr_region@80001000` của Samsung nằm ngay đầu RAM); (2) kernel chết trước
+  khi ramoops khởi tạo. Cách lấy tín hiệu sớm nhất khi không có UART: ghi thẳng một mảng màu vào framebuffer
+  `0x9c000000` từ `head.S` (trước MMU) — thấy màu là kernel đã được nhảy vào.
