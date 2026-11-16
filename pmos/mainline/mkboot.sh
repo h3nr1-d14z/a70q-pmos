@@ -12,9 +12,12 @@ LIKE="${LIKE:-$REPO/backups/full/recovery.img}"
 CMDLINE="${CMDLINE:-console=tty0 loglevel=8 ignore_loglevel printk.devkmsg=on panic=10 oops=panic softlockup_panic=1 printk.always_kmsg_dump=1 reboot=warm rdinit=/init}"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 docker run --rm -v "$T":/o -v "$HERE":/a alpine:3.22 sh -ec '
-apk add -q busybox-static cpio >/dev/null
-mkdir -p /r/bin /r/proc /r/sys /r/dev
+apk add -q busybox-static busybox-extras cpio >/dev/null
+mkdir -p /r/bin /r/proc /r/sys /r/dev /r/lib
 cp /bin/busybox.static /r/bin/busybox
+# udhcpd/telnetd are only in busybox-extras (dynamic, musl)
+cp /bin/busybox-extras /r/bin/busybox-extras
+cp /lib/ld-musl-*.so.1 /r/lib/
 cp /a/init-test /r/init; chmod 755 /r/init
 cd /r && find . | cpio -o -H newc 2>/dev/null | gzip -9 > /o/initramfs.gz'
 cat "$HERE/out/Image.gz" "$HERE/out/sm6150-samsung-a70q.dtb" > "$T/Image.gz-dtb"

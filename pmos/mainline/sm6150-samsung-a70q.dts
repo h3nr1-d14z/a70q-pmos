@@ -11,6 +11,7 @@
  */
 /dts-v1/;
 
+#include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include <dt-bindings/spmi/spmi.h>
 #include "talos.dtsi"
 
@@ -262,7 +263,7 @@
  * phones), OSM L3 (same OSM block as cpufreq-hw), TRNG and QFPROM (often owned by TrustZone),
  * GPU/GMU/GPUCC, BWMON, LLCC, video/camera/display clock controllers and both SMMUs.
  */
-&{/soc@0/efuse@780000} { status = "disabled"; };
+/* efuse@780000 (QFPROM) re-enabled for milestone 2: holds the QUSB2 PHY hstx-trim cell */
 &{/soc@0/rng@793000} { status = "disabled"; };
 &{/soc@0/gmu@506d000} { status = "disabled"; };
 &{/soc@0/clock-controller@5090000} { status = "disabled"; };
@@ -391,4 +392,63 @@
  */
 &tsens0 {
 	status = "disabled";
+};
+
+/*
+ * Milestone 2: USB device mode (gadget) on the Type-C port, high speed only.
+ * PHY supplies from the downstream qusb node (vdd = pm6150_l4, vdda18 = pm6150_l11,
+ * vdda33 = pm6150_l17) and their voltage ranges.
+ */
+&apps_rsc {
+	/*
+	 * Without the PSCI CPU power domains (they made the firmware reset the phone) this waited
+	 * forever for /psci/power-domain-cluster, holding back rpmhcc, GCC, regulators and USB.
+	 * Without power-domains rpmh-rsc flushes its sleep/wake votes from CPU PM notifiers instead.
+	 */
+	/delete-property/ power-domains;
+
+	regulators-0 {
+		compatible = "qcom,pm6150-rpmh-regulators";
+		qcom,pmic-id = "a";
+
+		vreg_l4a: ldo4 {
+			regulator-name = "vreg_l4a";
+			regulator-min-microvolt = <875000>;
+			regulator-max-microvolt = <975000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		vreg_l11a: ldo11 {
+			regulator-name = "vreg_l11a";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1890000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		vreg_l17a: ldo17 {
+			regulator-name = "vreg_l17a";
+			regulator-min-microvolt = <3000000>;
+			regulator-max-microvolt = <3230000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+	};
+};
+
+&usb_1_hsphy {
+	vdd-supply = <&vreg_l4a>;
+	vdda-pll-supply = <&vreg_l11a>;
+	vdda-phy-dpdm-supply = <&vreg_l17a>;
+
+	status = "okay";
+};
+
+&usb_1 {
+	/* apps_smmu stays off for now (bootloader display streams): DMA untranslated */
+	/delete-property/ iommus;
+	phys = <&usb_1_hsphy>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
+	dr_mode = "peripheral";
+
+	status = "okay";
 };

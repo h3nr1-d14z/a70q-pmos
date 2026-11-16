@@ -29,7 +29,14 @@ quay lại rồi lấy `/sys/fs/pstore`. Kernel mainline tự đưa máy về kh
 bằng phím, không ai ghi lại hai ô này) — và bật watchdog APSS (bite 60 s) để treo cứng cũng tự reset. Panic → reboot
 sau 10 s. Đã chạy 5 vòng liên tiếp không đụng tay (~55 s/vòng).
 
-Chưa lấy được log qua pstore: sau mỗi vòng `/sys/fs/pstore` rỗng, PON ghi "Hard Reset / cold boot" dù đã thử đặt
+**Log của mainline (từ 2026-11-16):** pstore không dùng được trên máy này — DRAM giữ nội dung qua reset nhưng bị lật
+bit rải rác (cold reset; `memprobe.py mark/check` cho thấy chuỗi 16 byte còn nhưng sai 1–2 bit), header ramoops lệch
+là bản ghi bị bỏ, kể cả với kernel downstream. Patch 0014 ghi 3 bản sao log kernel (`kmsg_dump_get_buffer`) vào đuôi
+vùng splash `0x9ce00000` (3 × 320 KiB, sau framebuffer 1080×2400), mỗi giây và khi panic/restart; pmOS đọc bằng
+`/dev/mem` (kernel downstream r23 bật `CONFIG_DEVMEM`) và bầu đa số theo từng bit: `memprobe.py log3`.
+`remote-test.sh` tự lấy về `out/pstore-*/mainline.log`. Vẫn còn sót vài ký tự sai (~1% bit lật).
+
+Lịch sử — chưa lấy được log qua pstore: sau mỗi vòng `/sys/fs/pstore` rỗng, PON ghi "Hard Reset / cold boot" dù đã thử đặt
 PS_HOLD = warm reset (patch 0012) và `reboot=warm`; init ghi dmesg vào `/dev/pmsg0` cũng không thấy. pmsg của chính
 pmOS thì vẫn sống qua reboot → nghi ramoops chưa hoạt động trong mainline. Kênh log tiếp theo: USB gadget (mốc 2).
 

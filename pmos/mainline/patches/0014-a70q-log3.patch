@@ -1,0 +1,99 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-16 11:58:27.917540759 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-16 11:58:27.925405192 +0000
+@@ -12,6 +12,8 @@
+ #include <linux/delay.h>
+ #include <linux/init.h>
+ #include <linux/hrtimer.h>
++#include <linux/workqueue.h>
++#include <linux/spinlock.h>
+ #include <linux/of.h>
+ #include <linux/spmi.h>
+ #include <linux/regmap.h>
+@@ -212,6 +214,8 @@
+ 	}
+ }
+ 
++static void a70q_log3_write(void);
++
+ static void a70q_kmsg_dump(struct kmsg_dumper *dumper, struct kmsg_dump_detail *detail)
+ {
+ 	const struct font_desc *f = find_font("VGA8x16");
+@@ -219,6 +223,7 @@
+ 	size_t len = 0, i;
+ 	int nl = 0, col = 0, start, r;
+ 
++	a70q_log3_write();
+ 	if (kd_wdt)
+ 		writel_relaxed(0, kd_wdt + WDT_EN);
+ 	if (!kd_fb || !f)
+@@ -365,6 +370,69 @@
+ }
+ 
+ /*
++ * Log for the next pmOS boot: DRAM keeps its contents across the reset here, but with a few random
++ * bit flips (cold reset), which is why ramoops records are dropped. Keep three copies of the kernel
++ * log in the unused tail of the splash carve-out (0x9ce00000, after the 1080x2400 framebuffer),
++ * refreshed every second and on panic/restart; the reader takes a per-bit majority vote
++ * (pmos/mainline/memprobe.py log3).
++ */
++#define LOG3_BASE	0x9ce00000UL
++#define LOG3_COPY	0x50000		/* 320 KiB per copy: 16-byte header + text */
++#define LOG3_TEXT	(LOG3_COPY - 16)
++
++static void __iomem *log3_mem;
++static char log3_buf[LOG3_TEXT];
++static u32 log3_seq;
++static DEFINE_RAW_SPINLOCK(log3_lock);
++
++static void a70q_log3_write(void)
++{
++	struct kmsg_dump_iter iter;
++	unsigned long flags;
++	size_t len = 0;
++	u32 hdr[4];
++	int i;
++
++	if (!log3_mem)
++		return;
++	if (!raw_spin_trylock_irqsave(&log3_lock, flags))
++		return;
++	kmsg_dump_rewind(&iter);
++	kmsg_dump_get_buffer(&iter, false, log3_buf, sizeof(log3_buf) - 1, &len);
++	log3_buf[len] = 0;
++	hdr[0] = 0x51303741;		/* "A70Q" */
++	hdr[1] = 0x31474f4c;		/* "LOG1" */
++	hdr[2] = len;
++	hdr[3] = ++log3_seq;
++	for (i = 0; i < 3; i++) {
++		void __iomem *c = log3_mem + i * LOG3_COPY;
++
++		memcpy_toio(c + 16, log3_buf, len + 1);
++		memcpy_toio(c, hdr, sizeof(hdr));
++	}
++	wmb();
++	raw_spin_unlock_irqrestore(&log3_lock, flags);
++}
++
++static void a70q_log3_work_fn(struct work_struct *w);
++static DECLARE_DELAYED_WORK(a70q_log3_work, a70q_log3_work_fn);
++
++static void a70q_log3_work_fn(struct work_struct *w)
++{
++	a70q_log3_write();
++	schedule_delayed_work(&a70q_log3_work, HZ);
++}
++
++static int __init a70q_log3_init(void)
++{
++	log3_mem = ioremap(LOG3_BASE, 3 * LOG3_COPY);
++	a70q_log3_write();
++	schedule_delayed_work(&a70q_log3_work, HZ);
++	return 0;
++}
++core_initcall_sync(a70q_log3_init);
++
++/*
+  * Unattended testing: the bootloader keeps booting RECOVERY after "reboot recovery" until something
+  * rewrites the restart reason. Write "normal" as early as possible (IMEM restart_reason, Samsung
+  * value 0) and set the PMIC SOFT_RB_SPARE reason to NORMALBOOT (0x14) once SPMI is up, so any later

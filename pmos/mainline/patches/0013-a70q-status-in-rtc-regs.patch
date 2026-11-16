@@ -1,0 +1,68 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-16 11:27:54.813593858 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-16 11:27:54.820736897 +0000
+@@ -16,6 +16,8 @@
+ #include <linux/spmi.h>
+ #include <linux/regmap.h>
+ #include <linux/err.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
+ #include <linux/ktime.h>
+ #include <linux/sprintf.h>
+ #include <asm/early_ioremap.h>
+@@ -404,6 +406,8 @@
+ 	struct device_node *np = of_find_node_by_path("/soc@0/spmi@c440000/pmic@0");
+ 	struct spmi_device *sdev;
+ 	struct regmap *map;
++	unsigned int v, flags = 0, count = 1;
++	int rc_spare;
+ 
+ 	if (!np)
+ 		return;
+@@ -414,7 +418,7 @@
+ 	map = dev_get_regmap(&sdev->dev, NULL);
+ 	if (!map)
+ 		return;
+-	regmap_update_bits(map, 0x88f, 0xfe, PON_NORMALBOOT << 1);
++	rc_spare = regmap_update_bits(map, 0x88f, 0xfe, PON_NORMALBOOT << 1);
+ 	/*
+ 	 * PS_HOLD reset type: warm reset (keeps DDR, so ramoops survives) instead of the hard reset
+ 	 * the PMIC defaults to; same sequence as qpnp_pon_reset_config() downstream.
+@@ -423,6 +427,37 @@
+ 	udelay(500);
+ 	regmap_update_bits(map, 0x85a, 0x0f, 0x1);
+ 	regmap_update_bits(map, 0x85b, 0x80, 0x80);
++
++	/*
++	 * Status for the next pmOS boot, in the PMIC RTC alarm data registers (RTC power domain, kept
++	 * across resets, alarm itself disabled): 0x6140 = 0xa7 magic, 0x6141 = flags, 0x6142 = rc of the
++	 * SOFT_RB_SPARE write (negated), 0x6143 = number of times this was written (boot counter).
++	 */
++	np = of_find_node_by_path("/reserved-memory/ramoops@a1300000");
++	if (np) {
++		struct platform_device *pdev = of_find_device_by_node(np);
++
++		flags |= BIT(0);
++		if (pdev) {
++			flags |= BIT(1);
++			if (pdev->dev.driver)
++				flags |= BIT(2);
++			put_device(&pdev->dev);
++		}
++		of_node_put(np);
++	}
++	if (!rc_spare)
++		flags |= BIT(3);
++	if (!regmap_read(map, 0x88f, &v) && (v & 0xfe) == (PON_NORMALBOOT << 1))
++		flags |= BIT(4);
++	if (!regmap_read(map, 0x85a, &v) && (v & 0x0f) == 0x1)
++		flags |= BIT(5);
++	if (!regmap_read(map, 0x6143, &v))
++		count = v + 1;
++	regmap_write(map, 0x6140, 0xa7);
++	regmap_write(map, 0x6141, flags);
++	regmap_write(map, 0x6142, (u8)(-rc_spare));
++	regmap_write(map, 0x6143, count);
+ }
+ 
+ static int __init a70q_pon_init(void)

@@ -13,7 +13,7 @@ export KH=$W/known_hosts HOST=${HOST:-172.16.42.1}
 : "${SSHPW:?set SSHPW}"
 export SSHPW
 IMG=${IMG:-$here/out/recovery-mainline.img}
-WAIT=${WAIT:-420}
+WAIT=${WAIT:-900}
 LOG=$here/out/pstore-$(date +%Y%m%d-%H%M%S)
 sum=$(shasum -a 256 "$IMG" | cut -d' ' -f1)
 
@@ -35,14 +35,26 @@ echo "== reboot to recovery (pmOS boot $boot0)"
 ssh_ "echo $SSHPW | sudo -S -p '' sh -c 'sync; (sleep 2; /usr/bin/reboot-mode recovery) >/dev/null 2>&1 &'" >/dev/null
 t=0
 while up && [ $t -lt 60 ]; do sleep 2; t=$((t + 2)); done
-echo "== phone left pmOS; waiting up to ${WAIT}s for it to come back"
+echo "== phone left pmOS; waiting up to ${WAIT}s (mainline telnet :23 or pmOS ssh :22)"
+mkdir -p "$LOG"
 t=0
 until up; do
+	if nc -z -G 2 "$HOST" 23 >/dev/null 2>&1; then
+		echo "== MAINLINE UP over USB after ~${t}s: telnet $HOST 23"
+		{ printf 'dmesg; echo; cat /proc/interrupts; ls /sys/class/udc; exit\n'; sleep 5; } |
+			nc "$HOST" 23 > "$LOG/mainline-dmesg.txt" 2>&1
+		echo "== saved $LOG/mainline-dmesg.txt ($(wc -l < "$LOG/mainline-dmesg.txt") lines)"
+		[ -n "${KEEP:-}" ] && exit 0
+		printf 'sync; echo b > /proc/sysrq-trigger; exit\n' | nc -w 3 "$HOST" 23 >/dev/null 2>&1 || true
+		while nc -z -G 2 "$HOST" 23 >/dev/null 2>&1; do sleep 2; done
+	fi
 	sleep 5; t=$((t + 5))
 	[ $t -ge "$WAIT" ] && { echo "pmOS did not come back: still in RECOVERY loop?"; exit 2; }
 done
 sleep 10
 echo "== back in pmOS after ~${t}s; fetching pstore"
-mkdir -p "$LOG"
-ssh_ "echo $SSHPW | sudo -S -p '' sh -c 'for f in /sys/fs/pstore/*; do [ -f \"\$f\" ] && { echo \"### \$f\"; cat \"\$f\"; }; done; grep -E \"^088f|^08c0|^08c5\" /sys/kernel/debug/regmap/spmi0-00/registers'" > "$LOG/pstore.txt"
+ssh_ "echo $SSHPW | sudo -S -p '' sh -c 'for f in /sys/fs/pstore/*; do [ -f \"\$f\" ] && { echo \"### \$f\"; cat \"\$f\"; }; done; grep -E \"^088f|^08c0|^08c5|^614[0-3]\" /sys/kernel/debug/regmap/spmi0-00/registers'" > "$LOG/pstore.txt"
 echo "== saved $LOG/pstore.txt ($(wc -l < "$LOG/pstore.txt") lines)"
+"$W/scpw.exp" "$here/memprobe.py" "user@$HOST:/tmp/memprobe.py" >/dev/null 2>&1
+ssh_ "echo $SSHPW | sudo -S -p '' python3 /tmp/memprobe.py log3" > "$LOG/mainline.log"
+echo "== mainline log: $LOG/mainline.log ($(wc -l < "$LOG/mainline.log") lines)"; head -1 "$LOG/mainline.log"
