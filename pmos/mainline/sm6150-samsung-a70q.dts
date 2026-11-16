@@ -15,6 +15,7 @@
 #include <dt-bindings/spmi/spmi.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 #include "talos.dtsi"
 #include "pm6150.dtsi"
 #include "pm6150l.dtsi"
@@ -356,6 +357,14 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
+		/* touchscreen avdd (downstream pm6150_l18, 3.0 V) */
+		vreg_l18a: ldo18 {
+			regulator-name = "vreg_l18a";
+			regulator-min-microvolt = <3000000>;
+			regulator-max-microvolt = <3000000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
 		vreg_l17a: ldo17 {
 			regulator-name = "vreg_l17a";
 			regulator-min-microvolt = <3000000>;
@@ -469,5 +478,42 @@
 			debounce-interval = <15>;
 			wakeup-source;
 		};
+	};
+};
+
+/* Touchscreen: Imagis IST4050 on QUP0 SE1 (downstream i2c@884000, address 0x50, irq GPIO 89, power GPIO 93) */
+/* the SEs are in GPI mode (set by the firmware): geni-i2c needs the GPI DMA engine */
+&gpi_dma0 {
+	status = "okay";
+};
+
+&qupv3_id_0 {
+	status = "okay";
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+	status = "okay";
+
+	touchscreen@50 {
+		compatible = "imagis,ist40xx";
+		reg = <0x50>;
+		interrupts-extended = <&tlmm 89 IRQ_TYPE_LEVEL_LOW>;
+		power-gpios = <&tlmm 93 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&ts_int>;
+		pinctrl-names = "default";
+		vdd-supply = <&vreg_l18a>;
+		touchscreen-size-x = <1080>;
+		touchscreen-size-y = <2400>;
+	};
+};
+
+&tlmm {
+	/* downstream tsp_int: no pull on the touchscreen interrupt line */
+	ts_int: ts-int-state {
+		pins = "gpio89";
+		function = "gpio";
+		bias-disable;
+		input-enable;
 	};
 };

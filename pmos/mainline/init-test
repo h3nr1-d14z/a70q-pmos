@@ -14,6 +14,28 @@ STAY=600
 msg() { echo "A70Q-MAINLINE: $*" > /dev/kmsg; echo "A70Q-MAINLINE: $*" > /dev/tty0 2>/dev/null; }
 msg "initramfs reached, kernel $(uname -r)"
 
+# Self-heal: the Samsung bootloader keeps booting RECOVERY (this kernel) after an abnormal reset.
+# A boot counter in the last 4 KiB of the RECOVERY partition counts boots that did not reach a
+# healthy state; at 3 the downstream pmOS kernel (BOOT) is copied over RECOVERY and the phone
+# reboots, so even a recovery loop ends in pmOS. Reset to 0 once telnet is up (initramfs mode)
+# or after 3 minutes of running pmOS (rootfs mode).
+part() { for b in /sys/class/block/*; do grep -q "^PARTNAME=$1\$" $b/uevent 2>/dev/null && echo /dev/${b##*/}; done; }
+RECOV=$(part recovery); BOOTP=$(part boot)
+if [ -n "$RECOV" ] && [ -n "$BOOTP" ]; then
+	last=$(( $(cat /sys/class/block/${RECOV##*/}/size) / 8 - 1 ))
+	tries=$(dd if=$RECOV bs=4096 skip=$last count=1 2>/dev/null | head -c 12)
+	case "$tries" in A70QTRIES=[0-9]*) n=${tries#A70QTRIES=}; n=${n%%[!0-9]*} ;; *) n=0 ;; esac
+	setcount() { printf 'A70QTRIES=%d\n' $1 | dd of=$RECOV bs=4096 seek=$last count=1 conv=sync,notrunc 2>/dev/null; sync; }
+	msg "boot attempts without a healthy state: $n"
+	if [ "$n" -ge 3 ]; then
+		msg "recovery loop: copying BOOT ($BOOTP) to RECOVERY ($RECOV) and rebooting"
+		dd if=$BOOTP of=$RECOV bs=4M conv=fsync 2>/dev/null
+		sync
+		echo b > /proc/sysrq-trigger
+	fi
+	setcount $((n + 1))
+fi
+
 gadget() {
 	g=/sys/kernel/config/usb_gadget/a70q
 	mkdir -p $g || return 1
@@ -70,6 +92,8 @@ if grep -q a70q.rootfs /proc/cmdline; then
 		if mount -t ext4 /dev/loop1 /newroot && [ -x /newroot/sbin/init ]; then
 			# safety net: whatever happens in pmOS, reset after 15 min (the fd survives switch_root)
 			( exec 3>/proc/sysrq-trigger; sleep 900; echo s >&3; sleep 2; echo b >&3 ) &
+			# healthy after 3 minutes in pmOS: reset the boot counter (fd kept across switch_root)
+			[ -n "$RECOV" ] && ( exec 4<>$RECOV; sleep 180; printf 'A70QTRIES=0\n' | dd bs=4096 seek=$last count=1 conv=sync,notrunc 1>&4 2>/dev/null; sync ) &
 			msg "switch_root into pmOS ($dev, loop1)"
 			mount --move /proc /newroot/proc
 			mount --move /sys /newroot/sys
@@ -81,7 +105,7 @@ if grep -q a70q.rootfs /proc/cmdline; then
 fi
 
 # telnet only when staying in the initramfs (in rootfs mode port 23 means: switch_root failed)
-busybox-extras telnetd -l /bin/sh -p 23 && msg "telnet :23"
+busybox-extras telnetd -l /bin/sh -p 23 && msg "telnet :23" && [ -n "$RECOV" ] && setcount 0
 msg "staying $STAY s"
 sleep $STAY
 msg "rebooting"

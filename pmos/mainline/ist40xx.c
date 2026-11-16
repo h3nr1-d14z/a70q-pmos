@@ -1,0 +1,264 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Imagis IST40xx touchscreen (IST4050 in the Samsung Galaxy A70), minimal driver.
+ *
+ * Register access and event format from Samsung's downstream driver (ist40xx.c, ist40xx_sys.c):
+ * 32-bit big-endian register addresses and data words, the "HIB" host interface block at
+ * 0x30000100 (same layout as the IST3038C, see imagis.c) but touch data is a list of 16-byte
+ * Samsung-style events: byte 0 = event id (2) | touch id (4) | status (2), byte 1 = X[11:4],
+ * byte 2 = Y[11:4], byte 3 = Y[3:0] | X[3:0] << 4, byte 4 = major, byte 5 = minor, byte 6 = Z.
+ * The firmware already running on the chip is used as is (no update, no calibration).
+ */
+#include <linux/bitfield.h>
+#include <linux/delay.h>
+#include <linux/gpio/consumer.h>
+#include <linux/i2c.h>
+#include <linux/input.h>
+#include <linux/input/mt.h>
+#include <linux/input/touchscreen.h>
+#include <linux/interrupt.h>
+#include <linux/module.h>
+#include <linux/of.h>
+#include <linux/regulator/consumer.h>
+
+#define IST40XX_DIRECT_ACCESS	BIT(31)
+#define IST40XX_BURST_ACCESS	BIT(27)
+#define IST40XX_HIB_ACCESS	(0x800B << 16)
+#define IST40XX_HIB_BASE	0x30000100
+#define IST40XX_REG_CHIPID	(0x40001000 | IST40XX_DIRECT_ACCESS)
+#define IST40XX_REG_STATUS	(IST40XX_HIB_BASE | IST40XX_HIB_ACCESS | 0x00)
+#define IST40XX_REG_I2C_CTRL	(0x30000000 | IST40XX_DIRECT_ACCESS)
+#define IST40XX_I2C_32BIT	0x003912D8	/* ist40xx_set_i2c_32bit() */
+#define IST40XX_REG_INTR_MSG	(IST40XX_HIB_BASE | IST40XX_HIB_ACCESS | 0x04)
+#define IST40XX_REG_COORD	(IST40XX_HIB_BASE | IST40XX_HIB_ACCESS | 0x08)
+#define IST40XX_REG_EXT_COORD	(0x00004270 | IST40XX_DIRECT_ACCESS)
+
+#define IST40XX_INITIAL_VALUE	0x8EAD8EAD
+#define IST40XX_TOUCH_SIG	0x77
+#define IST40XX_MSG_SIG		GENMASK(31, 24)
+#define IST40XX_MSG_COUNT	GENMASK(15, 12)
+#define IST40XX_MSG_ZERO_PREV	BIT(11)
+#define IST40XX_MAX_ID		15
+#define IST40XX_EVENT_WORDS	4
+#define IST40XX_EVENTS_IN_HIB	5
+#define IST40XX_ON_DELAY_MS	60
+#define IST40XX_HCOM_FW_START	0x01	/* eHCOM_FW_START: start scanning */
+
+#define EID_COORDINATE		0
+#define STA_PRESS		1
+#define STA_MOVE		2
+#define STA_RELEASE		3
+
+struct ist40xx {
+	struct i2c_client *client;
+	struct input_dev *input;
+	struct touchscreen_properties prop;
+	struct gpio_desc *power_gpio;
+	struct regulator *vdd;
+	u32 buf[IST40XX_MAX_ID * IST40XX_EVENT_WORDS];
+};
+
+static int ist40xx_read(struct ist40xx *ts, u32 reg, u32 *data, unsigned int words)
+{
+	__be32 addr = cpu_to_be32(reg);
+	struct i2c_msg msg[2] = {
+		{ .addr = ts->client->addr, .flags = 0, .len = 4, .buf = (u8 *)&addr },
+		{ .addr = ts->client->addr, .flags = I2C_M_RD, .len = words * 4, .buf = (u8 *)data },
+	};
+	unsigned int i;
+	int ret;
+
+	ret = i2c_transfer(ts->client->adapter, msg, 2);
+	if (ret != 2)
+		return ret < 0 ? ret : -EIO;
+	for (i = 0; i < words; i++)
+		data[i] = be32_to_cpu((__force __be32)data[i]);
+	return 0;
+}
+
+/* host command: one message, 32-bit big-endian command code then 32-bit data word(s) */
+static int ist40xx_write_cmd(struct ist40xx *ts, u32 cmd, u32 val)
+{
+	__be32 buf[2] = { cpu_to_be32(cmd), cpu_to_be32(val) };
+	int ret = i2c_master_send(ts->client, (u8 *)buf, sizeof(buf));
+
+	return ret == sizeof(buf) ? 0 : (ret < 0 ? ret : -EIO);
+}
+
+static void ist40xx_report(struct ist40xx *ts, unsigned int count)
+{
+	unsigned int i;
+
+	for (i = 0; i < count; i++) {
+		u32 w0 = ts->buf[i * IST40XX_EVENT_WORDS];
+		u32 w1 = ts->buf[i * IST40XX_EVENT_WORDS + 1];
+		unsigned int eid = w0 & 0x3;
+		unsigned int id = ((w0 >> 2) & 0xf);
+		unsigned int status = (w0 >> 6) & 0x3;
+		unsigned int x = ((w0 >> 8) & 0xff) << 4 | ((w0 >> 28) & 0xf);
+		unsigned int y = ((w0 >> 16) & 0xff) << 4 | ((w0 >> 24) & 0xf);
+		unsigned int major = w1 & 0xff;
+		unsigned int z = (w1 >> 16) & 0x3f;
+
+		if (eid != EID_COORDINATE || !id || id > IST40XX_MAX_ID)
+			continue;
+		input_mt_slot(ts->input, id - 1);
+		if (status == STA_RELEASE || status == 0) {
+			input_mt_report_slot_inactive(ts->input);
+			continue;
+		}
+		input_mt_report_slot_state(ts->input, MT_TOOL_FINGER, true);
+		touchscreen_report_pos(ts->input, &ts->prop, x, y, true);
+		input_report_abs(ts->input, ABS_MT_TOUCH_MAJOR, major);
+		input_report_abs(ts->input, ABS_MT_PRESSURE, z);
+	}
+	input_mt_sync_frame(ts->input);
+	input_sync(ts->input);
+}
+
+static irqreturn_t ist40xx_irq(int irq, void *dev_id)
+{
+	struct ist40xx *ts = dev_id;
+	struct device *dev = &ts->client->dev;
+	unsigned int count, first;
+	u32 msg;
+	int ret;
+
+	ret = ist40xx_read(ts, IST40XX_REG_INTR_MSG, &msg, 1);
+	if (ret) {
+		dev_err_ratelimited(dev, "intr msg read failed: %d\n", ret);
+		return IRQ_HANDLED;
+	}
+	if (msg == IST40XX_INITIAL_VALUE || msg == 0 || msg == 0xffffffff)
+		return IRQ_HANDLED;
+	if (FIELD_GET(IST40XX_MSG_SIG, msg) != IST40XX_TOUCH_SIG ||
+	    !(msg & IST40XX_MSG_ZERO_PREV)) {
+		dev_dbg(dev, "non-touch message %08x\n", msg);
+		return IRQ_HANDLED;
+	}
+	count = min_t(unsigned int, FIELD_GET(IST40XX_MSG_COUNT, msg), IST40XX_MAX_ID);
+	if (!count)
+		return IRQ_HANDLED;
+
+	first = min_t(unsigned int, count, IST40XX_EVENTS_IN_HIB);
+	ret = ist40xx_read(ts, IST40XX_REG_COORD | IST40XX_BURST_ACCESS, ts->buf,
+			   first * IST40XX_EVENT_WORDS);
+	if (!ret && count > first)
+		ret = ist40xx_read(ts, IST40XX_REG_EXT_COORD | IST40XX_BURST_ACCESS,
+				   &ts->buf[first * IST40XX_EVENT_WORDS],
+				   (count - first) * IST40XX_EVENT_WORDS);
+	if (ret) {
+		dev_err_ratelimited(dev, "coordinate read failed: %d\n", ret);
+		return IRQ_HANDLED;
+	}
+	ist40xx_report(ts, count);
+	return IRQ_HANDLED;
+}
+
+static void ist40xx_power_off(void *data)
+{
+	struct ist40xx *ts = data;
+
+	gpiod_set_value_cansleep(ts->power_gpio, 0);
+	if (ts->vdd)
+		regulator_disable(ts->vdd);
+}
+
+static int ist40xx_probe(struct i2c_client *client)
+{
+	struct device *dev = &client->dev;
+	struct ist40xx *ts;
+	u32 chip_id = 0;
+	int ret;
+
+	ts = devm_kzalloc(dev, sizeof(*ts), GFP_KERNEL);
+	if (!ts)
+		return -ENOMEM;
+	ts->client = client;
+
+	ts->power_gpio = devm_gpiod_get_optional(dev, "power", GPIOD_OUT_LOW);
+	if (IS_ERR(ts->power_gpio))
+		return dev_err_probe(dev, PTR_ERR(ts->power_gpio), "power gpio\n");
+	ts->vdd = devm_regulator_get_optional(dev, "vdd");
+	if (IS_ERR(ts->vdd)) {
+		if (PTR_ERR(ts->vdd) != -ENODEV)
+			return dev_err_probe(dev, PTR_ERR(ts->vdd), "vdd supply\n");
+		ts->vdd = NULL;
+	}
+	if (ts->vdd) {
+		ret = regulator_enable(ts->vdd);
+		if (ret)
+			return ret;
+	}
+	/* power cycle as ist40xx_reset(): off 30 ms, on, 60 ms, then 32-bit I2C mode */
+	gpiod_set_value_cansleep(ts->power_gpio, 0);
+	msleep(30);
+	gpiod_set_value_cansleep(ts->power_gpio, 1);
+	ret = devm_add_action_or_reset(dev, ist40xx_power_off, ts);
+	if (ret)
+		return ret;
+	msleep(IST40XX_ON_DELAY_MS);
+	ret = ist40xx_write_cmd(ts, IST40XX_REG_I2C_CTRL, IST40XX_I2C_32BIT);
+	if (ret)
+		dev_warn(dev, "32-bit I2C mode: %d\n", ret);
+
+	ret = ist40xx_read(ts, IST40XX_REG_CHIPID, &chip_id, 1);
+	if (ret)
+		return dev_err_probe(dev, ret, "no response from the chip\n");
+	dev_info(dev, "chip id %08x\n", chip_id);
+
+	/* the firmware does not report touches until told to start scanning (ist40xx_start()) */
+	ret = ist40xx_write_cmd(ts, IST40XX_HCOM_FW_START, 1);
+	if (ret)
+		dev_warn(dev, "start scan command failed: %d\n", ret);
+	{
+		int i;
+		u32 st = 0;
+
+		for (i = 0; i < 20; i++) {
+			msleep(50);
+			if (!ist40xx_read(ts, IST40XX_REG_STATUS, &st, 1) && (st & 0xff) == 0x75)
+				break;
+		}
+		dev_info(dev, "touch status %08x after %d ms%s\n", st, (i + 1) * 50,
+			 (st & 0xff) == 0x75 ? " (firmware running)" : " (firmware NOT running)");
+	}
+
+	ts->input = devm_input_allocate_device(dev);
+	if (!ts->input)
+		return -ENOMEM;
+	ts->input->name = "Imagis IST40xx Touchscreen";
+	ts->input->id.bustype = BUS_I2C;
+	input_set_abs_params(ts->input, ABS_MT_POSITION_X, 0, 4095, 0, 0);
+	input_set_abs_params(ts->input, ABS_MT_POSITION_Y, 0, 4095, 0, 0);
+	input_set_abs_params(ts->input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
+	input_set_abs_params(ts->input, ABS_MT_PRESSURE, 0, 63, 0, 0);
+	touchscreen_parse_properties(ts->input, true, &ts->prop);
+	ret = input_mt_init_slots(ts->input, IST40XX_MAX_ID, INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED);
+	if (ret)
+		return ret;
+	ret = input_register_device(ts->input);
+	if (ret)
+		return ret;
+
+	return devm_request_threaded_irq(dev, client->irq, NULL, ist40xx_irq, IRQF_ONESHOT,
+					 "ist40xx", ts);
+}
+
+static const struct of_device_id ist40xx_of_match[] = {
+	{ .compatible = "imagis,ist40xx" },
+	{ }
+};
+MODULE_DEVICE_TABLE(of, ist40xx_of_match);
+
+static struct i2c_driver ist40xx_driver = {
+	.driver = {
+		.name = "ist40xx",
+		.of_match_table = ist40xx_of_match,
+	},
+	.probe = ist40xx_probe,
+};
+module_i2c_driver(ist40xx_driver);
+
+MODULE_DESCRIPTION("Imagis IST40xx touchscreen driver (minimal)");
+MODULE_LICENSE("GPL");

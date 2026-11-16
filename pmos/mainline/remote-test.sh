@@ -29,6 +29,8 @@ ssh_ "echo \$SSHPW >/dev/null; echo $SSHPW | sudo -S -p '' sh -c '
   dd if=/tmp/recovery-test.img of=/dev/disk/by-partlabel/recovery bs=4M conv=fsync 2>/dev/null
   n=\$(stat -c %s /tmp/recovery-test.img)
   [ \"\$(head -c \$n /dev/disk/by-partlabel/recovery | sha256sum | cut -d\" \" -f1)\" = $sum ]
+  r=\$(readlink -f /dev/disk/by-partlabel/recovery); last=\$(( \$(cat /sys/class/block/\${r##*/}/size) / 8 - 1 ))
+  dd if=/dev/zero of=/dev/disk/by-partlabel/recovery bs=4096 seek=\$last count=1 conv=notrunc 2>/dev/null
   rm -f /tmp/recovery-test.img; echo written-ok'" | grep -q written-ok || { echo "write failed"; exit 1; }
 boot0=$(ssh_ "cat /proc/sys/kernel/random/boot_id")
 echo "== reboot to recovery (pmOS boot $boot0)"
