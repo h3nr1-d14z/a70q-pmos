@@ -61,7 +61,7 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 | Mốc | Nội dung | Trạng thái |
 |---|---|---|
 | 1 | boot tới initramfs, framebuffer, log qua ramoops | ✅ 2026-11-16 (lần 22): tới `/init`, log hiện trên màn hình. Cần: TLMM bỏ chân secure 0–3/6–9/37–38, không PSCI cpuidle; nhiều thiết bị đang tạm tắt — "Nhật ký thử" |
-| 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | |
+| 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | ✅ USB gadget 2026-11-16: ECM + telnet `172.16.42.1:23` (`mlsh '<lệnh>'`), 8 CPU, 5,2 GB RAM. Cần: `apps_rsc` bỏ `power-domains` (chờ PSCI domain mãi → rpmhcc/GCC/regulator kẹt), LDO L4A/L11A/L17A cho QUSB2, `qcom,select-utmi-as-pipe-clk` (không PHY USB3 → ep0 timeout), QFPROM bật lại. UFS: chưa |
 | 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | |
 | 4 | panel S6E3FC2 AMS670TA01 (biến thể driver s6e3fc2x01), cảm ứng IST40xx (driver mới) | |
 | 5 | WiFi/BT WCN3988, âm thanh, pin/sạc, modem | |

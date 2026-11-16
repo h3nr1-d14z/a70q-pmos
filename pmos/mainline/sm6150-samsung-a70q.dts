@@ -448,6 +448,8 @@
 	phys = <&usb_1_hsphy>;
 	phy-names = "usb2-phy";
 	maximum-speed = "high-speed";
+	/* no USB3 PHY: clock the PIPE domain from UTMI (otherwise ep0 commands time out) */
+	qcom,select-utmi-as-pipe-clk;
 	dr_mode = "peripheral";
 
 	status = "okay";

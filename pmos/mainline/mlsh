@@ -1,0 +1,6 @@
+#!/bin/sh
+# Run a shell command on the mainline test kernel (telnetd on 172.16.42.1:23, initramfs root shell).
+#   pmos/mainline/mlsh 'uname -a; dmesg | tail'      (WAIT=seconds to collect output, default 4)
+HOST=${HOST:-172.16.42.1}
+{ printf '%s; echo __END__; exit\n' "$*"; sleep "${WAIT:-4}"; } | nc "$HOST" 23 2>/dev/null |
+	LC_ALL=C tr -d '\r' | LC_ALL=C sed -e '1,/__END__; exit/d' -e '/^__END__$/,$d'
