@@ -75,7 +75,7 @@ pmos/mainline/mkboot.sh     # initramfs thử nghiệm + boot image -> out/recov
 |---|---|---|
 | 1 | boot tới initramfs, framebuffer, log qua ramoops | ✅ 2026-11-16 (lần 22): tới `/init`, log hiện trên màn hình. Cần: TLMM bỏ chân secure 0–3/6–9/37–38, không PSCI cpuidle; nhiều thiết bị đang tạm tắt — "Nhật ký thử" |
 | 2 | regulator PM6150/PM6150L (rpmh), UFS, USB gadget (SSH qua USB) | ✅ USB gadget 2026-11-16: ECM + telnet `172.16.42.1:23` (`mlsh '<lệnh>'`), 8 CPU, 5,2 GB RAM. Cần: `apps_rsc` bỏ `power-domains` (chờ PSCI domain mãi → rpmhcc/GCC/regulator kẹt), LDO L4A/L11A/L17A cho QUSB2, `qcom,select-utmi-as-pipe-clk` (không PHY USB3 → ep0 timeout), QFPROM bật lại. ✅ UFS 2026-11-16: KM2V7001CM 128 GB, 64 phân vùng (vcc L11C, vccq2 L12A, PHY L4A/L11A); cần bật lại `apps_smmu` (không có thì NOP OUT timeout — DMA của stream 0x300 bị chặn) |
-| 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | |
+| 3 | GPU A612 (RGMU + zap firmware Samsung), ADSP/CDSP | đang làm: msm nhận A612 (`msm.separate_gpu_kms=1`, renderD128), SMMU GPU chạy, nạp được SQE (linux-firmware, `/lib/firmware/qcom/`) + RGMU; **CP không chạy** (`timeout waiting to drain ringbuffer 0 rptr/wptr = 0/C`, chưa tới bước zap). Đã loại: rail GFX riêng (là `cx.lvl`, AOP không ACK `gfx.lvl` → treo udev), SQE vendor. Zap Samsung nằm trên phân vùng firmware (downstream mount), không ở rootfs |
 | 4 | panel S6E3FC2 AMS670TA01 (biến thể driver s6e3fc2x01), cảm ứng IST40xx (driver mới) | |
 | 5 | WiFi/BT WCN3988, âm thanh, pin/sạc, modem | |
 
@@ -147,3 +147,6 @@ trống) ghi vào RECOVERY bằng `dd`, `reboot-mode recovery`.
 - Thủ phạm thật của các lần "khởi động lại" từ lần 13: PSCI domain/OSI. Một số thiết bị tắt ở lần 7–11 (cpufreq,
   smp2p, crypto BAM, interconnect…) có thể không hỏng thật — sẽ bật lại từng cái ở mốc 2 để kiểm tra
 - `A70Q-MAINLINE` không hiện trên `tty0`: chưa có fbcon trên framebuffer (simpledrm chưa gắn / chưa có console chữ)
+- **Quy tắc an toàn (2026-11-17)**: thử phần cứng mới ở chế độ initramfs có telnet trước (tự gỡ được vòng lặp: UFS chạy
+  trên mainline → `dd` kernel pmOS vào RECOVERY), chỉ sau đó mới thử với `ROOTFS=1`. Một bản sửa sai (bỏ phiếu
+  `gfx.lvl`) làm pmOS-trên-mainline treo trước sshd và máy lặp vào RECOVERY → phải vào Download Mode bằng tay.
