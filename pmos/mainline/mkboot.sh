@@ -10,6 +10,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../.." && pwd)"
 OUT="${1:-$HERE/out/recovery-mainline.img}"
 LIKE="${LIKE:-$REPO/backups/full/recovery.img}"
 CMDLINE="${CMDLINE:-console=tty0 loglevel=8 ignore_loglevel printk.devkmsg=on panic=10 oops=panic softlockup_panic=1 printk.always_kmsg_dump=1 reboot=warm clk_ignore_unused pd_ignore_unused rdinit=/init}"
+[ -n "${ROOTFS:-}" ] && CMDLINE="$CMDLINE a70q.rootfs"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 docker run --rm -v "$T":/o -v "$HERE":/a alpine:3.22 sh -ec '
 apk add -q busybox-static busybox-extras cpio >/dev/null

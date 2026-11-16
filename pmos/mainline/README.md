@@ -16,6 +16,19 @@ Kernel mainline được nạp vào **RECOVERY**, không đụng BOOT:
 Recovery gốc (LineageOS recovery) đã sao lưu: `backups/full/recovery.img` (sha256 `fc034fd4…`), ghi lại bằng
 `dd` hoặc `flash.sh --RECOVERY backups/full/recovery.img`.
 
+## pmOS trên kernel mainline (từ 2026-11-16)
+
+`ROOTFS=1 pmos/mainline/mkboot.sh` → initramfs dựng USB gadget rồi `switch_root` vào pmOS đã cài (userdata =
+image đĩa GPT **sector 4096 byte**; loop đọc sector 512 nên không thấy phân vùng → map p1/p2 bằng offset
+`fdisk -b 4096`, loop1 = pmOS_root, loop2 = pmOS_boot). Module mainline cài vào rootfs: `MODULES=1 build.sh` →
+`out/modules.tar.gz` → `/lib/modules/7.3.4-a70q` (kernel downstream không dùng thư mục module nào). Một tiến trình
+giữ sẵn fd `/proc/sysrq-trigger` reset máy sau 15 phút (lưới an toàn).
+
+Kết quả: OpenRC, sshd (SSH qua USB như bình thường), NetworkManager, elogind, seatd chạy; tinydm → Sxmo/sway hiện
+giao diện qua simpledrm (`screenshot-sxmo-mainline.png`). Device package r51: `a70q-wlroots.sh` chọn pixman khi
+không có `/sys/class/kgsl`, `WLR_LIBINPUT_NO_DEVICES=1` (chưa có cảm ứng/phím); deviceprofile cho
+`samsung,a70q`. Hỏng (chưa có phần cứng): a70q-qgd, bluetooth, modemmanager, iio-sensor-proxy; không RTC (1970).
+
 ## Thử tự động, không cần Download Mode (từ 2026-11-16)
 
 ```sh

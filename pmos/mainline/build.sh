@@ -6,6 +6,7 @@
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 KVER="${KVER:-7.3.4}"
+MODULES="${MODULES:-}"   # MODULES=1: also build modules -> out/modules.tar.gz (for the pmOS rootfs)
 mkdir -p "$HERE/out"
 docker run --rm -v a70q-mainline:/m -v "$HERE":/a alpine:3.22 sh -ec "
 apk add -q build-base bc flex bison openssl-dev perl linux-headers elfutils-dev xz findutils python3 curl tar gzip coreutils diffutils patch >/dev/null
@@ -27,5 +28,14 @@ make -s O=\$O ARCH=arm64 -j\$(nproc) Image.gz qcom/sm6150-samsung-a70q.dtb
 cp \$O/arch/arm64/boot/Image.gz \$O/arch/arm64/boot/dts/qcom/sm6150-samsung-a70q.dtb /a/out/
 cp \$O/.config /a/out/config
 cp \$O/System.map /a/out/System.map
+if [ -n \"$MODULES\" ]; then
+	make -s O=\$O ARCH=arm64 -j\$(nproc) modules
+	rm -rf /tmp/mr
+	make -s O=\$O ARCH=arm64 INSTALL_MOD_PATH=/tmp/mr INSTALL_MOD_STRIP=1 modules_install
+	rel=\$(cat \$O/include/config/kernel.release)
+	rm -f /tmp/mr/lib/modules/\$rel/build
+	tar -C /tmp/mr -czf /a/out/modules.tar.gz lib/modules/\$rel
+	echo modules: \$rel \$(du -sh /tmp/mr | cut -f1)
+fi
 "
 ls -l "$HERE/out"

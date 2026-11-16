@@ -42,17 +42,46 @@ if gadget; then
 	ip link set usb0 up
 	cat > /etc/udhcpd.conf <<EOF
 start 172.16.42.2
-end 172.16.42.20
+end 172.16.42.2
 interface usb0
 option subnet 255.255.255.0
 lease_file /var/lib/misc/udhcpd.leases
 EOF
 	touch /var/lib/misc/udhcpd.leases
 	busybox-extras udhcpd /etc/udhcpd.conf
-	busybox-extras telnetd -l /bin/sh -p 23
-	msg "usb0 172.16.42.1, telnet :23"
+	msg "usb0 172.16.42.1"
 fi
 
+# a70q.rootfs on the cmdline: boot the installed pmOS (userdata = disk image, p2 = pmOS_root)
+if grep -q a70q.rootfs /proc/cmdline; then
+	dev=""
+	for b in /sys/class/block/*; do
+		grep -q '^PARTNAME=userdata$' $b/uevent 2>/dev/null && dev=/dev/${b##*/}
+	done
+	msg "userdata = ${dev:-not found}"
+	# The image's GPT uses 4096-byte sectors (UFS logical block size) but a loop device reads it with
+	# 512-byte sectors and finds no partitions: map p1/p2 with byte offsets instead.
+	poff() { fdisk -l -b 4096 "$dev" 2>/dev/null | awk -v n=$1 '$1==n {print $2 * 4096}'; }
+	root_off=$(poff 2); boot_off=$(poff 1)
+	msg "pmOS root at byte $root_off, boot at $boot_off"
+	if [ -n "$dev" ] && [ -n "$root_off" ] && losetup -o "$root_off" /dev/loop1 "$dev"; then
+		[ -n "$boot_off" ] && losetup -o "$boot_off" /dev/loop2 "$dev"
+		mkdir -p /newroot
+		if mount -t ext4 /dev/loop1 /newroot && [ -x /newroot/sbin/init ]; then
+			# safety net: whatever happens in pmOS, reset after 15 min (the fd survives switch_root)
+			( exec 3>/proc/sysrq-trigger; sleep 900; echo s >&3; sleep 2; echo b >&3 ) &
+			msg "switch_root into pmOS ($dev, loop1)"
+			mount --move /proc /newroot/proc
+			mount --move /sys /newroot/sys
+			mount --move /dev /newroot/dev
+			exec switch_root /newroot /sbin/init
+		fi
+		msg "pmOS root not mountable"
+	fi
+fi
+
+# telnet only when staying in the initramfs (in rootfs mode port 23 means: switch_root failed)
+busybox-extras telnetd -l /bin/sh -p 23 && msg "telnet :23"
 msg "staying $STAY s"
 sleep $STAY
 msg "rebooting"

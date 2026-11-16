@@ -3,6 +3,14 @@
 # wlroots0.20 from our pmaports carries the WLR_DISPLAY_ONLY_DRM patch: Vulkan renderer on
 # turnip-kgsl, rendering into dumb buffers of the SDE device (ERRORS C54). Without that
 # patch the Vulkan renderer cannot start, so fall back to pixman (CPU) then.
+# Mainline kernel (pmos/mainline, no GPU yet: simpledrm only): CPU rendering, llvmpipe clients.
+if [ ! -e /sys/class/kgsl ]; then
+	export WLR_RENDERER=pixman
+	export WLR_NO_HARDWARE_CURSORS=1
+	# no touchscreen driver yet: start even without input devices
+	export WLR_LIBINPUT_NO_DEVICES=1
+	return 0 2>/dev/null || true
+fi
 if grep -q WLR_DISPLAY_ONLY_DRM /usr/lib/libwlroots-0.20.so 2>/dev/null; then
 	export WLR_RENDERER=vulkan
 	export WLR_DISPLAY_ONLY_DRM=1
