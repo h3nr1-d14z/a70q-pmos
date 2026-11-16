@@ -218,43 +218,8 @@
 	gpio-reserved-ranges = <0 4>, <6 4>, <37 2>;
 };
 
-/*
- * CPU frequency: probing qcom-cpufreq-hw made the phone reset (marker: "18323000.cpufreq /
- * qcom-cpufreq-hw", then reboot). Downstream drives the same block with Qualcomm's OSM clock
- * driver (qcom,clk-cpu-osm-sm6150, regs 0x18321000/0x18323000/0x18325800 + limits-dcvs).
- * Disabled for milestone 1: the CPUs keep the clock set by the bootloader.
- */
-&cpufreq_hw {
-	status = "disabled";
-};
 
-/*
- * SMP2P to the DSPs: probing smp2p-cdsp made the phone reset (marker: "smp2p-cdsp / qcom_smp2p",
- * then reboot; same smem items 94/432 and IPC bit 6 as downstream). The DSP remoteprocs are not
- * used in milestone 1, so both SMP2P links are disabled until the remoteprocs are brought up.
- */
-/ {
-	smp2p-adsp {
-		status = "disabled";
-	};
 
-	smp2p-cdsp {
-		status = "disabled";
-	};
-};
-
-/*
- * Crypto engine: probing its BAM DMA stopped the boot (marker: "1dc4000.dma-controller /
- * bam-dma-engine"). Not needed for milestone 1 (software crypto is used); disabled together with
- * the QCE that depends on it.
- */
-&cryptobam {
-	status = "disabled";
-};
-
-&crypto {
-	status = "disabled";
-};
 
 /*
  * Milestone 1 keeps only the core (GCC, RPMh, interconnect, TLMM, PDC, SPMI, tsens, mailbox): every
@@ -264,10 +229,7 @@
  * GPU/GMU/GPUCC, BWMON, LLCC, video/camera/display clock controllers and both SMMUs.
  */
 /* efuse@780000 (QFPROM) re-enabled for milestone 2: holds the QUSB2 PHY hstx-trim cell */
-&{/soc@0/rng@793000} { status = "disabled"; };
 &{/soc@0/gmu@506d000} { status = "disabled"; };
-&{/soc@0/clock-controller@5090000} { status = "disabled"; };
-&{/soc@0/iommu@50a0000} { status = "disabled"; };
 &{/soc@0/stm@6002000} { status = "disabled"; };
 &{/soc@0/tpda@6004000} { status = "disabled"; };
 &{/soc@0/funnel@6005000} { status = "disabled"; };
@@ -348,29 +310,8 @@
 &{/soc@0/cti@78e0000} { status = "disabled"; };
 &{/soc@0/cti@78f0000} { status = "disabled"; };
 &{/soc@0/cti@7900000} { status = "disabled"; };
-&{/soc@0/pmu@90b6300} { status = "disabled"; };
-&{/soc@0/pmu@90cd000} { status = "disabled"; };
-&{/soc@0/system-cache-controller@9200000} { status = "disabled"; };
-&{/soc@0/clock-controller@ab00000} { status = "disabled"; };
-&{/soc@0/clock-controller@ad00000} { status = "disabled"; };
-&{/soc@0/clock-controller@af00000} { status = "disabled"; };
 /* iommu@15000000 (apps_smmu) re-enabled for milestone 2: UFS DMA (stream 0x300) times out without it */
-&{/soc@0/interconnect@18321000} { status = "disabled"; };
 
-/*
- * Interconnect providers: even without QoS the boot stopped at "soc@0interconnect@9680000 /
- * qnoc-qcs615" (gem_noc): registering a provider makes icc-rpmh vote maximum bandwidth on its BCMs
- * via RPMh until sync_state (for gem_noc: shared bus / DDR). Milestone 1 needs no interconnect (the
- * bootloader's votes stay), so all providers are disabled for now.
- */
-&camnoc_virt { status = "disabled"; };
-&mc_virt { status = "disabled"; };
-&config_noc { status = "disabled"; };
-&system_noc { status = "disabled"; };
-&aggre1_noc { status = "disabled"; };
-&mmss_noc { status = "disabled"; };
-&dc_noc { status = "disabled"; };
-&gem_noc { status = "disabled"; };
 
 /*
  * PM6150 (USID 0) without children, only so the SPMI PMIC driver creates its regmap: the bring-up
@@ -385,14 +326,6 @@
 	};
 };
 
-/*
- * The phone reset ~7.5 s after kernel start with PON POFF reason PS_HOLD (SoC-initiated) and no
- * panic. Suspect: a thermal zone reaching its critical trip (PMIC fault flag OTST3 was set) and the
- * kernel shutting down. tsens off to test it (no thermal zones in milestone 1).
- */
-&tsens0 {
-	status = "disabled";
-};
 
 /*
  * Milestone 2: USB device mode (gadget) on the Type-C port, high speed only.
@@ -458,11 +391,9 @@
 
 /*
  * UFS (supplies from the downstream ufshc/ufsphy nodes: vcc = pm6150l_l11, vccq2 = pm6150_l12,
- * PHY = pm6150_l4 / pm6150_l11). No interconnect providers yet.
+ * PHY = pm6150_l4 / pm6150_l11).
  */
 &ufs_mem_hc {
-	/delete-property/ interconnects;
-	/delete-property/ interconnect-names;
 	vcc-supply = <&vreg_l11c>;
 	vcc-max-microamp = <600000>;
 	vccq2-supply = <&vreg_l12a>;
@@ -496,3 +427,6 @@
 
 	status = "okay";
 };
+
+/* GPU SMMU: probe times out (-110) until the GPU power/clock side (GMU, GX GDSC) is brought up (milestone 3) */
+&{/soc@0/iommu@50a0000} { status = "disabled"; };
