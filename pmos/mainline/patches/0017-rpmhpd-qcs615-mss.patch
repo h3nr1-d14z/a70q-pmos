@@ -1,0 +1,12 @@
+diff -ruN a/drivers/pmdomain/qcom/rpmhpd.c b/drivers/pmdomain/qcom/rpmhpd.c
+--- a/drivers/pmdomain/qcom/rpmhpd.c	2026-11-17 16:54:05.622409304 +0000
++++ b/drivers/pmdomain/qcom/rpmhpd.c	2026-11-17 16:54:05.629573667 +0000
+@@ -857,6 +857,8 @@
+ static struct rpmhpd *qcs615_rpmhpds[] = {
+ 	[RPMHPD_CX] = &cx,
+ 	[RPMHPD_CX_AO] = &cx_ao,
++	/* SM6150 phones (a70q): modem rail, downstream vdd_mss = mss.lvl (pm6150l_s7_level) */
++	[RPMHPD_MSS] = &mss,
+ };
+ 
+ static const struct rpmhpd_desc qcs615_desc = {
