@@ -33,3 +33,16 @@ sleep 2
 [ "$(cat $RP/state)" = running ] && { echo stop > $RP/state; sleep 2; }
 echo start > $RP/state
 echo "modem: $(cat $RP/state)"
+
+# Bluetooth (WCN3988 on uart7, hci_qca): the NVM has no BD address, so the controller stays
+# "unconfigured" until one is set. Use the address the downstream kernel's stack had
+# (saved by a70q-modem-up to /var/lib/a70q/bt-addr) so paired devices still recognise the
+# phone; otherwise make up a stable locally administered one.
+A=/var/lib/a70q/bt-addr
+if [ ! -s $A ]; then
+	mkdir -p /var/lib/a70q
+	printf '02:A7:0A:%02X:%02X:%02X\n' $(od -An -N3 -tu1 /dev/urandom) > $A
+fi
+( for i in $(seq 1 60); do [ -e /sys/class/bluetooth/hci0 ] && break; sleep 1; done
+  timeout 8 btmgmt --index 0 public-addr "$(cat $A)" </dev/null >/dev/null 2>&1
+  echo "bluetooth: public address set" ) &

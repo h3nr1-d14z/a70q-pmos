@@ -665,3 +665,32 @@
 		vdd-3.3-ch0-supply = <&vreg_l10c>;
 	};
 };
+
+/*
+ * Bluetooth: WCN3988 on QUP1 SE3 (uart7 = downstream ttyHS0 at 0xa8c000), the same chip as the
+ * WiFi; supplies from the downstream bt_wcn3990 node (core = pm6150l_l1, pa = pm6150l_l2,
+ * ldo = pm6150l_l10). Firmware qca/apbtfw11.tlv + qca/apnv11.bin from the vendor partition.
+ */
+&qupv3_id_1 {
+	status = "okay";
+};
+
+/ {
+	aliases {
+		/* qcom_geni_serial needs an alias for the line number */
+		serial1 = &uart7;
+	};
+};
+
+&uart7 {
+	status = "okay";
+
+	bluetooth {
+		compatible = "qcom,wcn3988-bt";
+		vddio-supply = <&vreg_l1c>;
+		vddxo-supply = <&vreg_l1c>;
+		vddrf-supply = <&vreg_l2c>;
+		vddch0-supply = <&vreg_l10c>;
+		max-speed = <3200000>;
+	};
+};

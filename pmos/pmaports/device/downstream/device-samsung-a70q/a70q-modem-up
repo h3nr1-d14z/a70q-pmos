@@ -160,3 +160,9 @@ elif [ -e /sys/class/net/wlan0 ] && [ -s "$CONF" ]; then
 	udhcpc -b -i wlan0 -p /run/udhcpc.wlan0.pid -x hostname:"$(hostname)" >/dev/null 2>&1
 	log "wpa_supplicant + udhcpc started on wlan0"
 fi
+
+# remember the Bluetooth address for the mainline kernel (its hci_qca has no address in the NVM)
+( for i in $(seq 1 120); do
+	a=$(timeout 5 btmgmt --index 0 info </dev/null 2>/dev/null | awk '/^\s*addr /{print $2; exit}')
+	case "$a" in ""|00:00:00:00:00:00) sleep 2 ;; *) mkdir -p /var/lib/a70q; echo "$a" > /var/lib/a70q/bt-addr; break ;; esac
+  done ) &
