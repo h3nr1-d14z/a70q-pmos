@@ -9,6 +9,7 @@ depend() {
 }
 
 start() {
+	[ -e /sys/class/kgsl ] || return 0     # mainline kernel: a70q-mainline-modem does it
 	ebegin "Starting a70q modem and WLAN bring-up (log: /var/log/a70q-modem.log)"
 	# takes ~30 s (modem boot + WLAN firmware); run in background so boot is not blocked
 	# one-shot script that spawns the daemons; not supervised

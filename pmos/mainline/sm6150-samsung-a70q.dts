@@ -80,10 +80,7 @@
 			reg = <0x0 0xf4a01000 0x0 0x200000>;
 			no-map;
 			qcom,client-id = <1>;
-			/*
-			 * no qcom,vmid: qcom_scm_assign_mem() (HLOS -> HLOS+MSS_MSA, the same as downstream's
-			 * hyp_assign_phys()) leaves a CPU stuck in the secure world (RCU stall, NMI not answered)
-			 */
+			qcom,vmid = <QCOM_SCM_VMID_MSS_MSA>;
 		};
 
 		hyp_mem: hyp@85700000 {
@@ -481,11 +478,22 @@
 };
 
 &gpu_zap_shader {
-	firmware-name = "a612_zap.mdt";
+	/* device-signed zap (firmware partition: a612_zap.mdt/.b0x), linked into /lib/firmware/qcom */
+	firmware-name = "qcom/a612_zap.mdt";
 };
 
 &gmu {
 	status = "okay";
+};
+
+/*
+ * GCC GDSCs sit on the RPMh CX rail: without this the GPUCC parents (GPLL0,
+ * GCC_GPU_GPLL0_DIV_CLK_SRC) are never voted on and the GPU core clock stays dead (the CP
+ * never fetched the ring). Upstream commit 5ad7eb6a944e; found by the violet (Redmi Note 7
+ * Pro, SM6150) mainline port.
+ */
+&gcc {
+	power-domains = <&rpmhpd RPMHPD_CX>;
 };
 
 
@@ -655,6 +663,5 @@
 		vdd-1.8-xo-supply = <&vreg_l1c>;
 		vdd-1.3-rfa-supply = <&vreg_l2c>;
 		vdd-3.3-ch0-supply = <&vreg_l10c>;
-		qcom,snoc-host-cap-8bit-quirk;
 	};
 };

@@ -1,0 +1,16 @@
+#!/sbin/openrc-run
+# Mainline kernel only (pmos/mainline): bring up the modem (MPSS) and with it WiFi (WCN3990 firmware
+# runs on the modem DSP). On the downstream kernel a70q-modem does this job.
+description="Modem and WiFi bring-up on the mainline kernel"
+
+depend() {
+	need localmount
+	after udev-postmount
+}
+
+start() {
+	[ -e /sys/class/kgsl ] && return 0     # downstream kernel: nothing to do
+	ebegin "Starting modem (mainline)"
+	/usr/libexec/a70q/a70q-mainline-modem >/var/log/a70q-mainline-modem.log 2>&1
+	eend $?
+}

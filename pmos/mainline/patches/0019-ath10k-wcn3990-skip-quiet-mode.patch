@@ -1,0 +1,19 @@
+diff -ruN a/drivers/net/wireless/ath/ath10k/thermal.c b/drivers/net/wireless/ath/ath10k/thermal.c
+--- a/drivers/net/wireless/ath/ath10k/thermal.c	2026-11-17 20:34:54.386663544 +0000
++++ b/drivers/net/wireless/ath/ath10k/thermal.c	2026-11-17 20:34:54.394035668 +0000
+@@ -136,6 +136,15 @@
+ 	if (!ar->wmi.ops->gen_pdev_set_quiet_mode)
+ 		return;
+ 
++	/*
++	 * WCN3990 firmware crashes on quiet mode despite advertising support (seen with HL3.0 on the
++	 * Galaxy A70 and HL3.2 on SM8150; upstream patch "ath10k: WCN3990 firmware ...", 2026).
++	 */
++	if (QCA_REV_WCN3990(ar)) {
++		ath10k_dbg(ar, ATH10K_DBG_BOOT, "skip quiet mode for WCN3990 (known crash trigger)\n");
++		return;
++	}
++
+ 	if (ar->state != ATH10K_STATE_ON)
+ 		return;
+ 
