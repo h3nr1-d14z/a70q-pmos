@@ -79,7 +79,7 @@
 			reg = <0x0 0x9e200000 0x0 0x200000>;
 			no-map;
 			qcom,client-id = <1>;
-			/* no qcom,vmid for now: suspected SCM assign hang (CPU stuck in the secure world) */
+			qcom,vmid = <QCOM_SCM_VMID_MSS_MSA>;
 		};
 
 		hyp_mem: hyp@85700000 {
