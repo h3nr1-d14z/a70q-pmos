@@ -64,18 +64,25 @@ def main():
             for i in range(0, len(data), 16):
                 print('%08x %s' % (addr + i, data[i:i + 16].hex(' ')))
     elif cmd == 'log3':
-        base, copy = 0x9ce00000, 0x50000
+        # patch 0018: two banks of three 160 KiB copies, alternated per boot (older bank = previous boot)
+        base, copy = 0x9ce00000, 0x28000
         fd = os.open('/dev/mem', os.O_RDONLY | os.O_SYNC)
-        c = [os.pread(fd, copy, base + i * copy) for i in range(3)]
+        out = []
+        for bank in range(2):
+            c = [os.pread(fd, copy, base + (bank * 3 + i) * copy) for i in range(3)]
+            v = bytes((a & b) | (a & d) | (b & d) for a, b, d in zip(*c))
+            if v[:8] != b'A70QLOG2':
+                continue
+            n = min(int.from_bytes(v[8:12], 'little'), copy - 16)
+            w = int.from_bytes(v[12:16], 'little')
+            out.append((w >> 20, w & 0xfffff, n, v[16:16 + n]))
         os.close(fd)
-        v = bytes((a & b) | (a & d) | (b & d) for a, b, d in zip(*c))
-        if v[:8] != b'A70QLOG1':
-            sys.exit('no mainline log (header %r)' % v[:16])
-        n = int.from_bytes(v[8:12], 'little')
-        seq = int.from_bytes(v[12:16], 'little')
-        flips = sum(bin(x ^ y).count('1') for x, y in zip(c[0][:16 + n], v[:16 + n]))
-        print('### mainline log: %d bytes, update #%d, %d bit flips fixed in copy 0' % (n, seq, flips))
-        sys.stdout.write(v[16:16 + min(n, copy - 16)].decode('ascii', 'replace'))
+        if not out:
+            sys.exit('no mainline log')
+        for boot, seq, n, text in sorted(out):
+            print('### mainline log: boot #%d, %d bytes, update #%d' % (boot, n, seq))
+            sys.stdout.write(text.decode('ascii', 'replace'))
+            print()
     elif cmd == 'text':
         addr, length = int(args[0], 16), int(args[1], 0)
         m, off = window(addr, length)

@@ -1,0 +1,67 @@
+diff -ruN a/arch/arm64/kernel/a70q-mark.c b/arch/arm64/kernel/a70q-mark.c
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-17 17:49:40.419026102 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-17 17:49:40.426782119 +0000
+@@ -377,12 +377,14 @@
+  * (pmos/mainline/memprobe.py log3).
+  */
+ #define LOG3_BASE	0x9ce00000UL
+-#define LOG3_COPY	0x50000		/* 320 KiB per copy: 16-byte header + text */
++#define LOG3_COPY	0x28000		/* 160 KiB per copy: 16-byte header + text */
+ #define LOG3_TEXT	(LOG3_COPY - 16)
++#define LOG3_BANK	(3 * LOG3_COPY)	/* two banks, used alternately per boot */
+ 
+-static void __iomem *log3_mem;
++static void __iomem *log3_mem;		/* the bank written by this boot */
+ static char log3_buf[LOG3_TEXT];
+ static u32 log3_seq;
++static u32 log3_boot;
+ static DEFINE_RAW_SPINLOCK(log3_lock);
+ 
+ static void a70q_log3_write(void)
+@@ -401,9 +403,9 @@
+ 	kmsg_dump_get_buffer(&iter, false, log3_buf, sizeof(log3_buf) - 1, &len);
+ 	log3_buf[len] = 0;
+ 	hdr[0] = 0x51303741;		/* "A70Q" */
+-	hdr[1] = 0x31474f4c;		/* "LOG1" */
++	hdr[1] = 0x32474f4c;		/* "LOG2" */
+ 	hdr[2] = len;
+-	hdr[3] = ++log3_seq;
++	hdr[3] = log3_boot << 20 | (++log3_seq & 0xfffff);
+ 	for (i = 0; i < 3; i++) {
+ 		void __iomem *c = log3_mem + i * LOG3_COPY;
+ 
+@@ -423,9 +425,33 @@
+ 	schedule_delayed_work(&a70q_log3_work, HZ);
+ }
+ 
++/* boot number stored in a bank (majority of the three header copies), 0 if none */
++static u32 a70q_log3_bank_boot(void __iomem *bank)
++{
++	u32 m[3], w[3];
++	int i;
++
++	for (i = 0; i < 3; i++) {
++		m[i] = readl_relaxed(bank + i * LOG3_COPY + 4);
++		w[i] = readl_relaxed(bank + i * LOG3_COPY + 12);
++	}
++	if (((m[0] & m[1]) | (m[0] & m[2]) | (m[1] & m[2])) != 0x32474f4c)
++		return 0;
++	return ((w[0] & w[1]) | (w[0] & w[2]) | (w[1] & w[2])) >> 20;
++}
++
+ static int __init a70q_log3_init(void)
+ {
+-	log3_mem = ioremap(LOG3_BASE, 3 * LOG3_COPY);
++	void __iomem *all = ioremap(LOG3_BASE, 2 * LOG3_BANK);
++	u32 b0, b1;
++
++	if (!all)
++		return 0;
++	/* keep the newer bank (previous boot) and overwrite the older one */
++	b0 = a70q_log3_bank_boot(all);
++	b1 = a70q_log3_bank_boot(all + LOG3_BANK);
++	log3_boot = (max(b0, b1) + 1) & 0xfff;
++	log3_mem = all + (b0 <= b1 ? 0 : LOG3_BANK);
+ 	a70q_log3_write();
+ 	schedule_delayed_work(&a70q_log3_work, HZ);
+ 	return 0;

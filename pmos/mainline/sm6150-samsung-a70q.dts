@@ -74,12 +74,16 @@
 		};
 
 		/* modem EFS shared buffer for rmtfs (downstream allocates it dynamically, 2 MiB) */
-		rmtfs_mem: rmtfs@9e200000 {
+		/* same address the downstream kernel's sharedmem-uio got (uio0 map0: 0xf4a01000) */
+		rmtfs_mem: rmtfs@f4a01000 {
 			compatible = "qcom,rmtfs-mem";
-			reg = <0x0 0x9e200000 0x0 0x200000>;
+			reg = <0x0 0xf4a01000 0x0 0x200000>;
 			no-map;
 			qcom,client-id = <1>;
-			qcom,vmid = <QCOM_SCM_VMID_MSS_MSA>;
+			/*
+			 * no qcom,vmid: qcom_scm_assign_mem() (HLOS -> HLOS+MSS_MSA, the same as downstream's
+			 * hyp_assign_phys()) leaves a CPU stuck in the secure world (RCU stall, NMI not answered)
+			 */
 		};
 
 		hyp_mem: hyp@85700000 {
