@@ -517,3 +517,12 @@
 		input-enable;
 	};
 };
+
+/*
+ * Display clock controller off while the panel runs on the bootloader's framebuffer (simpledrm):
+ * probing dispcc parks the display RCGs and the screen goes black (the compositor kept drawing,
+ * so grim screenshots looked fine). Needed again with a real MDSS/DSI panel driver.
+ */
+&dispcc {
+	status = "disabled";
+};

@@ -85,6 +85,11 @@ static int ist40xx_write_cmd(struct ist40xx *ts, u32 cmd, u32 val)
 	return ret == sizeof(buf) ? 0 : (ret < 0 ? ret : -EIO);
 }
 
+/*
+ * Event word 0 as seen on the A70 (firmware 0x4050): bits 31:30 event id (0 = coordinate),
+ * 29:26 touch id (1..15), 25:24 status (1 = touching, 2/3 = lifted), 23:12 X, 11:0 Y.
+ * Word 1 carries major/minor/strength.
+ */
 static void ist40xx_report(struct ist40xx *ts, unsigned int count)
 {
 	unsigned int i;
@@ -92,25 +97,23 @@ static void ist40xx_report(struct ist40xx *ts, unsigned int count)
 	for (i = 0; i < count; i++) {
 		u32 w0 = ts->buf[i * IST40XX_EVENT_WORDS];
 		u32 w1 = ts->buf[i * IST40XX_EVENT_WORDS + 1];
-		unsigned int eid = w0 & 0x3;
-		unsigned int id = ((w0 >> 2) & 0xf);
-		unsigned int status = (w0 >> 6) & 0x3;
-		unsigned int x = ((w0 >> 8) & 0xff) << 4 | ((w0 >> 28) & 0xf);
-		unsigned int y = ((w0 >> 16) & 0xff) << 4 | ((w0 >> 24) & 0xf);
-		unsigned int major = w1 & 0xff;
-		unsigned int z = (w1 >> 16) & 0x3f;
+		unsigned int eid = w0 >> 30;
+		unsigned int id = (w0 >> 26) & 0xf;
+		unsigned int status = (w0 >> 24) & 0x3;
+		unsigned int x = (w0 >> 12) & 0xfff;
+		unsigned int y = w0 & 0xfff;
+		unsigned int major = (w1 >> 24) & 0xff;
 
 		if (eid != EID_COORDINATE || !id || id > IST40XX_MAX_ID)
 			continue;
 		input_mt_slot(ts->input, id - 1);
-		if (status == STA_RELEASE || status == 0) {
+		if (status != STA_PRESS) {
 			input_mt_report_slot_inactive(ts->input);
 			continue;
 		}
 		input_mt_report_slot_state(ts->input, MT_TOOL_FINGER, true);
 		touchscreen_report_pos(ts->input, &ts->prop, x, y, true);
 		input_report_abs(ts->input, ABS_MT_TOUCH_MAJOR, major);
-		input_report_abs(ts->input, ABS_MT_PRESSURE, z);
 	}
 	input_mt_sync_frame(ts->input);
 	input_sync(ts->input);
@@ -131,8 +134,7 @@ static irqreturn_t ist40xx_irq(int irq, void *dev_id)
 	}
 	if (msg == IST40XX_INITIAL_VALUE || msg == 0 || msg == 0xffffffff)
 		return IRQ_HANDLED;
-	if (FIELD_GET(IST40XX_MSG_SIG, msg) != IST40XX_TOUCH_SIG ||
-	    !(msg & IST40XX_MSG_ZERO_PREV)) {
+	if (!(msg & IST40XX_MSG_ZERO_PREV)) {
 		dev_dbg(dev, "non-touch message %08x\n", msg);
 		return IRQ_HANDLED;
 	}
@@ -232,7 +234,6 @@ static int ist40xx_probe(struct i2c_client *client)
 	input_set_abs_params(ts->input, ABS_MT_POSITION_X, 0, 4095, 0, 0);
 	input_set_abs_params(ts->input, ABS_MT_POSITION_Y, 0, 4095, 0, 0);
 	input_set_abs_params(ts->input, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
-	input_set_abs_params(ts->input, ABS_MT_PRESSURE, 0, 63, 0, 0);
 	touchscreen_parse_properties(ts->input, true, &ts->prop);
 	ret = input_mt_init_slots(ts->input, IST40XX_MAX_ID, INPUT_MT_DIRECT | INPUT_MT_DROP_UNUSED);
 	if (ret)
