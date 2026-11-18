@@ -253,3 +253,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - ⚠️ Modem vẫn **thỉnh thoảng** assert mỗi 40 s trong vài phút đầu sau khi boot rồi tự ổn định (0–5 lần/boot, kể cả
   khi tắt macro âm thanh). Không phải do suspend. ModemManager được D-Bus kích hoạt và dò modem qua QRTR lúc đó
   (đã thử bật ModemManager trễ 90 s: vẫn 0–1 lần crash/boot → không phải nguyên nhân chính; thường chỉ lần khởi động đầu tiên của modem crash, sau khi tự khôi phục thì ổn định). Coredump của PAS không dùng được ("Invalid coredump configuration").
+
+### Cảm biến (2026-11-19)
+- ✅ Gia tốc kế, ánh sáng, tiệm cận, la bàn qua SSC trên ADSP (QMI service 400) + `hexagonrpcd` trên node FastRPC
+  upstream `/dev/fastrpc-adsp-secure` (không cần shim như downstream), dữ liệu registry/config dùng chung
+  `/var/lib/a70q-sensors`. `a70q-mainline-modem` khởi động hexagonrpcd (thử lại tối đa 5 lần) rồi restart
+  iio-sensor-proxy; luật udev `80-a70q-ssc.rules` thêm thiết bị `62400000.remoteproc` (device r64).
+  `monitor-sensor`: tilt face-up, la bàn ~63°. Downstream vẫn chạy như cũ.

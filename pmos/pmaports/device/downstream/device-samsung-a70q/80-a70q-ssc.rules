@@ -3,3 +3,5 @@
 # tag the ADSP (LPASS) platform device instead (ERRORS C61).
 # The SSC accelerometer axes are rotated 180 degrees around Z relative to the display.
 SUBSYSTEM=="platform", KERNEL=="62400000.qcom,lpass", ENV{IIO_SENSOR_PROXY_TYPE}="ssc-accel ssc-light ssc-proximity ssc-compass", ENV{ACCEL_MOUNT_MATRIX}="-1, 0, 0; 0, -1, 0; 0, 0, 1"
+# mainline kernel: the ADSP is the remoteproc platform device
+SUBSYSTEM=="platform", KERNEL=="62400000.remoteproc", ENV{IIO_SENSOR_PROXY_TYPE}="ssc-accel ssc-light ssc-proximity ssc-compass", ENV{ACCEL_MOUNT_MATRIX}="-1, 0, 0; 0, -1, 0; 0, 0, 1"

@@ -67,3 +67,20 @@ fi
 	fi
 	sleep 15
   done ) >/dev/null 2>&1 &
+
+# Sensors (accelerometer, light/proximity, compass): the ADSP sensor core reads its registry and
+# config over FastRPC; hexagonrpcd serves them from /var/lib/a70q-sensors (filled by the
+# downstream a70q-modem-up from the vendor/persist partitions). Upstream FastRPC node, no shim.
+( R=/var/lib/a70q-sensors
+  for i in $(seq 1 90); do
+	/usr/libexec/a70q/qrtr-lookup 2>/dev/null | grep -qE "^ +400 " && [ -e /dev/fastrpc-adsp-secure ] && break
+	sleep 1
+  done
+  [ -d $R/sensors ] && command -v hexagonrpcd >/dev/null || exit 0
+  for try in 1 2 3 4 5; do
+	setsid hexagonrpcd -s -f /dev/fastrpc-adsp-secure -d adsp -R $R >>/var/log/a70q-sensors.log 2>&1 &
+	pid=$!
+	sleep 10
+	kill -0 $pid 2>/dev/null && break
+  done
+  rc-service -q iio-sensor-proxy restart 2>/dev/null ) >/dev/null 2>&1 &
