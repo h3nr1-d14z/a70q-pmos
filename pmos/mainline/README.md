@@ -252,4 +252,4 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Bluetooth: device r63 đặt lại địa chỉ BT mỗi khi controller mất cấu hình (sau reset/resume) → đúng địa chỉ sau resume.
 - ⚠️ Modem vẫn **thỉnh thoảng** assert mỗi 40 s trong vài phút đầu sau khi boot rồi tự ổn định (0–5 lần/boot, kể cả
   khi tắt macro âm thanh). Không phải do suspend. ModemManager được D-Bus kích hoạt và dò modem qua QRTR lúc đó
-  (nghi phạm, chưa chứng minh). Coredump của PAS không dùng được ("Invalid coredump configuration").
+  (đã thử bật ModemManager trễ 90 s: vẫn 0–1 lần crash/boot → không phải nguyên nhân chính; thường chỉ lần khởi động đầu tiên của modem crash, sau khi tự khôi phục thì ổn định). Coredump của PAS không dùng được ("Invalid coredump configuration").
