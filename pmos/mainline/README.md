@@ -240,3 +240,12 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - ⚠️ Lần thử suspend thứ ba (`echo freeze > /sys/power/state`, lúc chưa có `pm_test`) làm máy **kẹt hẳn**: không USB,
   không WiFi, watchdog không reset được → cần giữ Nguồn + Giảm âm lượng ~10 s. Không thử suspend thật nữa khi chưa
   có đường đánh thức chắc chắn. Đã bật `CONFIG_PM_DEBUG`/`PM_SLEEP_DEBUG` để dùng `pm_test=devices` (chưa chạy được).
+
+### Suspend chạy (2026-11-19)
+- ✅ s2idle thật (`rtcwake -m freeze -s 15`): vào suspend và RTC đánh thức. `pm_test` freezer/devices/platform đều qua.
+- Lỗi cũ "máy không tỉnh lại" thực ra là **USB gadget chết sau resume** ("failed to enable ep0out"): GDSC USB tắt lúc
+  ngủ làm mất cấu hình chọn pipe clock UTMI trong QSCRATCH. Patch 0029: `dwc3_qcom_resume()` ghi lại
+  `qcom,select-utmi-as-pipe-clk`. Giờ SSH qua USB, WiFi, panel đều sống sau resume.
+- (Lần máy kẹt hẳn trước đó nhiều khả năng cũng là USB chết, và máy vào lại suspend vì không có gì giữ nó thức.)
+- Còn lại: Bluetooth đôi khi timeout rồi tự reset sau resume (khi đó mất địa chỉ BT đã đặt); WiFi báo timeout khi gỡ
+  key lúc suspend (vô hại, kết nối lại được).
