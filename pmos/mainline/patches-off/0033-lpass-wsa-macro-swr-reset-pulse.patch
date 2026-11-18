@@ -1,0 +1,18 @@
+--- a/sound/soc/codecs/lpass-wsa-macro.c	2026-11-18 19:08:31.304960464 +0000
++++ b/sound/soc/codecs/lpass-wsa-macro.c	2026-11-18 19:08:31.312095578 +0000
+@@ -2550,9 +2550,15 @@
+ 
+ 		wsa_macro_mclk_enable(wsa, true);
+ 
++		/*
++		 * Pulse the SoundWire master reset around the clock enable, as the downstream bolero
++		 * wsa-macro does (reset_swr): on SM6150 the WSA881x never answers otherwise.
++		 */
++		regmap_update_bits(regmap, CDC_WSA_CLK_RST_CTRL_SWR_CONTROL, BIT(1), BIT(1));
+ 		regmap_update_bits(regmap, CDC_WSA_CLK_RST_CTRL_SWR_CONTROL,
+ 				   CDC_WSA_SWR_CLK_EN_MASK,
+ 				   CDC_WSA_SWR_CLK_ENABLE);
++		regmap_update_bits(regmap, CDC_WSA_CLK_RST_CTRL_SWR_CONTROL, BIT(1), 0);
+ 
+ 	} else {
+ 		regmap_update_bits(regmap, CDC_WSA_CLK_RST_CTRL_SWR_CONTROL,

@@ -292,3 +292,5 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   "read underflow"), SSP period = 1 như downstream (0032). Enumerator phần cứng vẫn không chốt được ID dù bus chạy.
   Các node âm thanh tắt lại (cấu hình fsgen-từ-TX giữ trong DT). Hướng tiếp theo: so từng thanh ghi khởi tạo master
   và trình tự clock của WSA macro với `swr-wcd-ctrl.c`/`wsa-macro.c` downstream, hoặc đo tín hiệu SWR clk/data.
+- Cũng đã thử: xung reset SWR (`SWR_CONTROL` bit 1) quanh bước bật clock như `wsa_swrm_clock` downstream
+  (`patches-off/0033`) → không đổi. `CDC_WSA_TOP_FREQ_MCLK` mainline = downstream (0x01).
