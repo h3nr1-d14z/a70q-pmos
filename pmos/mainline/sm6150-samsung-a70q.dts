@@ -725,7 +725,7 @@
 	};
 };
 
-/* IPA v4.2 (downstream qcom,ipa-hw-ver = 0x10, as sc7180); the modem loads the GSI firmware */
+/* IPA v4.2 (downstream qcom,ipa-hw-ver = 0x10, as sc7180) */
 &{/soc@0} {
 	ipa: ipa@1e40000 {
 		compatible = "qcom,sc7180-ipa";
@@ -761,7 +761,15 @@
 		qcom,smem-state-names = "ipa-clock-enabled-valid",
 					"ipa-clock-enabled";
 
-		modem-init;
+		/*
+		 * The AP loads the GSI firmware (downstream: PIL "ipa_fws", PAS id 15, region
+		 * ips_fw_region@0x9a900000). With "modem-init" the modem never raised ipa-setup-ready,
+		 * the AP never set up IPA/QMI, and the modem asserted 40 s after every start.
+		 * ipa_fws.* is copied into the rootfs by a70q-mainline-modem (needed at probe time).
+		 */
+		qcom,gsi-loader = "self";
+		memory-region = <&ips_fw_mem>;
+		firmware-name = "qcom/a70q/ipa_fws.mdt";
 	};
 };
 

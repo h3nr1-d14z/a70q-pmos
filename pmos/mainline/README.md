@@ -198,8 +198,11 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 ### Modem ổn định (2026-11-18)
 - ✅ Modem từng crash "fatal error without message" đúng 40 s sau mỗi lần lên (WiFi rớt theo chu kỳ). Nguyên nhân:
   thiếu IPA phía AP. Thêm cặp smp2p `ipa` (ipa-ap-to-modem / ipa-modem-to-ap) trong `smp2p-modem` và node IPA v4.2
-  (`qcom,sc7180-ipa`, `modem-init`, SPI 311/432, theo violet-sm6150-mainline). Vùng `ips-fw@9a900000` và
-  `ipa-gsi@9a910000` đã có sẵn. Modem chạy liên tục, không còn crash.
+  (`qcom,sc7180-ipa`, SPI 311/432). Lúc đầu dùng `modem-init` như violet: lỗi vẫn lúc có lúc không, vì modem không
+  bao giờ gửi `ipa-setup-ready` nên AP không dựng IPA/QMI. Đúng như downstream (PIL `ipa_fws`, PAS 15): AP tự nạp
+  firmware GSI — `qcom,gsi-loader = "self"`, `memory-region = <&ips_fw_mem>` (0x9a900000), firmware
+  `qcom/a70q/ipa_fws.mdt` (chép từ apnhlos vào rootfs bởi `a70q-mainline-modem`, device r61, vì IPA nạp lúc probe).
+  "IPA driver setup completed successfully", có `rmnet_ipa0`, modem không còn crash.
 
 ### Sửa chân enable panel, rung, thẻ SD (2026-11-18)
 - ⚠️ **Lỗi đã sửa**: panel từng khai báo `enable-gpios = PM6150L GPIO 6`, nhưng chân đó là ngõ ra PWM của motor rung

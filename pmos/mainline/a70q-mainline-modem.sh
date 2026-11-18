@@ -49,6 +49,8 @@ fi
 
 # Audio DSP (APR): firmware next to the other qcom/ blobs, then start it
 mkdir -p /lib/firmware/qcom/a70q
+# IPA GSI firmware: the IPA driver loads it at probe, before this partition is mounted -> copy
+for f in $FW/ipa_fws.*; do [ -e "$f" ] && cmp -s "$f" /lib/firmware/qcom/a70q/${f##*/} || cp "$f" /lib/firmware/qcom/a70q/ 2>/dev/null; done
 for f in $FW/adsp.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/a70q/; done
 RA=$(grep -l '^adsp$' /sys/class/remoteproc/*/name 2>/dev/null | head -1)
 RA=${RA%/name}
