@@ -17,6 +17,7 @@
 #include <dt-bindings/soc/qcom,apr.h>
 #include <dt-bindings/sound/qcom,q6afe.h>
 #include <dt-bindings/sound/qcom,q6asm.h>
+#include <dt-bindings/usb/pd.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/interrupt-controller/irq.h>
@@ -502,9 +503,17 @@
 	maximum-speed = "high-speed";
 	/* no USB3 PHY: clock the PIPE domain from UTMI (otherwise ep0 commands time out) */
 	qcom,select-utmi-as-pipe-clk;
-	dr_mode = "peripheral";
+	/* role from the PM6150 Type-C port controller (connector below) */
+	dr_mode = "otg";
+	usb-role-switch;
 
 	status = "okay";
+
+	port {
+		usb_1_role_switch_in: endpoint {
+			remote-endpoint = <&pm6150_hs_in>;
+		};
+	};
 };
 
 /*
@@ -1164,4 +1173,49 @@
 	 */
 	no-1-8-v;
 	status = "okay";
+};
+
+/*
+ * USB Type-C: PM6150 Type-C/PD block (downstream qpnp-pdphy, vdd-pdphy = L17A) with the SMB5 OTG
+ * boost as VBUS source: data role follows the cable (host for OTG adapters), sink by preference,
+ * 5 V only so charging is not renegotiated.
+ */
+&pm6150_vbus {
+	regulator-min-microamp = <500000>;
+	regulator-max-microamp = <1000000>;
+	status = "okay";
+};
+
+&pm6150_typec {
+	vdd-pdphy-supply = <&vreg_l17a>;
+	status = "okay";
+
+	connector {
+		compatible = "usb-c-connector";
+
+		power-role = "dual";
+		data-role = "dual";
+		try-power-role = "sink";
+
+		vbus-supply = <&pm6150_vbus>;
+
+		source-pdos = <PDO_FIXED(5000, 1000, PDO_FIXED_DUAL_ROLE | PDO_FIXED_USB_COMM |
+					 PDO_FIXED_DATA_SWAP)>;
+		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_DUAL_ROLE | PDO_FIXED_USB_COMM |
+				       PDO_FIXED_DATA_SWAP)>;
+		op-sink-microwatt = <10000000>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				pm6150_hs_in: endpoint {
+					remote-endpoint = <&usb_1_role_switch_in>;
+				};
+			};
+		};
+	};
 };

@@ -260,3 +260,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   `/var/lib/a70q-sensors`. `a70q-mainline-modem` khởi động hexagonrpcd (thử lại tối đa 5 lần) rồi restart
   iio-sensor-proxy; luật udev `80-a70q-ssc.rules` thêm thiết bị `62400000.remoteproc` (device r64).
   `monitor-sensor`: tilt face-up, la bàn ~63°. Downstream vẫn chạy như cũ.
+
+### USB Type-C / OTG (2026-11-19)
+- ✅ Khối Type-C/PD của PM6150 (`pm6150_typec`, vdd-pdphy L17A, như downstream qpnp-pdphy) + TCPM, connector
+  dual-role (ưu tiên sink, chỉ PDO 5 V), VBUS = boost OTG của SMB5 (`pm6150_vbus`, 0.5–1 A); `usb_1` `dr_mode = "otg"`
+  + `usb-role-switch` nối với connector. Cắm vào Mac: partner nhận diện, data role `device`, power `sink`, USB gadget
+  và sạc vẫn chạy. Chế độ host (cáp OTG + thiết bị USB) chưa thử — cần cắm thiết bị thật.
