@@ -228,3 +228,12 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - **Bật các macro + SoundWire làm modem assert mỗi 40 s** (chia đôi qua nhiều lần boot). Vì vậy macro, swr0 và sound
   card đang tắt; ADSP + APR vẫn chạy. Thẻ SD chạy ở high-speed (`no-1-8-v`): chế độ UHS (L6C 1.8 V) cũng làm
   modem crash. ADSP được khởi động trước modem (device r62).
+
+### Modem qua ModemManager, GPS, suspend (2026-11-19)
+- ✅ ModemManager nhận modem qua QRTR (`qrtr0` + `rmnet_ipa0`, firmware MPSS.AT.4.3.c3). Máy hiện không lắp SIM
+  (downstream cũng báo `no-atr-received` ở cả hai khe) nên trạng thái `sim-missing`.
+- ✅ GNSS: `qmicli -p -d qrtr://0 --loc-start --client-no-release-cid` rồi `--client-cid=N --loc-follow-nmea` → NMEA
+  chạy (trong nhà chưa có vệ tinh/fix; cần thử ngoài trời).
+- ❌ Suspend (s2idle, `rtcwake -m freeze`): máy không tỉnh lại. Bị nhiễu bởi watchdog APSS do patch thử nghiệm
+  (0010–0012) bật (cắn sau 60 s, không được vỗ khi đang ngủ) → cần tắt watchdog đó khi suspend rồi thử lại.
+- Đã xoá `/etc/modprobe.d/a70q-ath10k-debug.conf` (log debug ath10k làm tràn log3).
