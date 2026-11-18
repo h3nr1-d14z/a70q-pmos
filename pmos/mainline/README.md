@@ -237,3 +237,6 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - ❌ Suspend (s2idle, `rtcwake -m freeze`): máy không tỉnh lại. Bị nhiễu bởi watchdog APSS do patch thử nghiệm
   (0010–0012) bật (cắn sau 60 s, không được vỗ khi đang ngủ) → cần tắt watchdog đó khi suspend rồi thử lại.
 - Đã xoá `/etc/modprobe.d/a70q-ath10k-debug.conf` (log debug ath10k làm tràn log3).
+- ⚠️ Lần thử suspend thứ ba (`echo freeze > /sys/power/state`, lúc chưa có `pm_test`) làm máy **kẹt hẳn**: không USB,
+  không WiFi, watchdog không reset được → cần giữ Nguồn + Giảm âm lượng ~10 s. Không thử suspend thật nữa khi chưa
+  có đường đánh thức chắc chắn. Đã bật `CONFIG_PM_DEBUG`/`PM_SLEEP_DEBUG` để dùng `pm_test=devices` (chưa chạy được).
