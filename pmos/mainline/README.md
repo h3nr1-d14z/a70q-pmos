@@ -215,3 +215,16 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   (regulator-fixed `sd_vdd`); thiếu nó thẻ vẫn trả lời nhưng ACMD41 không bao giờ xong ("Card stuck being busy").
   L9C phải 2.952 V (2.95 V lệch lưới 8 mV làm hỏng cả regulators-1 → UFS/DSI defer). Card detect GPIO 99
   active-high, vqmmc L6C. Kết quả: UHS-I SDR104, đọc ~90 MB/s, tự mount.
+
+### Âm thanh: tiến triển và lý do tạm tắt (2026-11-19)
+- Đọc log APR của downstream (`/sys/kernel/debug/msm_apr_debug` = 1, ipc_logging `apr`): downstream đặt clock codec
+  bằng `AFE_SVC_CMD_SET_PARAM` v1 (0x100F3) và được chấp nhận → định dạng lệnh mainline đúng.
+- Thử từng ID clock lúc probe (patch tạm `patches-off/0027`): ADSP nhận mọi clock codec 19.2 MHz **trừ VA core 0x30b**.
+  VA macro được cấp clock TX core (như downstream: bolero `va-without-decimation`, MCLK lấy từ TX) → macro probe
+  không còn treo bus, sound card "Samsung Galaxy A70" đăng ký.
+- SoundWire master của WSA là **v1.5.0** (`SWRM_COMP_HW_VERSION`), 6 dout + 3 din. SD_N loa = **GPIO 108** (không phải 47).
+  WSA881x nằm ở device 0 nhưng enumerator phần cứng không bắt được ID (bus clash) → UNATTACHED. Downstream dùng
+  driver `swr-wcd` cũ với liệt kê bằng phần mềm. Khung 48×2 (`patches-off/0028`) không giúp.
+- **Bật các macro + SoundWire làm modem assert mỗi 40 s** (chia đôi qua nhiều lần boot). Vì vậy macro, swr0 và sound
+  card đang tắt; ADSP + APR vẫn chạy. Thẻ SD chạy ở high-speed (`no-1-8-v`): chế độ UHS (L6C 1.8 V) cũng làm
+  modem crash. ADSP được khởi động trước modem (device r62).

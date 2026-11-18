@@ -1,0 +1,28 @@
+--- a/drivers/soundwire/qcom.c	2026-11-18 09:48:57.254319597 +0000
++++ b/drivers/soundwire/qcom.c	2026-11-18 09:48:57.261467032 +0000
+@@ -264,6 +264,17 @@
+ 	.reg_layout = swrm_v1_3_reg_layout,
+ };
+ 
++/*
++ * SM6150 (v1.5.0): the downstream driver starts the bus with 48 rows x 2 columns; with the
++ * mainline 50x16 the WSA881x on the WSA master never gets enumerated (bus clash, device 0).
++ */
++static const struct qcom_swrm_data swrm_v1_5_0_data = {
++	.default_rows = 48,
++	.default_cols = 2,
++	.max_reg = SWR_V1_3_MSTR_MAX_REG_ADDR,
++	.reg_layout = swrm_v1_3_reg_layout,
++};
++
+ static const struct qcom_swrm_data swrm_v1_6_data = {
+ 	.default_rows = 50,
+ 	.default_cols = 16,
+@@ -1831,6 +1842,7 @@
+ 
+ static const struct of_device_id qcom_swrm_of_match[] = {
+ 	{ .compatible = "qcom,soundwire-v1.3.0", .data = &swrm_v1_3_data },
++	{ .compatible = "qcom,soundwire-v1.5.0", .data = &swrm_v1_5_0_data },
+ 	{ .compatible = "qcom,soundwire-v1.5.1", .data = &swrm_v1_5_data },
+ 	{ .compatible = "qcom,soundwire-v1.6.0", .data = &swrm_v1_6_data },
+ 	{ .compatible = "qcom,soundwire-v1.7.0", .data = &swrm_v1_5_data },

@@ -30,6 +30,21 @@ PD_MAPPER_JSON_DIRS="$FW:$FWM" setsid /usr/libexec/a70q/pd-mapper >/var/log/pd-m
 setsid /usr/sbin/rmtfs -P -r -v >/var/log/rmtfs.log 2>&1 &
 sleep 2
 
+# Audio DSP (APR): firmware next to the other qcom/ blobs, then start it. Before the modem:
+# with both starting at once (audio services probing while the modem boots) the modem asserted
+# 40 s after its first start.
+mkdir -p /lib/firmware/qcom/a70q
+# IPA GSI firmware: the IPA driver loads it at probe, before this partition is mounted -> copy
+for f in $FW/ipa_fws.*; do [ -e "$f" ] && cmp -s "$f" /lib/firmware/qcom/a70q/${f##*/} || cp "$f" /lib/firmware/qcom/a70q/ 2>/dev/null; done
+for f in $FW/adsp.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/a70q/; done
+RA=$(grep -l '^adsp$' /sys/class/remoteproc/*/name 2>/dev/null | head -1)
+RA=${RA%/name}
+if [ -n "$RA" ] && [ "$(cat $RA/state)" != running ]; then
+	echo start > $RA/state
+	echo "adsp: $(cat $RA/state)"
+fi
+sleep 8
+
 [ "$(cat $RP/state)" = running ] && { echo stop > $RP/state; sleep 2; }
 echo start > $RP/state
 echo "modem: $(cat $RP/state)"
@@ -46,15 +61,3 @@ fi
 ( for i in $(seq 1 60); do [ -e /sys/class/bluetooth/hci0 ] && break; sleep 1; done
   timeout 8 btmgmt --index 0 public-addr "$(cat $A)" </dev/null >/dev/null 2>&1
   echo "bluetooth: public address set" ) &
-
-# Audio DSP (APR): firmware next to the other qcom/ blobs, then start it
-mkdir -p /lib/firmware/qcom/a70q
-# IPA GSI firmware: the IPA driver loads it at probe, before this partition is mounted -> copy
-for f in $FW/ipa_fws.*; do [ -e "$f" ] && cmp -s "$f" /lib/firmware/qcom/a70q/${f##*/} || cp "$f" /lib/firmware/qcom/a70q/ 2>/dev/null; done
-for f in $FW/adsp.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/a70q/; done
-RA=$(grep -l '^adsp$' /sys/class/remoteproc/*/name 2>/dev/null | head -1)
-RA=${RA%/name}
-if [ -n "$RA" ] && [ "$(cat $RA/state)" != running ]; then
-	echo start > $RA/state
-	echo "adsp: $(cat $RA/state)"
-fi
