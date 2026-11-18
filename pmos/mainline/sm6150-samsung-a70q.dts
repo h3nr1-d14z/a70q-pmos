@@ -1101,7 +1101,24 @@
 };
 
 
-/* microSD: SDHC2, card detect TLMM GPIO 99 active high (downstream cd-gpios flags 0) */
+/*
+ * microSD: SDHC2, card detect TLMM GPIO 99 active high (downstream cd-gpios flags 0). The card's
+ * VDD goes through a load switch enabled by TLMM GPIO 121 (Samsung "sec,tflash-en-gpio") behind
+ * L9C; without it the card answers but never finishes ACMD41 power-up ("Card stuck being busy").
+ */
+/ {
+	vreg_sd_vdd: regulator-sd-vdd {
+		compatible = "regulator-fixed";
+		regulator-name = "sd_vdd";
+		regulator-min-microvolt = <2952000>;
+		regulator-max-microvolt = <2952000>;
+		gpio = <&tlmm 121 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		vin-supply = <&vreg_l9c>;
+		startup-delay-us = <10000>;
+	};
+};
+
 &sdhc_2 {
 	pinctrl-0 = <&sdc2_state_on>;
 	pinctrl-1 = <&sdc2_state_off>;
@@ -1110,22 +1127,9 @@
 	bus-width = <4>;
 	cd-gpios = <&tlmm 99 GPIO_ACTIVE_HIGH>;	/* high = card present (measured) */
 
-	vmmc-supply = <&vreg_l9c>;
+	vmmc-supply = <&vreg_sd_vdd>;
 	vqmmc-supply = <&vreg_l6c>;
 
-	/*
-	 * WORK IN PROGRESS, disabled: the card is detected but its init fails with "Card stuck
-	 * being busy" / -110 (no host command errors), with and without UHS (no-1-8-v) and a full
-	 * power cycle. Regulators read back fine (vqmmc 2.904 V, vmmc 2.952 V).
-	 */
-	/*
-	 * vmmc is still on from the previous kernel, with the card in 1.8 V signalling, which CMD0
-	 * does not reset ("Card stuck being busy"): let the core power-cycle it.
-	 */
-	full-pwr-cycle;
-	full-pwr-cycle-in-suspend;
-	post-power-on-delay-ms = <100>;
-	no-1-8-v;
 
-	status = "disabled";
+	status = "okay";
 };

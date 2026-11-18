@@ -211,5 +211,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   nên panel giờ **không** dùng enable GPIO.
 - ✅ **Rung**: `pwm-vibrator` trên kênh LPG 3 (0xbc00) của PM6150L, chân PM6150L GPIO 6 ở `func1` (như
   `samsung_vib` downstream, chu kỳ 1 ms). Kiểm chứng ở mức PWM (bật 100% khi phát hiệu ứng FF rumble).
-- ❌ **Thẻ SD** (sdhc_2, đang tắt): L9C phải là 2.952 V (2.95 V lệch lưới 8 mV làm hỏng cả regulators-1 → UFS/DSI
-  defer). Card detect GPIO 99 active-high. Thẻ được phát hiện nhưng init báo "Card stuck being busy"/-110.
+- ✅ **Thẻ microSD**: VDD của thẻ qua công tắc tải bật bằng TLMM GPIO 121 (Samsung `sec,tflash-en-gpio`) sau L9C
+  (regulator-fixed `sd_vdd`); thiếu nó thẻ vẫn trả lời nhưng ACMD41 không bao giờ xong ("Card stuck being busy").
+  L9C phải 2.952 V (2.95 V lệch lưới 8 mV làm hỏng cả regulators-1 → UFS/DSI defer). Card detect GPIO 99
+  active-high, vqmmc L6C. Kết quả: UHS-I SDR104, đọc ~90 MB/s, tự mount.
