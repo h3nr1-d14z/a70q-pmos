@@ -266,3 +266,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   dual-role (ưu tiên sink, chỉ PDO 5 V), VBUS = boost OTG của SMB5 (`pm6150_vbus`, 0.5–1 A); `usb_1` `dr_mode = "otg"`
   + `usb-role-switch` nối với connector. Cắm vào Mac: partner nhận diện, data role `device`, power `sink`, USB gadget
   và sạc vẫn chạy. Chế độ host (cáp OTG + thiết bị USB) chưa thử — cần cắm thiết bị thật.
+
+### Điều khiển sạc (2026-11-19)
+- ✅ `a70q-battery` (patch 0022) ghi thẳng thanh ghi SMB5: `constant_charge_current` (FCC 0x1061, bước 50 mA,
+  ≤3 A), `constant_charge_voltage` (FV 0x1070, 3.6 V + 10 mV, ≤4.35 V theo profile pin), `input_current_limit`
+  (USBIN ICL 0x1370, bước 50 mA), `charge_behaviour` auto/inhibit-charge (CHARGING_ENABLE_CMD 0x1042). Mặc định
+  bootloader để lại: FCC 2.1 A, FV 4.35 V, ICL 1.5 A. Đã thử đọc/ghi và chặn/bật sạc.

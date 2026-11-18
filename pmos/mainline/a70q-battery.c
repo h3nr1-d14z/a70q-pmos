@@ -47,6 +47,11 @@
 
 #define SMB5_CHGR_STATUS1	0x1006	/* [2:0] charge state, 5 = terminate */
 #define SMB5_USBIN_RT_STS	0x1310	/* bit 4 USBIN plugged */
+#define SMB5_CHARGING_ENABLE_CMD	0x1042	/* bit 0: charging enabled */
+#define SMB5_FCC_CFG		0x1061	/* fast charge current, 50 mA steps, max 3 A */
+#define SMB5_FV_CFG		0x1070	/* float voltage, 3.6 V + 10 mV steps */
+#define SMB5_USBIN_ICL_CFG	0x1370	/* USB input current limit, 50 mA steps, max 3 A */
+#define A70Q_FV_MAX_UV		4350000	/* qcom,max-voltage-uv of the battery profile */
 
 #define FCC_UAH			4238000	/* a70q_4400mAh profile, fcc1-temp-lut 25C */
 #define POLL_MS			5000
@@ -236,6 +241,41 @@ static int a70q_batt_get(struct power_supply *psy, enum power_supply_property p,
 			      b->soc >= 5 ? POWER_SUPPLY_CAPACITY_LEVEL_LOW :
 					    POWER_SUPPLY_CAPACITY_LEVEL_CRITICAL;
 		return 0;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT: {
+		unsigned int v = 0;
+
+		regmap_read(b->map, SMB5_FCC_CFG, &v);
+		val->intval = v * 50000;
+		return 0;
+	}
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:
+		val->intval = 3000000;
+		return 0;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE: {
+		unsigned int v = 0;
+
+		regmap_read(b->map, SMB5_FV_CFG, &v);
+		val->intval = 3600000 + v * 10000;
+		return 0;
+	}
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		val->intval = A70Q_FV_MAX_UV;
+		return 0;
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT: {
+		unsigned int v = 0;
+
+		regmap_read(b->map, SMB5_USBIN_ICL_CFG, &v);
+		val->intval = v * 50000;
+		return 0;
+	}
+	case POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR: {
+		unsigned int v = 0;
+
+		regmap_read(b->map, SMB5_CHARGING_ENABLE_CMD, &v);
+		val->intval = (v & BIT(0)) ? POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO :
+					     POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE;
+		return 0;
+	}
 	case POWER_SUPPLY_PROP_STATUS:
 		if (!b->plugged)
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
@@ -251,7 +291,45 @@ static int a70q_batt_get(struct power_supply *psy, enum power_supply_property p,
 	}
 }
 
+/* charger control: SMB5 registers written directly (there is no SMB5 driver) */
+static int a70q_batt_set(struct power_supply *psy, enum power_supply_property p,
+			 const union power_supply_propval *val)
+{
+	struct a70q_batt *b = power_supply_get_drvdata(psy);
+
+	switch (p) {
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+		return regmap_write(b->map, SMB5_FCC_CFG,
+				    clamp(val->intval, 0, 3000000) / 50000);
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		return regmap_write(b->map, SMB5_FV_CFG,
+				    (clamp(val->intval, 3600000, A70Q_FV_MAX_UV) - 3600000) / 10000);
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		return regmap_write(b->map, SMB5_USBIN_ICL_CFG,
+				    clamp(val->intval, 0, 3000000) / 50000);
+	case POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR:
+		if (val->intval == POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO)
+			return regmap_update_bits(b->map, SMB5_CHARGING_ENABLE_CMD, BIT(0), BIT(0));
+		if (val->intval == POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE)
+			return regmap_update_bits(b->map, SMB5_CHARGING_ENABLE_CMD, BIT(0), 0);
+		return -EINVAL;
+	default:
+		return -EINVAL;
+	}
+}
+
+static int a70q_batt_writeable(struct power_supply *psy, enum power_supply_property p)
+{
+	return p == POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT ||
+	       p == POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE ||
+	       p == POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT ||
+	       p == POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR;
+}
+
 static const enum power_supply_property a70q_batt_props[] = {
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT, POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX,
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE, POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, POWER_SUPPLY_PROP_CHARGE_BEHAVIOUR,
 	POWER_SUPPLY_PROP_STATUS, POWER_SUPPLY_PROP_PRESENT, POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_HEALTH, POWER_SUPPLY_PROP_VOLTAGE_NOW, POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CAPACITY, POWER_SUPPLY_PROP_CAPACITY_LEVEL,
@@ -265,6 +343,10 @@ static const struct power_supply_desc a70q_batt_desc = {
 	.properties = a70q_batt_props,
 	.num_properties = ARRAY_SIZE(a70q_batt_props),
 	.get_property = a70q_batt_get,
+	.set_property = a70q_batt_set,
+	.property_is_writeable = a70q_batt_writeable,
+	.charge_behaviours = BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_AUTO) |
+			     BIT(POWER_SUPPLY_CHARGE_BEHAVIOUR_INHIBIT_CHARGE),
 };
 
 static int a70q_batt_probe(struct platform_device *pdev)
