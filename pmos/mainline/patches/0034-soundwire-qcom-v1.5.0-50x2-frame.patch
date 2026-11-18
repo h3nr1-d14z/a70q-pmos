@@ -1,0 +1,76 @@
+--- a/drivers/soundwire/qcom.c	2026-11-18 20:07:05.261646538 +0000
++++ b/drivers/soundwire/qcom.c	2026-11-18 20:07:05.261646538 +0000
+@@ -221,11 +221,15 @@
+ 	u32 slave_status;
+ 	u32 wr_fifo_depth;
+ 	bool clock_stop_not_supported;
++	bool no_clock_stop;
++	int enum_cols_index;
+ };
+ 
+ struct qcom_swrm_data {
+ 	u32 default_cols;
+ 	u32 default_rows;
++	u32 enum_cols;		/* frame columns while enumerating (bank 0), 0: default_cols */
++	bool no_clock_stop;
+ 	bool sw_clk_gate_required;
+ 	u32 max_reg;
+ 	const unsigned int *reg_layout;
+@@ -264,6 +268,21 @@
+ 	.reg_layout = swrm_v1_3_reg_layout,
+ };
+ 
++/*
++ * SM6150 (v1.5.0): the downstream driver enumerates with a 50 row x 2 column frame (bank 0 read
++ * back as 0x002f0008 while playing, the WSA881x latched as device 1); with 16 columns the
++ * WSA881x on the WSA master never answers.
++ */
++static const struct qcom_swrm_data swrm_v1_5_0_data = {
++	.default_rows = 50,
++	.default_cols = 16,	/* streams (bank switches), as downstream bank 1: 0x0005000f */
++	.enum_cols = 2,
++	/* the clock stop broadcast (SCP_STAT read on device 15) fails on this master */
++	.no_clock_stop = true,
++	.max_reg = SWR_V1_3_MSTR_MAX_REG_ADDR,
++	.reg_layout = swrm_v1_3_reg_layout,
++};
++
+ static const struct qcom_swrm_data swrm_v1_6_data = {
+ 	.default_rows = 50,
+ 	.default_cols = 16,
+@@ -664,7 +683,7 @@
+ 
+ 		sdw_extract_slave_id(bus, addr, &id);
+ 		found = false;
+-		ctrl->clock_stop_not_supported = false;
++		ctrl->clock_stop_not_supported = ctrl->no_clock_stop;
+ 		/* Now compare with entries */
+ 		list_for_each_entry_safe(slave, _s, &bus->slaves, node) {
+ 			if (sdw_compare_devid(slave, id) == 0) {
+@@ -882,7 +901,7 @@
+ 
+ 	/* Clear Rows and Cols */
+ 	val = FIELD_PREP(SWRM_MCP_FRAME_CTRL_BANK_ROW_CTRL_BMSK, ctrl->rows_index);
+-	val |= FIELD_PREP(SWRM_MCP_FRAME_CTRL_BANK_COL_CTRL_BMSK, ctrl->cols_index);
++	val |= FIELD_PREP(SWRM_MCP_FRAME_CTRL_BANK_COL_CTRL_BMSK, ctrl->enum_cols_index);
+ 
+ 	reset_control_reset(ctrl->audio_cgcr);
+ 
+@@ -1564,6 +1583,9 @@
+ 	data = of_device_get_match_data(dev);
+ 	ctrl->max_reg = data->max_reg;
+ 	ctrl->reg_layout = data->reg_layout;
++	ctrl->no_clock_stop = data->no_clock_stop;
++	ctrl->clock_stop_not_supported = data->no_clock_stop;
++	ctrl->enum_cols_index = sdw_find_col_index(data->enum_cols ?: data->default_cols);
+ 	ctrl->rows_index = sdw_find_row_index(data->default_rows);
+ 	ctrl->cols_index = sdw_find_col_index(data->default_cols);
+ #if IS_REACHABLE(CONFIG_SLIMBUS)
+@@ -1831,6 +1853,7 @@
+ 
+ static const struct of_device_id qcom_swrm_of_match[] = {
+ 	{ .compatible = "qcom,soundwire-v1.3.0", .data = &swrm_v1_3_data },
++	{ .compatible = "qcom,soundwire-v1.5.0", .data = &swrm_v1_5_0_data },
+ 	{ .compatible = "qcom,soundwire-v1.5.1", .data = &swrm_v1_5_data },
+ 	{ .compatible = "qcom,soundwire-v1.6.0", .data = &swrm_v1_6_data },
+ 	{ .compatible = "qcom,soundwire-v1.7.0", .data = &swrm_v1_5_data },

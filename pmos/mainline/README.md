@@ -294,3 +294,16 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   và trình tự clock của WSA macro với `swr-wcd-ctrl.c`/`wsa-macro.c` downstream, hoặc đo tín hiệu SWR clk/data.
 - Cũng đã thử: xung reset SWR (`SWR_CONTROL` bit 1) quanh bước bật clock như `wsa_swrm_clock` downstream
   (`patches-off/0033`) → không đổi. `CDC_WSA_TOP_FREQ_MCLK` mainline = downstream (0x01).
+
+### ✅ Loa chạy (2026-11-19)
+- Đọc thanh ghi downstream lúc đang phát (`ref/swr-wsa-regs-downstream-playing.txt`): enumerator phần cứng chốt
+  WSA881x (`0x538 = 0x21170213`) ở device 1 (`MCP_SLV_STATUS 0x1090 = 0x4`), bank 0 = khung **50×2**, bank 1 (phát)
+  = 50×16.
+- Patch 0034 (`qcom,soundwire-v1.5.0`): liệt kê ở 50×2 (bank 0), chuyển bank khi phát dùng 50×16, không dùng clock stop
+  (broadcast SCP_STAT lỗi trên master này → runtime PM kẹt "error"). Patch 0035: WSA macro chờ VA macro báo phiên bản
+  codec (không còn phụ thuộc qua fsgen). Patch 0031: fsgen từ TX macro.
+- Kết quả: WSA881x **Attached** (device 1, như downstream), sound card "Samsung Galaxy A70", `aplay -D hw:0,0` phát hết,
+  không lỗi/collision, bank chuyển 16 cột, modem không crash.
+- Định tuyến (tạm, chưa có UCM): `WSA_CODEC_DMA_RX_0 Audio Mixer MultiMedia1`=1, `WSA RX0 MUX`=AIF1_PB,
+  `WSA_RX0 INP0`=RX0, `WSA_COMP1 Switch`=1, `SpkrLeft COMP/BOOST/DAC Switch`=1, `SpkrLeft VISENSE Switch`=0,
+  `WSA_RX0 Digital Volume`=70, `SpkrLeft PA Volume`=10.
