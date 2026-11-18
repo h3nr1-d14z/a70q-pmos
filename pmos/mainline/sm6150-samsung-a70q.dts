@@ -1011,7 +1011,7 @@
 		 * keeps its state over a warm reset, and a WSA881x still attached from the previous kernel
 		 * drives the bus (bus clash, never re-enumerates). wsa881x then releases SD_N.
 		 */
-		pinctrl-0 = <&wsa_swr_active>, <&wsa_spkr_sd_n_reset>;
+		pinctrl-0 = <&wsa_swr_active>, <&wsa_spkr_sd_n_on>;
 		pinctrl-names = "default";
 	};
 
@@ -1079,12 +1079,13 @@
 };
 
 &tlmm {
-	wsa_spkr_sd_n_reset: wsa-spkr-sd-n-reset-state {
+	/* speaker amp out of shutdown before the SoundWire bus starts (downstream spkr_1_sd_n_active) */
+	wsa_spkr_sd_n_on: wsa-spkr-sd-n-on-state {
 		pins = "gpio108";
 		function = "gpio";
 		drive-strength = <16>;
 		bias-disable;
-		output-low;
+		output-high;
 	};
 
 	wsa_swr_active: wsa-swr-active-state {

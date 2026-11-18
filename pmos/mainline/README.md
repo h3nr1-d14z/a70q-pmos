@@ -272,3 +272,8 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   ≤3 A), `constant_charge_voltage` (FV 0x1070, 3.6 V + 10 mV, ≤4.35 V theo profile pin), `input_current_limit`
   (USBIN ICL 0x1370, bước 50 mA), `charge_behaviour` auto/inhibit-charge (CHARGING_ENABLE_CMD 0x1042). Mặc định
   bootloader để lại: FCC 2.1 A, FV 4.35 V, ICL 1.5 A. Đã thử đọc/ghi và chặn/bật sạc.
+- SoundWire (2026-11-19): patch 0030 cho driver qcom báo cả device 0 và xử lý trạng thái slave một lần sau khi bus
+  chạy (để lõi SoundWire tự liệt kê bằng phần mềm). Kết quả: hết lỗi đọc thanh ghi WSA, nhưng lúc bus khởi động
+  trạng thái slave = 0 và **bus clash xảy ra ngay lúc khởi động bus kể cả khi amply đang tắt (SD_N thấp)** → nguồn
+  clash nằm ở đường dữ liệu/controller chứ không phải WSA881x. Cần DYNAMIC_DEBUG hoặc đo tín hiệu để đi tiếp.
+  Macro/swr0 tắt lại.

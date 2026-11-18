@@ -1,0 +1,30 @@
+--- a/drivers/soundwire/qcom.c	2026-11-18 17:41:08.278746384 +0000
++++ b/drivers/soundwire/qcom.c	2026-11-18 17:41:08.286323742 +0000
+@@ -605,6 +605,13 @@
+ 	ctrl->reg_read(ctrl, SWRM_MCP_SLV_STATUS, &val);
+ 	ctrl->slave_status = val;
+ 
++	/*
++	 * Device 0 (attached, not enumerated yet): on SM6150 (v1.5.0) the hardware enumerator never
++	 * latches the WSA881x ID, so report it and let the SoundWire core enumerate it in software
++	 * (read DevID, program the device number), as the downstream swr-wcd driver does.
++	 */
++	ctrl->status[0] = val & SWRM_MCP_SLV_STATUS_MASK;
++
+ 	for (i = 1; i <= SDW_MAX_DEVICES; i++) {
+ 		u32 s;
+ 
+@@ -1681,6 +1688,13 @@
+ 	qcom_swrm_init(ctrl);
+ 	wait_for_completion_timeout(&ctrl->enumeration,
+ 				    msecs_to_jiffies(TIMEOUT_MS));
++	/*
++	 * A device already sitting at device 0 when the bus starts raises no "status changed"
++	 * interrupt: hand the current status to the core once so it gets enumerated.
++	 */
++	qcom_swrm_get_device_status(ctrl);
++	dev_info(dev, "slave status %08x after bus start\n", ctrl->slave_status);
++	sdw_handle_slave_status(&ctrl->bus, ctrl->status);
+ 	ret = qcom_swrm_register_dais(ctrl);
+ 	if (ret)
+ 		goto err_master_add;
