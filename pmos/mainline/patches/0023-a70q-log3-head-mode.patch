@@ -1,0 +1,37 @@
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-18 06:36:48.191815478 +0000
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-18 06:36:48.199055521 +0000
+@@ -387,6 +387,15 @@
+ static u32 log3_boot;
+ static DEFINE_RAW_SPINLOCK(log3_lock);
+ 
++static bool log3_head;
++
++static int __init a70q_log3_head_setup(char *s)
++{
++	log3_head = true;
++	return 1;
++}
++__setup("a70q.log3head", a70q_log3_head_setup);
++
+ static void a70q_log3_write(void)
+ {
+ 	struct kmsg_dump_iter iter;
+@@ -400,7 +409,17 @@
+ 	if (!raw_spin_trylock_irqsave(&log3_lock, flags))
+ 		return;
+ 	kmsg_dump_rewind(&iter);
+-	kmsg_dump_get_buffer(&iter, false, log3_buf, sizeof(log3_buf) - 1, &len);
++	if (log3_head) {
++		/* a70q.log3head: keep the oldest messages (boot), not the newest */
++		size_t l;
++
++		while (len < sizeof(log3_buf) - 1024 &&
++		       kmsg_dump_get_line(&iter, false, log3_buf + len,
++					  sizeof(log3_buf) - 1 - len, &l) && l)
++			len += l;
++	} else {
++		kmsg_dump_get_buffer(&iter, false, log3_buf, sizeof(log3_buf) - 1, &len);
++	}
+ 	log3_buf[len] = 0;
+ 	hdr[0] = 0x51303741;		/* "A70Q" */
+ 	hdr[1] = 0x32474f4c;		/* "LOG2" */

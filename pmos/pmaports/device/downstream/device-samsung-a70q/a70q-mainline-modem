@@ -46,3 +46,13 @@ fi
 ( for i in $(seq 1 60); do [ -e /sys/class/bluetooth/hci0 ] && break; sleep 1; done
   timeout 8 btmgmt --index 0 public-addr "$(cat $A)" </dev/null >/dev/null 2>&1
   echo "bluetooth: public address set" ) &
+
+# Audio DSP (APR): firmware next to the other qcom/ blobs, then start it
+mkdir -p /lib/firmware/qcom/a70q
+for f in $FW/adsp.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/a70q/; done
+RA=$(grep -l '^adsp$' /sys/class/remoteproc/*/name 2>/dev/null | head -1)
+RA=${RA%/name}
+if [ -n "$RA" ] && [ "$(cat $RA/state)" != running ]; then
+	echo start > $RA/state
+	echo "adsp: $(cat $RA/state)"
+fi

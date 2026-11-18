@@ -1,0 +1,99 @@
+--- a/sound/soc/qcom/qdsp6/q6afe.c	2026-11-18 06:54:21.290913347 +0000
++++ b/sound/soc/qcom/qdsp6/q6afe.c	2026-11-18 06:54:21.298720116 +0000
+@@ -29,6 +29,7 @@
+ #define AFE_PORT_CMD_DEVICE_STOP	0x000100E6
+ #define AFE_PORT_CMD_SET_PARAM_V2	0x000100EF
+ #define AFE_SVC_CMD_SET_PARAM		0x000100f3
++#define AFE_SVC_CMD_SET_PARAM_V2	0x000100fc
+ #define AFE_PORT_CMDRSP_GET_PARAM_V2	0x00010106
+ #define AFE_PARAM_ID_HDMI_CONFIG	0x00010210
+ #define AFE_MODULE_AUDIO_DEV_INTERFACE	0x0001020C
+@@ -424,6 +425,27 @@
+ 	uint32_t mem_map_handle;
+ } __packed;
+ 
++/*
++ * Service-level set param with the v3 parameter header (instance id). The SM6150 ADSP firmware
++ * (Samsung Galaxy A70) rejects AFE_SVC_CMD_SET_PARAM for the LPASS clock module with
++ * ADSP_EBADPARAM; its downstream driver uses this command whenever the firmware supports
++ * instance ids.
++ */
++struct afe_svc_cmd_set_param_v2 {
++	uint32_t payload_address_lsw;
++	uint32_t payload_address_msw;
++	uint32_t mem_map_handle;
++	uint32_t payload_size;
++} __packed;
++
++struct afe_param_hdr_v3 {
++	uint32_t module_id;
++	uint16_t instance_id;
++	uint16_t reserved;
++	uint32_t param_id;
++	uint32_t param_size;
++} __packed;
++
+ struct afe_port_cmd_set_param_v2 {
+ 	u16 port_id;
+ 	u16 payload_size;
+@@ -1028,6 +1050,7 @@
+ 		case AFE_PORT_CMD_DEVICE_STOP:
+ 		case AFE_PORT_CMD_DEVICE_START:
+ 		case AFE_SVC_CMD_SET_PARAM:
++		case AFE_SVC_CMD_SET_PARAM_V2:
+ 			port = q6afe_find_port(afe, hdr->token);
+ 			if (port) {
+ 				port->result = *res;
+@@ -1038,6 +1061,12 @@
+ 				wake_up(&afe->wait);
+ 			}
+ 			break;
++		case AFE_CMD_REMOTE_LPASS_CORE_HW_VOTE_REQUEST:
++			/* the DSP answered the vote with a basic result (an error) */
++			afe->result.opcode = AFE_CMD_RSP_REMOTE_LPASS_CORE_HW_VOTE_REQUEST;
++			afe->result.status = res->status ? res->status : 1;
++			wake_up(&afe->wait);
++			break;
+ 		default:
+ 			dev_err(afe->dev, "Unknown cmd 0x%x\n",	res->opcode);
+ 			break;
+@@ -1122,8 +1151,8 @@
+ 			   void *data, int param_id, int module_id, int psize,
+ 			   int token)
+ {
+-	struct afe_svc_cmd_set_param *param;
+-	struct afe_port_param_data_v2 *pdata;
++	struct afe_svc_cmd_set_param_v2 *param;
++	struct afe_param_hdr_v3 *pdata;
+ 	struct apr_pkt *pkt;
+ 	int ret, pkt_size = APR_HDR_SIZE + sizeof(*param) + sizeof(*pdata) + psize;
+ 	void *pl;
+@@ -1145,17 +1174,18 @@
+ 	pkt->hdr.src_port = 0;
+ 	pkt->hdr.dest_port = 0;
+ 	pkt->hdr.token = token;
+-	pkt->hdr.opcode = AFE_SVC_CMD_SET_PARAM;
++	pkt->hdr.opcode = AFE_SVC_CMD_SET_PARAM_V2;
+ 
+ 	param->payload_size = sizeof(*pdata) + psize;
+ 	param->payload_address_lsw = 0x00;
+ 	param->payload_address_msw = 0x00;
+ 	param->mem_map_handle = 0x00;
+ 	pdata->module_id = module_id;
++	pdata->instance_id = 0;
+ 	pdata->param_id = param_id;
+ 	pdata->param_size = psize;
+ 
+-	ret = afe_apr_send_pkt(afe, pkt, port, AFE_SVC_CMD_SET_PARAM);
++	ret = afe_apr_send_pkt(afe, pkt, port, AFE_SVC_CMD_SET_PARAM_V2);
+ 	if (ret)
+ 		dev_err(afe->dev, "AFE set params failed %d\n", ret);
+ 
+@@ -1254,6 +1284,7 @@
+ 	cset.clk_root = clk_root;
+ 	cset.enable = !!freq;
+ 
++	dev_info(dev, "lpass clock id 0x%x freq %u attri %d root %d\n", clk_id, freq, attri, clk_root);
+ 	return q6afe_set_param(afe, NULL, &cset, AFE_PARAM_ID_CLOCK_SET,
+ 			       AFE_MODULE_CLOCK_SET, sizeof(cset),
+ 			       AFE_CLK_TOKEN);

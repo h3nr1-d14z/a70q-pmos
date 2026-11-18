@@ -180,3 +180,17 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - ✅ **Pin**: `a70q-battery.c` (patch 0022) chuyển từ `violet-vbat.c`: đọc điện áp/dòng của QG PM6150,
   đếm coulomb, bảng OCV 25°C và FCC 4238 mAh từ profile downstream `a70q_4400mAh`, lưu % vào SDAM.
   SMB5 sạc theo mặc định phần cứng (không có driver sạc mainline). Chưa kiểm chứng khi xả pin.
+
+### Âm thanh (2026-11-18, đang làm)
+- ✅ ADSP chạy (firmware `adsp.mdt` từ apnhlos, symlink `qcom/a70q/`, khởi động bởi `a70q-mainline-modem`),
+  APR cũ (`apr_audio_svc`, không phải AudioReach của talos.dtsi): q6core/q6afe/q6asm/q6adm probe, PDR
+  `msm/adsp/audio_pd` lên nhờ pd-mapper.
+- Phần cứng (DT downstream): bolero (va/tx/rx/wsa macro @0x62f20000/0x62ec0000/0x62ee0000/0x62f00000),
+  loa = 1 WSA881x (SoundWire 0x21170213 = id 3, swr0 @0x62f10000 SPI 136, SD_N GPIO 47, chân swr GPIO 110/111),
+  tai nghe/mic = WCD937x (swr1/swr2, reset = **LPI** GPIO 24 → cần driver pinctrl LPASS LPI cho SM6150).
+- ❌ Chặn: ADSP trả `ADSP_EBADPARAM` cho mọi `AFE_PARAM_ID_CLOCK_SET` của clock codec (VA 0x30b, WSA 0x309,
+  19.2 MHz, attri 1 — giống hệt downstream), cả lệnh SVC v1 (0x100f3) lẫn v2 (0x100fc, `patches-off/0024`), có hoặc
+  không có vote `LPASS_HW_MACRO` (block 3 vote OK; block DCODEC 4 → `ADSP_EUNSUPPORTED`). Macro đọc thanh ghi khi
+  chưa có clock → ADSP báo "AHB Bus hang addr 0x62f00008" và crash; q6afe-clocks re-probe lúc phục hồi → oops.
+  Các node codec/sound để `status = "disabled"` (`a70q-audio-step`).
+- `a70q.log3head` (patch 0023): giữ phần đầu log thay vì phần cuối (bắt lỗi lúc boot khi log bị spam).

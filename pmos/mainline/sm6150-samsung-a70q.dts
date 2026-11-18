@@ -14,6 +14,9 @@
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include <dt-bindings/spmi/spmi.h>
 #include <dt-bindings/firmware/qcom,scm.h>
+#include <dt-bindings/soc/qcom,apr.h>
+#include <dt-bindings/sound/qcom,q6afe.h>
+#include <dt-bindings/sound/qcom,q6asm.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/interrupt-controller/irq.h>
@@ -772,5 +775,212 @@
 		vddrf-supply = <&vreg_l2c>;
 		vddch0-supply = <&vreg_l10c>;
 		max-speed = <3200000>;
+	};
+};
+
+/*
+ * Audio DSP. Samsung's ADSP firmware speaks the legacy APR protocol ("apr_audio_svc" glink
+ * channel), not AudioReach (talos.dtsi's gpr/q6apm), as found by the violet-sm6150-mainline
+ * project for the same SoC. Firmware from the apnhlos partition, symlinked to qcom/a70q/ by
+ * a70q-mainline-modem, which also starts the remoteproc (the partition is not mounted at probe).
+ */
+&remoteproc_adsp {
+	firmware-name = "qcom/a70q/adsp.mdt";
+	status = "okay";
+};
+
+&glink_edge {
+	/delete-node/ gpr;
+
+	apr {
+		compatible = "qcom,apr-v2";
+		qcom,glink-channels = "apr_audio_svc";
+		qcom,domain = <APR_DOMAIN_ADSP>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		service@3 {
+			compatible = "qcom,q6core";
+			reg = <APR_SVC_ADSP_CORE>;
+			qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+		};
+
+		q6afe: service@4 {
+			compatible = "qcom,q6afe";
+			reg = <APR_SVC_AFE>;
+			qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+
+			q6afedai: dais {
+				compatible = "qcom,q6afe-dais";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				#sound-dai-cells = <1>;
+			};
+
+			q6afecc: clock-controller {
+				compatible = "qcom,q6afe-clocks";
+				#clock-cells = <2>;
+			};
+		};
+
+		q6asm: service@7 {
+			compatible = "qcom,q6asm";
+			reg = <APR_SVC_ASM>;
+			qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+
+			q6asmdai: dais {
+				compatible = "qcom,q6asm-dais";
+				#address-cells = <1>;
+				#size-cells = <0>;
+				#sound-dai-cells = <1>;
+				iommus = <&apps_smmu 0x1721 0x0>;
+
+				dai@0 {
+					reg = <MSM_FRONTEND_DAI_MULTIMEDIA1>;
+				};
+
+				dai@1 {
+					reg = <MSM_FRONTEND_DAI_MULTIMEDIA2>;
+				};
+			};
+		};
+
+		q6adm: service@8 {
+			compatible = "qcom,q6adm";
+			reg = <APR_SVC_ADM>;
+			qcom,protection-domain = "avs/audio", "msm/adsp/audio_pd";
+
+			q6routing: routing {
+				compatible = "qcom,q6adm-routing";
+				#sound-dai-cells = <0>;
+			};
+		};
+	};
+};
+
+/*
+ * WORK IN PROGRESS, disabled (status "disabled" a70q-audio-step): the ADSP rejects every LPASS
+ * codec clock (AFE_PARAM_ID_CLOCK_SET for VA/WSA core 0x30b/0x309 -> ADSP_EBADPARAM, with the
+ * v1 and the v2/instance-id SVC command alike, with and without the LPASS macro block vote),
+ * and a macro touching its registers unclocked makes the ADSP see an AHB bus hang
+ * (addr 0x62f00008), crash, and the q6afe-clocks re-probe during recovery oopses.
+ *
+ * Speaker: one WSA881x (SoundWire 0x21170213 = unique id 3) on the WSA macro's SoundWire master,
+ * SD_N on GPIO 47. Addresses/clocks from the downstream bolero-cdc node: wsa-macro@62f00000,
+ * swrm @62f10000 irq SPI 136, va-macro@62f20000 (provides "fsgen"). The LPASS clock VOTE
+ * command ("macro"/"dcodec" clocks) is not supported by this ADSP firmware (violet), so it is
+ * not used.
+ */
+&soc {
+	vamacro: codec@62f20000 {
+		compatible = "qcom,sm8250-lpass-va-macro";
+		status = "disabled";	/* a70q-audio-step */
+		reg = <0x0 0x62f20000 0x0 0x1000>;
+		/*
+		 * pm_clk enables these in DT order: the LPASS core (macro block) vote has to come
+		 * before the codec clocks, or the AFE rejects them (ADSP_EBADPARAM). There is no
+		 * DCODEC block on this firmware (vote -> ADSP_EUNSUPPORTED).
+		 */
+		clocks = <&q6afecc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_VA_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		clock-names = "macro", "mclk";
+
+		#clock-cells = <0>;
+		clock-output-names = "fsgen";
+		#sound-dai-cells = <1>;
+	};
+
+	wsamacro: codec@62f00000 {
+		compatible = "qcom,sm8250-lpass-wsa-macro";
+		reg = <0x0 0x62f00000 0x0 0x1000>;
+		clocks = <&q6afecc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_WSA_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_WSA_CORE_NPL_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&vamacro>;
+		clock-names = "macro", "mclk", "npl", "fsgen";
+
+		#clock-cells = <0>;
+		clock-output-names = "mclk";
+		#sound-dai-cells = <1>;
+
+		pinctrl-0 = <&wsa_swr_active>;
+		pinctrl-names = "default";
+		status = "disabled";	/* a70q-audio-step */
+	};
+
+	swr0: soundwire@62f10000 {
+		compatible = "qcom,soundwire-v1.3.0";
+		reg = <0x0 0x62f10000 0x0 0x2000>;
+		interrupts = <GIC_SPI 136 IRQ_TYPE_LEVEL_HIGH 0>;
+		clocks = <&wsamacro>;
+		clock-names = "iface";
+		label = "WSA";
+		status = "disabled";	/* a70q-audio-step */
+
+		qcom,din-ports = <2>;
+		qcom,dout-ports = <6>;
+
+		qcom,ports-sinterval-low =	/bits/ 8 <0x07 0x1f 0x3f 0x07 0x1f 0x3f 0x0f 0x0f>;
+		qcom,ports-offset1 =		/bits/ 8 <0x01 0x02 0x0c 0x06 0x12 0x0d 0x07 0x0a>;
+		qcom,ports-offset2 =		/bits/ 8 <0xff 0x00 0x1f 0xff 0x00 0x1f 0x00 0x00>;
+		qcom,ports-block-pack-mode =	/bits/ 8 <0x0 0x0 0x1 0x0 0x0 0x1 0x0 0x0>;
+
+		#sound-dai-cells = <1>;
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		spkr: speaker@0,3 {
+			compatible = "sdw10217211000";
+			reg = <0 3>;
+			powerdown-gpios = <&tlmm 47 GPIO_ACTIVE_LOW>;
+			#thermal-sensor-cells = <0>;
+			sound-name-prefix = "SpkrLeft";
+			#sound-dai-cells = <0>;
+		};
+	};
+
+	sound {
+		compatible = "qcom,sm8250-sndcard";
+		status = "disabled";	/* a70q-audio-step */
+		model = "Samsung Galaxy A70";
+		audio-routing = "SpkrLeft IN", "WSA_SPK1 OUT";
+
+		mm1-dai-link {
+			link-name = "MultiMedia1";
+			cpu {
+				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
+			};
+		};
+
+		wsa-dai-link {
+			link-name = "WSA Playback";
+			cpu {
+				sound-dai = <&q6afedai WSA_CODEC_DMA_RX_0>;
+			};
+			platform {
+				sound-dai = <&q6routing>;
+			};
+			codec {
+				sound-dai = <&spkr>, <&swr0 0>, <&wsamacro 0>;
+			};
+		};
+	};
+};
+
+&tlmm {
+	wsa_swr_active: wsa-swr-active-state {
+		clk-pins {
+			pins = "gpio111";
+			function = "wsa_clk";
+			drive-strength = <2>;
+			bias-bus-hold;
+		};
+
+		data-pins {
+			pins = "gpio110";
+			function = "wsa_data";
+			drive-strength = <4>;
+			bias-bus-hold;
+		};
 	};
 };
