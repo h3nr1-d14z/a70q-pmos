@@ -249,3 +249,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - (Lần máy kẹt hẳn trước đó nhiều khả năng cũng là USB chết, và máy vào lại suspend vì không có gì giữ nó thức.)
 - Còn lại: Bluetooth đôi khi timeout rồi tự reset sau resume (khi đó mất địa chỉ BT đã đặt); WiFi báo timeout khi gỡ
   key lúc suspend (vô hại, kết nối lại được).
+- Bluetooth: device r63 đặt lại địa chỉ BT mỗi khi controller mất cấu hình (sau reset/resume) → đúng địa chỉ sau resume.
+- ⚠️ Modem vẫn **thỉnh thoảng** assert mỗi 40 s trong vài phút đầu sau khi boot rồi tự ổn định (0–5 lần/boot, kể cả
+  khi tắt macro âm thanh). Không phải do suspend. ModemManager được D-Bus kích hoạt và dò modem qua QRTR lúc đó
+  (nghi phạm, chưa chứng minh). Coredump của PAS không dùng được ("Invalid coredump configuration").

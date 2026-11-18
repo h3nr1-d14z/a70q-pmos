@@ -58,6 +58,12 @@ if [ ! -s $A ]; then
 	mkdir -p /var/lib/a70q
 	printf '02:A7:0A:%02X:%02X:%02X\n' $(od -An -N3 -tu1 /dev/urandom) > $A
 fi
-( for i in $(seq 1 60); do [ -e /sys/class/bluetooth/hci0 ] && break; sleep 1; done
-  timeout 8 btmgmt --index 0 public-addr "$(cat $A)" </dev/null >/dev/null 2>&1
-  echo "bluetooth: public address set" ) &
+# The controller drops back to "unconfigured" after every reset (hardware error event after
+# resume, rfkill...), so keep watching and set the address again whenever it is missing.
+( while :; do
+	if [ -e /sys/class/bluetooth/hci0 ] &&
+	   ! timeout 5 btmgmt info </dev/null 2>/dev/null | grep -qi "addr $(cat $A)"; then
+		timeout 8 btmgmt --index 0 public-addr "$(cat $A)" </dev/null >/dev/null 2>&1
+	fi
+	sleep 15
+  done ) >/dev/null 2>&1 &
