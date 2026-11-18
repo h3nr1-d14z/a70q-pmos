@@ -477,6 +477,15 @@
 	status = "okay";
 };
 
+/*
+ * This chip's GPU speed bin is capped at 745 MHz (downstream kgsl: 745/700/550/435/290 MHz).
+ * At 845 MHz (CX turbo) the GPU does not run at all: CP registers read back 0 and CP_INIT
+ * times out ("timeout waiting to drain ringbuffer 0 rptr/wptr = 0/C").
+ */
+&gpu_opp_table {
+	/delete-node/ opp-845000000;
+};
+
 &gpu_zap_shader {
 	/* device-signed zap (firmware partition: a612_zap.mdt/.b0x), linked into /lib/firmware/qcom */
 	firmware-name = "qcom/a612_zap.mdt";

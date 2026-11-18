@@ -20,7 +20,7 @@ RP=${RP%/name}
 ln -sf $FW/wlanmdsp.mbn /lib/firmware/wlanmdsp.mbn
 # GPU (msm): device-signed zap shader and the RGMU next to the linux-firmware SQE in qcom/
 mkdir -p /lib/firmware/qcom
-for f in $FW/a612_zap.*; do ln -sf "$f" /lib/firmware/qcom/; done
+for f in $FW/a612_zap.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/; done; rm -f "/lib/firmware/qcom/a612_zap.*"
 [ -e /lib/firmware/qcom/a612_rgmu.bin ] || cp /lib/firmware/a612_rgmu.bin /lib/firmware/qcom/ 2>/dev/null
 
 pkill -x tqftpserv; pkill -x pd-mapper; pkill -x rmtfs
