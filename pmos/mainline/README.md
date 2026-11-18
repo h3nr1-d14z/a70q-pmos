@@ -194,3 +194,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   chưa có clock → ADSP báo "AHB Bus hang addr 0x62f00008" và crash; q6afe-clocks re-probe lúc phục hồi → oops.
   Các node codec/sound để `status = "disabled"` (`a70q-audio-step`).
 - `a70q.log3head` (patch 0023): giữ phần đầu log thay vì phần cuối (bắt lỗi lúc boot khi log bị spam).
+
+### Modem ổn định (2026-11-18)
+- ✅ Modem từng crash "fatal error without message" đúng 40 s sau mỗi lần lên (WiFi rớt theo chu kỳ). Nguyên nhân:
+  thiếu IPA phía AP. Thêm cặp smp2p `ipa` (ipa-ap-to-modem / ipa-modem-to-ap) trong `smp2p-modem` và node IPA v4.2
+  (`qcom,sc7180-ipa`, `modem-init`, SPI 311/432, theo violet-sm6150-mainline). Vùng `ips-fw@9a900000` và
+  `ipa-gsi@9a910000` đã có sẵn. Modem chạy liên tục, không còn crash.
