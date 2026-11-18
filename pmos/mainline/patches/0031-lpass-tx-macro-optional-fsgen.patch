@@ -1,0 +1,15 @@
+--- a/sound/soc/codecs/lpass-tx-macro.c	2026-11-18 18:10:42.013637795 +0000
++++ b/sound/soc/codecs/lpass-tx-macro.c	2026-11-18 18:10:42.021049507 +0000
+@@ -2276,7 +2276,11 @@
+ 			return dev_err_probe(dev, PTR_ERR(tx->npl), "unable to get npl clock\n");
+ 	}
+ 
+-	tx->fsgen = devm_clk_get(dev, "fsgen");
++	/*
++	 * Optional: on SM6150 (bolero with "va-without-decimation") the TX macro is itself the
++	 * codec MCLK/FS source, there is no VA fsgen to take.
++	 */
++	tx->fsgen = devm_clk_get_optional(dev, "fsgen");
+ 	if (IS_ERR(tx->fsgen))
+ 		return dev_err_probe(dev, PTR_ERR(tx->fsgen), "unable to get fsgen clock\n");
+ 

@@ -970,7 +970,7 @@
  */
 &soc {
 	vamacro: codec@62f20000 {
-		status = "disabled";	/* a70q-audio: makes the modem crash, see above */
+		/* still needed: it detects the codec version the other macros use */
 		compatible = "qcom,sm8250-lpass-va-macro";
 		reg = <0x0 0x62f20000 0x0 0x1000>;
 		/*
@@ -992,14 +992,27 @@
 		#sound-dai-cells = <1>;
 	};
 
+	txmacro: codec@62ec0000 {
+		compatible = "qcom,sm8250-lpass-tx-macro";
+		reg = <0x0 0x62ec0000 0x0 0x1000>;
+		clocks = <&q6afecc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_TX_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_TX_CORE_NPL_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		clock-names = "macro", "mclk", "npl";
+
+		#clock-cells = <0>;
+		clock-output-names = "lpass-tx-mclk";
+		#sound-dai-cells = <1>;
+	};
+
 	wsamacro: codec@62f00000 {
-		status = "disabled";	/* a70q-audio: makes the modem crash, see above */
 		compatible = "qcom,sm8250-lpass-wsa-macro";
 		reg = <0x0 0x62f00000 0x0 0x1000>;
 		clocks = <&q6afecc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
 			 <&q6afecc LPASS_CLK_ID_WSA_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
 			 <&q6afecc LPASS_CLK_ID_WSA_CORE_NPL_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
-			 <&vamacro>;
+			 <&txmacro>;
+		/* fsgen: the TX macro MCLK/FS counter, the codec MCLK source on SM6150 (downstream) */
 		clock-names = "macro", "mclk", "npl", "fsgen";
 
 		#clock-cells = <0>;
@@ -1016,7 +1029,6 @@
 	};
 
 	swr0: soundwire@62f10000 {
-		status = "disabled";	/* a70q-audio: makes the modem crash, see above */
 		/* SWRM_COMP_HW_VERSION reads 0x01050000 (v1.5.0) */
 		compatible = "qcom,soundwire-v1.5.1";
 		reg = <0x0 0x62f10000 0x0 0x2000>;

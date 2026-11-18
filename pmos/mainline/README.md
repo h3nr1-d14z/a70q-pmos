@@ -283,3 +283,8 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   của WSA lấy từ VA macro, mà khối VA ở đây được cấp clock TX core (ADSP từ chối VA core 0x30b), nên bộ đếm FS của
   VA có thể không chạy. Downstream (bolero, `va-without-decimation`) lấy MCLK chung từ TX macro. Hướng tiếp: sinh
   fsgen từ TX macro (tx-macro có MCLK/FS_CNT riêng) thay vì VA. `CONFIG_DYNAMIC_DEBUG` đã bật.
+- ✅ **Bus SoundWire chạy** (2026-11-19): `fsgen` của WSA macro lấy từ **TX macro** (MCLK/FS counter của TX, như
+  bolero downstream trên SM6150) thay vì VA (patch 0031: `fsgen` của TX macro thành optional; VA macro vẫn cần để
+  đọc phiên bản codec). Hết bus clash (trạng thái ngắt 0), device 0 attach ngay khi bus chạy (`slave status 1`).
+  Còn lại: lõi SoundWire liệt kê bằng phần mềm nhưng lệnh đọc DevID của device 0 không có dữ liệu ("read underflow",
+  lệnh bị bỏ qua) → WSA881x vẫn UNATTACHED. Với cấu hình này modem không crash (0 lần/boot thử).
