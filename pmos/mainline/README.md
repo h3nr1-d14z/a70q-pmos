@@ -288,3 +288,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   đọc phiên bản codec). Hết bus clash (trạng thái ngắt 0), device 0 attach ngay khi bus chạy (`slave status 1`).
   Còn lại: lõi SoundWire liệt kê bằng phần mềm nhưng lệnh đọc DevID của device 0 không có dữ liệu ("read underflow",
   lệnh bị bỏ qua) → WSA881x vẫn UNATTACHED. Với cấu hình này modem không crash (0 lần/boot thử).
+- Thử thêm (không hiệu quả, để trong `patches-off/`): liệt kê device 0 bằng phần mềm (0030: lệnh đọc DevID bị bỏ qua,
+  "read underflow"), SSP period = 1 như downstream (0032). Enumerator phần cứng vẫn không chốt được ID dù bus chạy.
+  Các node âm thanh tắt lại (cấu hình fsgen-từ-TX giữ trong DT). Hướng tiếp theo: so từng thanh ghi khởi tạo master
+  và trình tự clock của WSA macro với `swr-wcd-ctrl.c`/`wsa-macro.c` downstream, hoặc đo tín hiệu SWR clk/data.

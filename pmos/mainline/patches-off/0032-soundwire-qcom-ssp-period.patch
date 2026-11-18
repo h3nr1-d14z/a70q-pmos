@@ -1,0 +1,15 @@
+--- a/drivers/soundwire/qcom.c	2026-11-18 19:00:23.257120259 +0000
++++ b/drivers/soundwire/qcom.c	2026-11-18 19:00:23.264087918 +0000
+@@ -883,6 +883,12 @@
+ 	/* Clear Rows and Cols */
+ 	val = FIELD_PREP(SWRM_MCP_FRAME_CTRL_BANK_ROW_CTRL_BMSK, ctrl->rows_index);
+ 	val |= FIELD_PREP(SWRM_MCP_FRAME_CTRL_BANK_COL_CTRL_BMSK, ctrl->cols_index);
++	/*
++	 * Stream synchronisation point every frame, as the downstream driver programs it
++	 * (ssp_period = 1); left at 0 the SM6150 (v1.5.0) WSA master never gets its slave
++	 * enumerated.
++	 */
++	val |= FIELD_PREP(GENMASK(23, 16), 1);
+ 
+ 	reset_control_reset(ctrl->audio_cgcr);
+ 
