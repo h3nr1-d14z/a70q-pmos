@@ -3,4 +3,7 @@
 case " $* " in
 	*" -d "*|*" --device"*|*" -l "*|*" --list "*|*" -m "*) exec /usr/bin/brightnessctl "$@" ;;
 esac
-exec /usr/bin/brightnessctl -d panel0-backlight "$@"
+# downstream: panel0-backlight; mainline: the DSI panel's backlight (ae94000.dsi.0)
+BL=panel0-backlight
+[ -e /sys/class/backlight/$BL ] || BL=$(ls /sys/class/backlight/ 2>/dev/null | head -1)
+exec /usr/bin/brightnessctl -d "$BL" "$@"

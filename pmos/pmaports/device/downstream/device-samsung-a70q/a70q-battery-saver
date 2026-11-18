@@ -8,6 +8,7 @@
 FLAG="${XDG_RUNTIME_DIR:-/tmp}/a70q-battery-saver"
 P6=/sys/devices/system/cpu/cpufreq/policy6
 BL=/sys/class/backlight/panel0-backlight
+[ -e "$BL" ] || BL=$(ls -d /sys/class/backlight/* 2>/dev/null | head -1)   # mainline
 ON_BELOW=${A70Q_SAVER_ON:-20}; OFF_ABOVE=${A70Q_SAVER_OFF:-25}; GOLD_CAP=1209600; BRIGHT_CAP=50   # env: testing
 
 [ "$1" = status ] && { [ -e "$FLAG" ] && echo on || echo off; exit 0; }

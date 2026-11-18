@@ -354,6 +354,15 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
+		/* panel vddio (downstream dsi_panel_pwr_supply "vddio") */
+		vreg_l13a: ldo13 {
+			regulator-name = "vreg_l13a";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1900000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
+		};
+
 		vreg_l11a: ldo11 {
 			regulator-name = "vreg_l11a";
 			regulator-min-microvolt = <1800000>;
@@ -399,6 +408,15 @@
 		qcom,pmic-id = "c";
 
 		/* WCN3990 supplies (downstream icnss: 1.8-xo = l1, 1.3-rfa = l2, 3.3-ch0 = l10) */
+		/* DSI controller analog rail (downstream vdda-1p2) */
+		vreg_l3c: ldo3 {
+			regulator-name = "vreg_l3c";
+			regulator-min-microvolt = <1232000>;
+			regulator-max-microvolt = <1260000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
+		};
+
 		vreg_l1c: ldo1 {
 			regulator-name = "vreg_l1c";
 			regulator-min-microvolt = <1800000>;
@@ -507,6 +525,16 @@
 
 
 /* PMIC peripherals: power key (pwrkey), volume down (RESIN), RTC; volume up = pm6150l GPIO 8 */
+/*
+ * Battery: no mainline driver for the PM6150 QG fuel gauge / SMB5 charger (the SMB5 charges with
+ * its hardware defaults). a70q-battery reads the QG voltage/current samples and counts coulombs.
+ */
+&pm6150_lsid0 {
+	battery {
+		compatible = "samsung,a70q-battery";
+	};
+};
+
 &pm6150_resin {
 	linux,code = <KEY_VOLUMEDOWN>;
 	status = "okay";
@@ -580,12 +608,55 @@
 };
 
 /*
- * Display clock controller off while the panel runs on the bootloader's framebuffer (simpledrm):
- * probing dispcc parks the display RCGs and the screen goes black (the compositor kept drawing,
- * so grim screenshots looked fine). Needed again with a real MDSS/DSI panel driver.
+ * Display: DPU -> DSI0 (4 lanes, command mode, TE on GPIO 90) -> S6E3FC2 AMS670TA01 AMOLED.
+ * The panel's own supplies come from a PMIC behind PM6150L GPIO 6 ("platform-en-gpio"); vddio is
+ * L13A. Values from the downstream ss_dsi_panel_S6E3FC2_AMS670TA01_FHD node.
  */
-&dispcc {
-	status = "disabled";
+&mdss {
+	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdda-supply = <&vreg_l3c>;
+	pinctrl-0 = <&panel_te_active>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	panel@0 {
+		compatible = "samsung,s6e3fc2-ams670ta01";
+		reg = <0>;
+
+		vddio-supply = <&vreg_l13a>;
+		reset-gpios = <&tlmm 91 GPIO_ACTIVE_LOW>;
+		enable-gpios = <&pm6150l_gpios 6 GPIO_ACTIVE_HIGH>;
+
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&mdss_dsi0_out>;
+			};
+		};
+	};
+};
+
+&mdss_dsi0_out {
+	remote-endpoint = <&panel_in>;
+	data-lanes = <0 1 2 3>;
+};
+
+&mdss_dsi0_phy {
+	vcca-supply = <&vreg_l4a>;
+
+	status = "okay";
+};
+
+&tlmm {
+	panel_te_active: panel-te-active-state {
+		pins = "gpio90";
+		function = "mdp_vsync";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
 };
 
 /*

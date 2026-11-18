@@ -18,6 +18,10 @@ import sys
 import time
 
 BL = '/sys/class/backlight/panel0-backlight/'
+if not os.path.exists(BL):  # mainline: the DSI panel's backlight
+    _b = sorted(os.listdir('/sys/class/backlight')) if os.path.isdir('/sys/class/backlight') else []
+    if _b:
+        BL = '/sys/class/backlight/%s/' % _b[0]
 FLAG = os.path.expanduser('~/.config/a70q/autobrightness-off')
 STATE = os.path.join(os.environ.get('XDG_RUNTIME_DIR', '/run/user/%d' % os.getuid()), 'sxmo.state')
 MIN_PCT, MAX_PCT = 3.0, 100.0

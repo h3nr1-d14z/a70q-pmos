@@ -165,3 +165,18 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - PLL0 GPU không hỏng (bật & lock ở 1020/1300/1490 MHz). Thử lần lượt 435 → 650 → 745 MHz đều chạy; chỉ 845 hỏng.
 - Speed bin downstream: `qcom,gpu-speed-bin = <0x6004 0x1fe00000 21>`; kgsl trên máy này báo `gpu_available_frequencies` = 745/700/550/435/290 MHz.
 - "GPUSTART thành công" trước đây với bản vá RGMU là đọc nhầm bit cũ: RGMU chưa từng bật GX trên máy này.
+
+### Màn hình thật + pin (2026-11-18)
+- ✅ **Màn hình**: DPU → DSI0 (4 lane, command mode, TE GPIO 90) → panel S6E3FC2 AMS670TA01, driver mới
+  `panel-samsung-s6e3fc2-ams670ta01.c` (patch 0021; chuỗi lệnh on/off lấy từ `qcom,mdss-dsi-on-command`
+  của downstream, độ sáng DCS 0x51 10 bit). Nguồn: vddio L13A, enable = PM6150L GPIO 6, reset GPIO 91,
+  DSI L3C, PHY L4A; dispcc bật lại (patch violet 1007). Đọc ngược trạng thái panel qua
+  `/sys/bus/mipi-dsi/devices/ae94000.dsi.0/panel_state` (power_mode 9f = sleep out + display on).
+  Tắt/bật màn hình (sway `output * power off/on`) chạy đúng. Cảnh báo `disp_cc_mdss_pclk0_clk_src: rcg didn't
+  update` lúc khởi động là vô hại (PLL DSI chưa bật khi đặt rate).
+- ✅ **Compositor dùng GPU**: device r58/r59 — sway `WLR_RENDERER=gles2`, `WLR_RENDER_DRM_DEVICE=/dev/dri/renderD128`
+  (render trên msm GPU, hiển thị trên msm DPU); client Wayland dùng `FD612`. Script backlight dò tên thiết bị
+  (`panel0-backlight` trên downstream, `ae94000.dsi.0` trên mainline).
+- ✅ **Pin**: `a70q-battery.c` (patch 0022) chuyển từ `violet-vbat.c`: đọc điện áp/dòng của QG PM6150,
+  đếm coulomb, bảng OCV 25°C và FCC 4238 mAh từ profile downstream `a70q_4400mAh`, lưu % vào SDAM.
+  SMB5 sạc theo mặc định phần cứng (không có driver sạc mainline). Chưa kiểm chứng khi xả pin.
