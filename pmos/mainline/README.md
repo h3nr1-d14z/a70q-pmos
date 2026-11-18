@@ -200,3 +200,13 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   thiếu IPA phía AP. Thêm cặp smp2p `ipa` (ipa-ap-to-modem / ipa-modem-to-ap) trong `smp2p-modem` và node IPA v4.2
   (`qcom,sc7180-ipa`, `modem-init`, SPI 311/432, theo violet-sm6150-mainline). Vùng `ips-fw@9a900000` và
   `ipa-gsi@9a910000` đã có sẵn. Modem chạy liên tục, không còn crash.
+
+### Sửa chân enable panel, rung, thẻ SD (2026-11-18)
+- ⚠️ **Lỗi đã sửa**: panel từng khai báo `enable-gpios = PM6150L GPIO 6`, nhưng chân đó là ngõ ra PWM của motor rung
+  → mainline lái nó lên mức cao = motor có thể rung liên tục (cấu hình GPIO PMIC còn giữ qua reboot mềm).
+  `platform-en-gpio` downstream là PM6150 GPIO 6, và downstream để nó là input pull-up (lái nó làm panel hỏng),
+  nên panel giờ **không** dùng enable GPIO.
+- ✅ **Rung**: `pwm-vibrator` trên kênh LPG 3 (0xbc00) của PM6150L, chân PM6150L GPIO 6 ở `func1` (như
+  `samsung_vib` downstream, chu kỳ 1 ms). Kiểm chứng ở mức PWM (bật 100% khi phát hiệu ứng FF rumble).
+- ❌ **Thẻ SD** (sdhc_2, đang tắt): L9C phải là 2.952 V (2.95 V lệch lưới 8 mV làm hỏng cả regulators-1 → UFS/DSI
+  defer). Card detect GPIO 99 active-high. Thẻ được phát hiện nhưng init báo "Card stuck being busy"/-110.

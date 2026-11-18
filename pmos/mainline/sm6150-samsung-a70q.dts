@@ -434,6 +434,23 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
+		/* microSD vqmmc (downstream sdhc_2 vdd-io, 1.8/2.95 V) */
+		vreg_l6c: ldo6 {
+			regulator-name = "vreg_l6c";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <3100000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		/* microSD vmmc (downstream sdhc_2 vdd) */
+		vreg_l9c: ldo9 {
+			regulator-name = "vreg_l9c";
+			/* 2.95 V is off the PMIC5 PLDO 8 mV grid */
+			regulator-min-microvolt = <2952000>;
+			regulator-max-microvolt = <2952000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
 		vreg_l10c: ldo10 {
 			regulator-name = "vreg_l10c";
 			regulator-min-microvolt = <3200000>;
@@ -612,8 +629,7 @@
 
 /*
  * Display: DPU -> DSI0 (4 lanes, command mode, TE on GPIO 90) -> S6E3FC2 AMS670TA01 AMOLED.
- * The panel's own supplies come from a PMIC behind PM6150L GPIO 6 ("platform-en-gpio"); vddio is
- * L13A. Values from the downstream ss_dsi_panel_S6E3FC2_AMS670TA01_FHD node.
+ * vddio is L13A. Values from the downstream ss_dsi_panel_S6E3FC2_AMS670TA01_FHD node.
  */
 &mdss {
 	status = "okay";
@@ -632,7 +648,11 @@
 
 		vddio-supply = <&vreg_l13a>;
 		reset-gpios = <&tlmm 91 GPIO_ACTIVE_LOW>;
-		enable-gpios = <&pm6150l_gpios 6 GPIO_ACTIVE_HIGH>;
+		/*
+		 * No enable GPIO: the downstream platform-en-gpio (PM6150 GPIO 6) is left an input with
+		 * pull-up by the downstream kernel, and driving it breaks the panel. (PM6150L GPIO 6 is the
+		 * vibrator PWM output.)
+		 */
 
 		port {
 			panel_in: endpoint {
@@ -1039,4 +1059,65 @@
 			bias-bus-hold;
 		};
 	};
+};
+
+/*
+ * Vibrator: coin DC motor driven by the PM6150L LPG channel at 0xbc00 (channel 3) through
+ * PM6150L GPIO 6 in "func1" (downstream samsung_vib, pwms = <&pwms@bc00 0 1000000>). The pin
+ * must be in this state: as a plain GPIO driven high it runs the motor continuously.
+ */
+&pm6150l_lpg {
+	status = "okay";
+};
+
+&pm6150l_gpios {
+	vib_pwm_default: vib-pwm-default-state {
+		pins = "gpio6";
+		function = "func1";
+		output-low;
+		bias-disable;
+		power-source = <0>;
+		qcom,drive-strength = <3>;
+		drive-push-pull;
+	};
+};
+
+/ {
+	vibrator {
+		compatible = "pwm-vibrator";
+		pwms = <&pm6150l_lpg 3 1000000>;
+		pwm-names = "enable";
+		pinctrl-0 = <&vib_pwm_default>;
+		pinctrl-names = "default";
+	};
+};
+
+
+/* microSD: SDHC2, card detect TLMM GPIO 99 active high (downstream cd-gpios flags 0) */
+&sdhc_2 {
+	pinctrl-0 = <&sdc2_state_on>;
+	pinctrl-1 = <&sdc2_state_off>;
+	pinctrl-names = "default", "sleep";
+
+	bus-width = <4>;
+	cd-gpios = <&tlmm 99 GPIO_ACTIVE_HIGH>;	/* high = card present (measured) */
+
+	vmmc-supply = <&vreg_l9c>;
+	vqmmc-supply = <&vreg_l6c>;
+
+	/*
+	 * WORK IN PROGRESS, disabled: the card is detected but its init fails with "Card stuck
+	 * being busy" / -110 (no host command errors), with and without UHS (no-1-8-v) and a full
+	 * power cycle. Regulators read back fine (vqmmc 2.904 V, vmmc 2.952 V).
+	 */
+	/*
+	 * vmmc is still on from the previous kernel, with the card in 1.8 V signalling, which CMD0
+	 * does not reset ("Card stuck being busy"): let the core power-cycle it.
+	 */
+	full-pwr-cycle;
+	full-pwr-cycle-in-suspend;
+	post-power-on-delay-ms = <100>;
+	no-1-8-v;
+
+	status = "disabled";
 };
