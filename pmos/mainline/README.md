@@ -277,3 +277,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   trạng thái slave = 0 và **bus clash xảy ra ngay lúc khởi động bus kể cả khi amply đang tắt (SD_N thấp)** → nguồn
   clash nằm ở đường dữ liệu/controller chứ không phải WSA881x. Cần DYNAMIC_DEBUG hoặc đo tín hiệu để đi tiếp.
   Macro/swr0 tắt lại.
+- Sửa nhận định: thanh ghi 0x104 là `SWRM_COMP_MASTER_ID` (=1), **không phải** trạng thái slave. `SWRM_MCP_SLV_STATUS`
+  (0x1090) = 0: không có thiết bị nào trả lời trên bus (kể cả device 0); ngắt `NEW_SLAVE_ATTACHED` không bao giờ đến;
+  trạng thái ngắt 0x80008 = MASTER_CLASH_DET + CMD_IGNORED. Nghi phạm: SWR clock/frame không thật sự chạy — `fsgen`
+  của WSA lấy từ VA macro, mà khối VA ở đây được cấp clock TX core (ADSP từ chối VA core 0x30b), nên bộ đếm FS của
+  VA có thể không chạy. Downstream (bolero, `va-without-decimation`) lấy MCLK chung từ TX macro. Hướng tiếp: sinh
+  fsgen từ TX macro (tx-macro có MCLK/FS_CNT riêng) thay vì VA. `CONFIG_DYNAMIC_DEBUG` đã bật.
