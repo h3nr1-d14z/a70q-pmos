@@ -397,6 +397,22 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
+		/* WCD937x vdd-rxtx / vdd-px (downstream cdc-vdd-ldo-rxtx, cdc-vddpx-1) */
+		vreg_l10a: ldo10 {
+			regulator-name = "vreg_l10a";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1830000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		/* WCD937x vdd-buck (downstream cdc-vdd-buck) */
+		vreg_l15a: ldo15 {
+			regulator-name = "vreg_l15a";
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1900000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
 		vreg_l17a: ldo17 {
 			regulator-name = "vreg_l17a";
 			regulator-min-microvolt = <3000000>;
@@ -450,6 +466,13 @@
 			regulator-min-microvolt = <2952000>;
 			regulator-max-microvolt = <2952000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		/* WCD937x mic bias supply (downstream cdc-vdd-mic-bias = pm6150l_bob) */
+		vreg_bob: bob {
+			regulator-name = "vreg_bob";
+			regulator-min-microvolt = <3296000>;
+			regulator-max-microvolt = <3960000>;
 		};
 
 		vreg_l10c: ldo10 {
@@ -999,6 +1022,8 @@
 			 <&q6afecc LPASS_CLK_ID_TX_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
 			 <&q6afecc LPASS_CLK_ID_TX_CORE_NPL_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
 		clock-names = "macro", "mclk", "npl";
+		pinctrl-0 = <&tx_swr_active>, <&wcd_reset_n>;
+		pinctrl-names = "default";
 
 		#clock-cells = <0>;
 		clock-output-names = "lpass-tx-mclk";
@@ -1061,15 +1086,183 @@
 		};
 	};
 
+	/*
+	 * Headset / mics: WCD937x on the RX (0x62ef0000, SPI 138) and TX (0x62ed0000, SPI 137)
+	 * SoundWire masters (downstream rx_swr_master / tx_swr_master), RX: unique id 4
+	 * (0x1170224), TX: unique id 3 (0x1170223). Reset on LPASS LPI GPIO 24, SoundWire pins on
+	 * LPI GPIO 18-23.
+	 */
+	lpi_tlmm: pinctrl@62b40000 {
+		compatible = "qcom,sm6150-lpass-lpi-pinctrl";
+		reg = <0x0 0x62b40000 0x0 0x20000>;
+		clocks = <&q6afecc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		clock-names = "core";
+		gpio-controller;
+		#gpio-cells = <2>;
+		gpio-ranges = <&lpi_tlmm 0 0 32>;
+		/* owned by the ADSP (downstream gpio-reserved-ranges) */
+		gpio-reserved-ranges = <0 8>, <12 6>, <25 5>;
+
+		rx_swr_active: rx-swr-active-state {
+			clk-pins {
+				pins = "gpio21";
+				function = "swr_rx_clk";
+				drive-strength = <8>;
+				bias-bus-hold;
+			};
+
+			data-pins {
+				pins = "gpio22", "gpio23";
+				function = "swr_rx_data";
+				drive-strength = <8>;
+				bias-bus-hold;
+			};
+		};
+
+		tx_swr_active: tx-swr-active-state {
+			clk-pins {
+				pins = "gpio18";
+				function = "swr_tx_clk";
+				drive-strength = <8>;
+				bias-bus-hold;
+			};
+
+			data-pins {
+				pins = "gpio19", "gpio20";
+				function = "swr_tx_data";
+				drive-strength = <8>;
+				bias-bus-hold;
+			};
+		};
+
+		/*
+		 * WCD937x held in reset (low) from TX macro probe, before the TX/RX SoundWire masters
+		 * start: after a warm reset the codec is still attached from the previous kernel and
+		 * clashes with the new bus (as the WSA881x). wcd937x then releases it (reset-gpios).
+		 */
+		wcd_reset_n: wcd-reset-n-state {
+			pins = "gpio24";
+			function = "wcd_reset";
+			drive-strength = <16>;
+			output-low;
+		};
+	};
+
+	rxmacro: codec@62ee0000 {
+		compatible = "qcom,sm8250-lpass-rx-macro";
+		reg = <0x0 0x62ee0000 0x0 0x1000>;
+		clocks = <&q6afecc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_RX_CORE_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6afecc LPASS_CLK_ID_RX_CORE_NPL_MCLK LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&txmacro>;
+		clock-names = "macro", "mclk", "npl", "fsgen";
+		pinctrl-0 = <&rx_swr_active>;
+		pinctrl-names = "default";
+
+		#clock-cells = <0>;
+		clock-output-names = "mclk-rx";
+		#sound-dai-cells = <1>;
+	};
+
+	swr1: soundwire@62ef0000 {
+		compatible = "qcom,soundwire-v1.5.0";
+		reg = <0x0 0x62ef0000 0x0 0x2000>;
+		interrupts = <GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH 0>;
+		clocks = <&rxmacro>;
+		clock-names = "iface";
+		label = "RX";
+
+		/* SWRM_COMP_PARAMS: 6 dout + 1 din; ports 1-5 as Kodiak (WCD937x RX) */
+		qcom,din-ports = <1>;
+		qcom,dout-ports = <6>;
+
+		qcom,ports-word-length =	/bits/ 8 <0x01 0x07 0x04 0xff 0xff 0xff 0xff>;
+		qcom,ports-sinterval-low =	/bits/ 8 <0x03 0x3f 0x1f 0x03 0x03 0x03 0x03>;
+		qcom,ports-offset1 =		/bits/ 8 <0x00 0x00 0x0b 0x01 0x01 0x01 0x01>;
+		qcom,ports-offset2 =		/bits/ 8 <0x00 0x00 0x0b 0x00 0x00 0x00 0x00>;
+		/* HPH on data lane 1 (LPI GPIO 23), as SM8250/Kodiak: otherwise it collides with COMP */
+		qcom,ports-lane-control =	/bits/ 8 <0x01 0x00 0x00 0x00 0x00 0x00 0x00>;
+		qcom,ports-block-pack-mode =	/bits/ 8 <0xff 0x00 0x01 0xff 0xff 0xff 0xff>;
+		qcom,ports-hstart =		/bits/ 8 <0xff 0x03 0xff 0xff 0xff 0xff 0xff>;
+		qcom,ports-hstop =		/bits/ 8 <0xff 0x06 0xff 0xff 0xff 0xff 0xff>;
+		qcom,ports-block-group-count =	/bits/ 8 <0xff 0xff 0xff 0xff 0x00 0xff 0xff>;
+
+		#sound-dai-cells = <1>;
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		wcd937x_rx: codec@0,4 {
+			compatible = "sdw20217010a00";
+			reg = <0 4>;
+			/* downstream qcom,swr-port-mapping: HPH 1, CLSH 2, COMP 3, LO 4, DSD 5 */
+			qcom,rx-port-mapping = <1 2 3 4 5>;
+		};
+	};
+
+	swr2: soundwire@62ed0000 {
+		compatible = "qcom,soundwire-v1.5.0";
+		reg = <0x0 0x62ed0000 0x0 0x2000>;
+		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH 0>;
+		clocks = <&txmacro>;
+		clock-names = "iface";
+		label = "TX";
+
+		/*
+		 * SWRM_COMP_PARAMS: 1 dout (port 1) + 6 din (ports 2-7); ADC on port 2, DMIC/MBHC on
+		 * 4 (downstream port mapping), parameters as the Kodiak TX master
+		 */
+		qcom,din-ports = <6>;
+		qcom,dout-ports = <1>;
+
+		/* port 2 (ADC) as read back downstream while recording: sinterval 3, offset1 1, lane 0 */
+		qcom,ports-sinterval-low =	/bits/ 8 <0x03 0x03 0x03 0x03 0x03 0x03 0x03>;
+		qcom,ports-offset1 =		/bits/ 8 <0x00 0x01 0x00 0x02 0x02 0x02 0x02>;
+		qcom,ports-offset2 =		/bits/ 8 <0x00 0x00 0x00 0x00 0x00 0x00 0x00>;
+		qcom,ports-hstart =		/bits/ 8 <0xff 0xff 0xff 0xff 0xff 0xff 0xff>;
+		qcom,ports-hstop =		/bits/ 8 <0xff 0xff 0xff 0xff 0xff 0xff 0xff>;
+		qcom,ports-word-length =	/bits/ 8 <0xff 0xff 0x00 0xff 0xff 0xff 0xff>;
+		qcom,ports-block-pack-mode =	/bits/ 8 <0xff 0xff 0xff 0xff 0xff 0xff 0xff>;
+		qcom,ports-block-group-count =	/bits/ 8 <0xff 0xff 0xff 0xff 0xff 0xff 0xff>;
+		qcom,ports-lane-control =	/bits/ 8 <0x00 0x00 0x00 0x00 0x00 0x00 0x00>;
+
+		#sound-dai-cells = <1>;
+		#address-cells = <2>;
+		#size-cells = <0>;
+
+		wcd937x_tx: codec@0,3 {
+			compatible = "sdw20217010a00";
+			reg = <0 3>;
+			/*
+			 * WCD TX1 (ADC1) -> master port 2 (TX SWR_ADC0), TX2 (ADC2/3) -> 3 (SWR_ADC2, as
+			 * downstream routes ADC2_OUTPUT), TX3 (DMIC0-3, MBHC) -> 4, TX4 (DMIC4-7) -> 5
+			 */
+			qcom,tx-port-mapping = <2 3 4 5>;
+		};
+	};
+
 	sound {
 		compatible = "qcom,sm8250-sndcard";
 		model = "Samsung Galaxy A70";
-		audio-routing = "SpkrLeft IN", "WSA_SPK1 OUT";
+		audio-routing = "SpkrLeft IN", "WSA_SPK1 OUT",
+				"IN1_HPHL", "HPHL_OUT",
+				"IN2_HPHR", "HPHR_OUT",
+				"AMIC1", "MIC BIAS1",
+				"AMIC2", "MIC BIAS2",
+				"AMIC3", "MIC BIAS3",
+				"TX SWR_ADC0", "ADC1_OUTPUT",
+				"TX SWR_ADC2", "ADC2_OUTPUT";
 
 		mm1-dai-link {
 			link-name = "MultiMedia1";
 			cpu {
 				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA1>;
+			};
+		};
+
+		mm2-dai-link {
+			link-name = "MultiMedia2";
+			cpu {
+				sound-dai = <&q6asmdai MSM_FRONTEND_DAI_MULTIMEDIA2>;
 			};
 		};
 
@@ -1085,6 +1278,55 @@
 				sound-dai = <&spkr>, <&swr0 0>, <&wsamacro 0>;
 			};
 		};
+
+		wcd-playback-dai-link {
+			link-name = "WCD Playback";
+			cpu {
+				sound-dai = <&q6afedai RX_CODEC_DMA_RX_0>;
+			};
+			platform {
+				sound-dai = <&q6routing>;
+			};
+			codec {
+				sound-dai = <&wcd937x 0>, <&swr1 0>, <&rxmacro 0>;
+			};
+		};
+
+		wcd-capture-dai-link {
+			link-name = "WCD Capture";
+			cpu {
+				sound-dai = <&q6afedai TX_CODEC_DMA_TX_3>;
+			};
+			platform {
+				sound-dai = <&q6routing>;
+			};
+			codec {
+				/* swr2 DAI 0 is its one dout port; DAI 1 = first din */
+				sound-dai = <&wcd937x 1>, <&swr2 1>, <&txmacro 0>;
+			};
+		};
+	};
+};
+
+/ {
+	wcd937x: audio-codec {
+		compatible = "qcom,wcd9370-codec";
+		reset-gpios = <&lpi_tlmm 24 GPIO_ACTIVE_LOW>;
+
+		vdd-buck-supply = <&vreg_l15a>;
+		vdd-rxtx-supply = <&vreg_l10a>;
+		vdd-px-supply = <&vreg_l10a>;
+		vdd-mic-bias-supply = <&vreg_bob>;
+
+		/* downstream qcom,cdc-micbias{1,2,3}-mv: 1800, 2800, 1800 */
+		qcom,micbias1-microvolt = <1800000>;
+		qcom,micbias2-microvolt = <2800000>;
+		qcom,micbias3-microvolt = <1800000>;
+
+		qcom,rx-device = <&wcd937x_rx>;
+		qcom,tx-device = <&wcd937x_tx>;
+
+		#sound-dai-cells = <1>;
 	};
 };
 

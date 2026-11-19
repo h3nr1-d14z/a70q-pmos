@@ -1,0 +1,12 @@
+--- a/sound/soc/codecs/lpass-rx-macro.c	2026-11-19 01:57:23.451249307 +0000
++++ b/sound/soc/codecs/lpass-rx-macro.c	2026-11-19 01:57:23.460249291 +0000
+@@ -3815,6 +3815,9 @@
+ 		return PTR_ERR(base);
+ 
+ 	rx->codec_version = lpass_macro_get_codec_version();
++	/* the VA macro detects the codec version; it may not have probed yet */
++	if (rx->codec_version == LPASS_CODEC_VERSION_UNKNOWN)
++		return dev_err_probe(dev, -EPROBE_DEFER, "codec version not known yet\n");
+ 	struct reg_default *reg_defaults __free(kfree) = NULL;
+ 
+ 	switch (rx->codec_version) {

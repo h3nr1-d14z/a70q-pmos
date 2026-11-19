@@ -1,5 +1,5 @@
---- a/drivers/soundwire/qcom.c	2026-11-18 20:07:05.261646538 +0000
-+++ b/drivers/soundwire/qcom.c	2026-11-18 20:07:05.261646538 +0000
+--- a/drivers/soundwire/qcom.c	2026-11-19 02:40:27.036741414 +0000
++++ b/drivers/soundwire/qcom.c	2026-11-19 02:40:27.036741414 +0000
 @@ -221,11 +221,15 @@
  	u32 slave_status;
  	u32 wr_fifo_depth;
@@ -66,7 +66,21 @@
  	ctrl->rows_index = sdw_find_row_index(data->default_rows);
  	ctrl->cols_index = sdw_find_col_index(data->default_cols);
  #if IS_REACHABLE(CONFIG_SLIMBUS)
-@@ -1831,6 +1853,7 @@
+@@ -1694,6 +1716,13 @@
+ 	pm_runtime_mark_last_busy(dev);
+ 	pm_runtime_set_active(dev);
+ 	pm_runtime_enable(dev);
++	/*
++	 * Without clock stop every runtime resume re-enumerates the bus and runtime-resumes the
++	 * slaves from the master resume callback; with a codec whose device links lead back to
++	 * this master (WCD937x) that deadlocks. Keep these masters active.
++	 */
++	if (ctrl->no_clock_stop)
++		pm_runtime_forbid(dev);
+ 
+ #ifdef CONFIG_DEBUG_FS
+ 	ctrl->debugfs = debugfs_create_dir("qualcomm-sdw", ctrl->bus.debugfs);
+@@ -1831,6 +1860,7 @@
  
  static const struct of_device_id qcom_swrm_of_match[] = {
  	{ .compatible = "qcom,soundwire-v1.3.0", .data = &swrm_v1_3_data },

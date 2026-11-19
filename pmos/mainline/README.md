@@ -311,3 +311,20 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   (`51-a70q-alsa.conf`, r66) đặt profile `pro-audio` cho card mainline (profile stereo-fallback gắn với cổng tai
   nghe không có) → sink `alsa_output.platform-soc_0_sound.pro-output-0` là mặc định, `paplay` chạy, quantum 2048 như
   downstream. Chưa có tai nghe/micro (WCD937x cần pinctrl LPASS LPI cho reset GPIO 24 và swr1/swr2).
+
+### Tai nghe / micro: WCD937x (2026-11-19)
+- Patch 0036: driver pinctrl LPASS LPI cho SM6150 (`qcom,sm6150-lpass-lpi-pinctrl`, 32 chân bước 0x1000 từ
+  0x62b40000, chức năng theo DT downstream: SWR TX 18-20, SWR RX 21-23, reset WCD 24 func2). Patch 0037: RX macro chờ
+  VA macro báo phiên bản codec.
+- DT: RX macro 0x62ee0000, master RX 0x62ef0000 (SPI 138, 6 out + 1 in), master TX 0x62ed0000 (SPI 137, 1 out + 6
+  in), WCD937x RX = unique id 4, TX = 3; nguồn L15A (buck), L10A (rxtx/px), BOB (mic bias).
+- WCD937x bị giữ reset từ lúc TX macro probe (chân 24 output-low): sau warm reset codec còn attach từ kernel trước làm
+  bus clash (giống WSA881x).
+- Patch 0034 (bổ sung): master v1.5.0 không clock stop → luôn runtime-active; nếu không thì mỗi lần resume master đánh
+  số lại bus và resume slave → deadlock với device link của WCD937x (arecord kẹt trạng thái D).
+- DAI capture phải là `<&swr2 1>`: master TX có 1 cổng out nên DAI 0 là playback.
+- Kết quả: phát ra tai nghe không lỗi (chưa cắm tai nghe để nghe thử); **micro chính (AMIC1 → ADC1 → TX SWR_ADC0)
+  thu được**: im lặng rms ~21, khi loa phát 440 Hz rms ~360; thanh ghi cổng 2 = 0x01000103 như downstream.
+- Định tuyến micro: `MultiMedia2 Mixer TX_CODEC_DMA_TX_3`=1, `TX_AIF1_CAP Mixer DEC0`=1, `TX DEC0 MUX`=SWR_MIC,
+  `TX SMIC MUX0`=ADC0, `ADC1 Switch`=1, `ADC1_MIXER Switch`=1, `ADC1 Volume`=16, `TX_DEC0 Volume`=84.
+- Chưa xong: ADC2 (micro phụ/micro tai nghe) ra dữ liệu rác (thông số port 3), phát hiện cắm tai nghe (MBHC).
