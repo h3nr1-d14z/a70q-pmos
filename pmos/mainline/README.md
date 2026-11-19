@@ -399,5 +399,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   init Samsung (0xfcfc ← 0x4000, 0x6028 ← 0x2000). Kết quả (dữ liệu vendor, gitignore) ở `ref/camera-vendor/*.txt`:
   S5KGD1 sau 9 khối (5 khối ~646 lệnh ghi = init/chế độ, 2 khối 4 lệnh, 1 khối ghi byte), S5KGD1 trước 12, S5K4HA 3
   (bắt đầu 0x0136 ← 0x18, EXTCLK 24 MHz, kiểu SMIA), GC5035 4 (0x00fc ← 0x01).
-- Bước tiếp: xác định khối nào là init/chế độ nào (độ phân giải, số lane MIPI, link frequency từ resolutionData), viết
-  driver V4L2 S5KGD1, bật CAMSS + CSIPHY0.
+- Chế độ S5KGD1 sau (mỗi khối = init đầy đủ + chế độ, 4 lane, 0x0114 = 3, EXTCLK 24 MHz): khối 0 = 6528×4896, 1 =
+  3264×2448, 2 = 1632×924, 3 = 3264×1836, 4 = 1504×1128. PLL: 0x0304 = 4, 0x0306 = 286 (VT 1716 MHz), 0x030e = 4,
+  0x0310 = hệ số OP, 0x0312 = chia 2^n → OP 1140 / 513 / ? / 771 / 448,5 MHz cho khối 0/1/2/3/4 (cần kiểm chứng là
+  bit rate/lane hay xung DDR khi dựng CAMSS).
+- Bước tiếp: driver V4L2 `s5kgd1` theo khung `s5k3m5.c` (cùng họ, v4l2-cci, có trong 7.3.4) với khối 1 (3264×2448),
+  bật CAMSS + CSIPHY0, chụp thử bằng libcamera/yavta.
