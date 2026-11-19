@@ -348,6 +348,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   nguồn nên không còn crash.
 - Sửa: `regulator-always-on` cho L9A, L1C, L2C, L10C (như icnss bật chip khi modem lên). Thử 3 lần boot liên tiếp:
   0/0/0 crash, WLAN lên ~1 s sau modem (trước đó 2/1/1/2 crash mỗi lần boot).
+- Theo dõi thêm (đến 2026-11-19): tổng 9 lần boot mainline có bản sửa, 8 lần 0 crash, 1 lần có 1 crash (phiên 14 phút,
+  không kịp lấy dmesg vì máy đã tự về downstream). Trước bản sửa: gần như mọi lần boot đều crash 1-2 lần. Còn một
+  nguyên nhân hiếm gặp chưa rõ; cần bắt lại dmesg khi nó xảy ra.
 - Patch 0038 (QRTR ns thử lại khi quảng bá dịch vụ cho remote vừa HELLO thay vì bỏ phần còn lại) vẫn giữ: có ghi nhận
   "announced service 14:1 ... after 1 retries" khi modem lên.
 - Hệ quả: **microSD UHS SDR104 chạy** (bỏ `no-1-8-v`): 202 MHz, 1,8 V, đọc 87,6 MB/s, 2/2 lần boot không crash. Lỗi
