@@ -1426,6 +1426,52 @@
 };
 
 /*
+ * Rear camera: Samsung S5KGD1 at 0x2d on CCI0 (chip ID 0x0841), downstream cam-sensor@0:
+ * vio = S2MPB03 LDO3, vdig = LDO2, vana = LDO6, vaf = L19A, MCLK0 (GPIO 28) at 24 MHz, reset
+ * GPIO 47, CSIPHY0, 4 lanes.
+ */
+&cci_i2c0 {
+	rear_cam: camera@2d {
+		compatible = "samsung,s5kgd1";
+		reg = <0x2d>;
+		clocks = <&camcc CAM_CC_MCLK0_CLK>;
+		assigned-clocks = <&camcc CAM_CC_MCLK0_CLK>;
+		assigned-clock-rates = <24000000>;
+		reset-gpios = <&tlmm 47 GPIO_ACTIVE_LOW>;
+		vddio-supply = <&cam_ldo3>;
+		vddd-supply = <&cam_ldo2>;
+		vdda-supply = <&cam_ldo6>;
+		afvdd-supply = <&vreg_l19a>;
+		pinctrl-0 = <&cam_mclk0_default>;
+		pinctrl-names = "default";
+
+		port {
+			rear_cam_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <513000000>;
+				remote-endpoint = <&csiphy0_ep>;
+			};
+		};
+	};
+};
+
+/* CSI PHY supplies as downstream csiphy (mipi-csi-vdd = pm6150l_l3, 1.2 V) */
+&camss {
+	vdd-csiphy-1p2-supply = <&vreg_l3c>;
+	vdd-csiphy-1p8-supply = <&vreg_l12a>;
+	status = "okay";
+
+	ports {
+		port@0 {
+			csiphy0_ep: endpoint {
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&rear_cam_ep>;
+			};
+		};
+	};
+};
+
+/*
  * Camera sensor supplies: Samsung S2MPB03 PMIC (0x56) on a bit-banged I2C bus, SDA GPIO 117,
  * SCL GPIO 118 (downstream i2c@2 "i2c-gpio", s2mpb03@56). Voltages as the downstream
  * regulator nodes; consumers are the camera sensors.
@@ -1485,23 +1531,6 @@
 		};
 	};
 
-	/*
-	 * Bring-up only: power the rear camera (S5KGD1, downstream cam-sensor@0: vio = S2MPB03 LDO3,
-	 * vdig = LDO2, vana = LDO6, vaf = L19A, MCLK0 on GPIO 28 at 24 MHz, reset GPIO 47, CCI master 0)
-	 * to find it on the CCI bus.
-	 */
-	campower-rear {
-		compatible = "samsung,a70q-campower";
-		vio-supply = <&cam_ldo3>;
-		vdig-supply = <&cam_ldo2>;
-		vana-supply = <&cam_ldo6>;
-		vaf-supply = <&vreg_l19a>;
-		clocks = <&camcc CAM_CC_MCLK0_CLK>;
-		clock-frequency = <24000000>;
-		reset-gpios = <&tlmm 47 GPIO_ACTIVE_LOW>;
-		pinctrl-0 = <&cam_mclk0_default>;
-		pinctrl-names = "default";
-	};
 };
 
 /*

@@ -403,5 +403,11 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   3264×2448, 2 = 1632×924, 3 = 3264×1836, 4 = 1504×1128. PLL: 0x0304 = 4, 0x0306 = 286 (VT 1716 MHz), 0x030e = 4,
   0x0310 = hệ số OP, 0x0312 = chia 2^n → OP 1140 / 513 / ? / 771 / 448,5 MHz cho khối 0/1/2/3/4 (cần kiểm chứng là
   bit rate/lane hay xung DDR khi dựng CAMSS).
-- Bước tiếp: driver V4L2 `s5kgd1` theo khung `s5k3m5.c` (cùng họ, v4l2-cci, có trong 7.3.4) với khối 1 (3264×2448),
-  bật CAMSS + CSIPHY0, chụp thử bằng libcamera/yavta.
+- **Camera sau chụp được khung hình qua CAMSS** (2026-11-19): patch 0041 driver `s5kgd1` (khung `s5k3m5.c`, v4l2-cci),
+  bảng: clock (0xfcfc/0x6214/0x6218/0x6242) → chờ 5 ms → bản vá firmware (initSettings: burst 516 + 150 word vào
+  0x2001:9200 / 0x2001:ca00 - thiếu nó thì cảm biến không phát hình) → chế độ 3264×2448 (khối 1). DT: `camera@2d` trên
+  `cci_i2c0`, `&camss` (vdd-csiphy-1p2 = L3C, 1p8 = L12A), 4 lane, link 513 MHz.
+  - Đường ống: `s5kgd1 2-002d → msm_csiphy0 → msm_csid0 → msm_vfe0_rdi0` (/dev/video0), SGRBG10 3264×2448, `pgAA`;
+    `v4l2-ctl --stream-mmap` nhận đủ khung (9 987 840 byte/khung). Mẫu thử (test_pattern=2) ra đúng các sọc; ảnh thật ở
+    exposure/gain tối đa chỉ là nhiễu quanh mức đen 64 → có thể camera đang bị che (máy úp xuống bàn), cần thử lại.
+  - Còn lại: kiểm tra ảnh thật, thứ tự Bayer, libcamera (IPA soft-ISP), các chế độ khác, camera trước/góc rộng/độ sâu.
