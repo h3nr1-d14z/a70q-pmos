@@ -379,3 +379,8 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Build lại từ DTS + patch (0021 có thử lại khởi tạo panel), device r68 (jack-switch, watcher crash modem). Thử 3 lần
   boot liên tiếp (2 lần khởi động từ mainline qua reboot-mode): 3/3 vào mainline, 0 crash modem, WLAN ~36 s, panel
   không lỗi, microSD SDR104, jack-switch chạy.
+- Vị trí cảm biến (thư viện camera vendor): 0 = S5KGD1 (sau, chính 32 MP), 1/8 = S5KGD1 (trước), 2 = S5K4HA (góc
+  rộng 8 MP), 3 = GC5035 (độ sâu 5 MP). Dữ liệu driver (slaveAddr, trình tự nguồn, bảng thanh ghi init/mode,
+  địa chỉ gain/exposure) nằm trong `com.samsung.sensormodule.*.bin` (QTI Chromatix, Parameter Parser V1.4.0) -
+  đã chép về `ref/camera-vendor/` (gitignore, file vendor); bước tiếp theo là viết bộ giải mã định dạng này để lấy
+  bảng thanh ghi cho driver V4L2.
