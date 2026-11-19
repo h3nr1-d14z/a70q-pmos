@@ -111,9 +111,22 @@ static int ams670ta01_prepare(struct drm_panel *panel)
 	msleep(20);	/* qcom,supply-post-on-sleep */
 	gpiod_set_value_cansleep(ctx->enable_gpio, 1);
 
-	ams670ta01_reset(ctx);
-
-	ret = ams670ta01_on(ctx);
+	/*
+	 * Now and then (warm boot from the downstream kernel) the first DCS commands time out
+	 * (-ETIMEDOUT) and the panel stays dark, after which the vblank timeouts flood the log and
+	 * slow everything down. Reset the panel and try again a couple of times.
+	 */
+	for (int tries = 0; tries < 3; tries++) {
+		if (tries) {
+			dev_warn(&ctx->dsi->dev, "panel init failed (%d), retry %d\n", ret, tries);
+			gpiod_set_value_cansleep(ctx->reset_gpio, 1);
+			msleep(50);
+		}
+		ams670ta01_reset(ctx);
+		ret = ams670ta01_on(ctx);
+		if (ret >= 0)
+			break;
+	}
 	if (ret < 0) {
 		dev_err(&ctx->dsi->dev, "panel init failed: %d\n", ret);
 		gpiod_set_value_cansleep(ctx->reset_gpio, 1);
