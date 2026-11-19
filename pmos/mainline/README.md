@@ -363,3 +363,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   (0xac65000/0xac66000/0xac67000); tóm tắt trong `ref/camera-downstream.txt`.
 - Việc còn lại: node CCI + CAMSS trong DT, đọc chip ID cảm biến qua CCI, rồi viết driver cảm biến (S5KGD1, S5K4HA,
   GC5035 chưa có trong mainline; chuỗi thanh ghi phải lấy từ thư viện camera của vendor).
+
+### Reboot-mode trên mainline (2026-11-19)
+- Trước đây `reboot-mode recovery` (RESTART2) chạy từ mainline không có tác dụng (không có driver reboot-mode) → máy về
+  downstream; đó là lý do 3/6 lần thử liên tiếp "không vào được mainline" (lần chạy bắt đầu khi máy đang ở mainline).
+- DT: syscon trên IMEM 0x146aa000 + `syscon-reboot-mode` offset 0x65c (downstream qcom,msm-imem-restart_reason):
+  recovery 0x77665502, bootloader 0x77665500, normal 0x77665501. Đã thử: từ mainline `reboot-mode recovery` → boot lại
+  vào RECOVERY (mainline).

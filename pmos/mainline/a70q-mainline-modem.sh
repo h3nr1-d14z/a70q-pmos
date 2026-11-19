@@ -49,6 +49,12 @@ sleep 8
 echo start > $RP/state
 echo "modem: $(cat $RP/state)"
 
+# Keep the kernel log of every modem crash (rare remaining one), on the rootfs
+( n=0; while sleep 5; do
+	c=$(dmesg | grep -c "crash detected in modem")
+	[ "$c" -gt "$n" ] && { sleep 3; dmesg > /var/log/a70q-modem-crash-$(date +%Y%m%d-%H%M%S).log; n=$c; }
+  done ) >/dev/null 2>&1 &
+
 # Bluetooth (WCN3988 on uart7, hci_qca): the NVM has no BD address, so the controller stays
 # "unconfigured" until one is set. Use the address the downstream kernel's stack had
 # (saved by a70q-modem-up to /var/lib/a70q/bt-addr) so paired devices still recognise the
