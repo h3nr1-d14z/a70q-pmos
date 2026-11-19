@@ -361,8 +361,12 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   (`qcom,msm8996-cci`/`sm8250-cci` dạng v2) và camcc QCS615; `talos.dtsi` chưa có node camss/cci → phải tự thêm.
 - Downstream: CCI @0xac4a000 (SPI 460), 5 cảm biến + 1 EEPROM, MCLK GPIO 28-31, reset GPIO 45/46/47/100, CSIPHY 0-2
   (0xac65000/0xac66000/0xac67000); tóm tắt trong `ref/camera-downstream.txt`.
-- Việc còn lại: node CCI + CAMSS trong DT, đọc chip ID cảm biến qua CCI, rồi viết driver cảm biến (S5KGD1, S5K4HA,
-  GC5035 chưa có trong mainline; chuỗi thanh ghi phải lấy từ thư viện camera của vendor).
+- `talos.dtsi` thực ra đã có `cci@ac4a000` (`qcom,sm6150-cci`) và `camss: isp@acb3000` (`qcom,sm6150-camss`), đều
+  disabled. **CCI đã bật** (`&cci { status = "okay"; }`): probe được, có 2 bus I2C "Qualcomm-CCI" (i2c-1 = CCI0,
+  i2c-2 = CCI1); quét CCI1 không thấy thiết bị vì cảm biến chưa được cấp nguồn/MCLK/bỏ reset (cần node cảm biến).
+- Việc còn lại: node cảm biến (nguồn cam_vio/vdig/vana, MCLK GPIO 28-31, reset) để đọc chip ID, bật CAMSS, rồi viết
+  driver cảm biến (S5KGD1, S5K4HA, GC5035 chưa có trong mainline; chuỗi thanh ghi phải lấy từ thư viện camera của
+  vendor).
 
 ### Reboot-mode trên mainline (2026-11-19)
 - Trước đây `reboot-mode recovery` (RESTART2) chạy từ mainline không có tác dụng (không có driver reboot-mode) → máy về

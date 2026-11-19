@@ -1396,6 +1396,14 @@
 };
 
 /*
+ * Camera Control Interface (talos.dtsi cci@ac4a000, as downstream qcom,cci@ac4a000: CCI0 GPIO 32/33,
+ * CCI1 GPIO 34/35; all the sensors use cci-master 1).
+ */
+&cci {
+	status = "okay";
+};
+
+/*
  * Vibrator: coin DC motor driven by the PM6150L LPG channel at 0xbc00 (channel 3) through
  * PM6150L GPIO 6 in "func1" (downstream samsung_vib, pwms = <&pwms@bc00 0 1000000>). The pin
  * must be in this state: as a plain GPIO driven high it runs the motor continuously.
