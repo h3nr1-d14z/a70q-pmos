@@ -389,12 +389,19 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
-		/* WiFi (WCN3990) cx/mx, downstream pm6150_l9 */
+		/*
+		 * WiFi (WCN3990) cx/mx, downstream pm6150_l9. Always on: ath10k only powers the chip
+		 * after the WLAN firmware on the modem reports ready, but that firmware needs the chip
+		 * powered to come up - on the first modem start after boot (L9A still off) it never
+		 * does and the modem asserts 40 s later ("fatal error without message"). Downstream
+		 * icnss powers the chip as soon as the modem is up.
+		 */
 		vreg_l9a: ldo9 {
 			regulator-name = "vreg_l9a";
 			regulator-min-microvolt = <400000>;
 			regulator-max-microvolt = <728000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-always-on;
 		};
 
 		/* WCD937x vdd-rxtx / vdd-px (downstream cdc-vdd-ldo-rxtx, cdc-vddpx-1) */
@@ -442,6 +449,8 @@
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1900000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			/* WCN3990 (with BT): always on, see vreg_l9a */
+			regulator-always-on;
 		};
 
 		vreg_l2c: ldo2 {
@@ -449,6 +458,8 @@
 			regulator-min-microvolt = <1304000>;
 			regulator-max-microvolt = <1304000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			/* WCN3990 (with BT): always on, see vreg_l9a */
+			regulator-always-on;
 		};
 
 		/* microSD vqmmc (downstream sdhc_2 vdd-io, 1.8/2.95 V) */
@@ -480,6 +491,8 @@
 			regulator-min-microvolt = <3200000>;
 			regulator-max-microvolt = <3312000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			/* WCN3990 (with BT): always on, see vreg_l9a */
+			regulator-always-on;
 		};
 
 		/* UFS vcc (downstream pm6150l_l11) */

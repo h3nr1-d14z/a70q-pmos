@@ -334,3 +334,16 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Userspace (device r67): định tuyến micro chính lúc khởi động; PipeWire có source `pro-input-1` (mặc định), parecord
   thu được.
 - Chưa có: tự chuyển loa ↔ tai nghe khi cắm (cần UCM hoặc script theo sự kiện jack).
+
+### ✅ Modem crash 40 s sau khi khởi động (2026-11-19): đã tìm ra nguyên nhân
+- Dấu hiệu: "fatal error without message" đúng 40,03 s sau "modem is now up", chỉ ở lần khởi động modem **đầu tiên** sau
+  boot (khởi động lại thủ công/sau phục hồi thì không), và lần đó ath10k không bao giờ thấy WLFW (không có
+  "qmi chip_id"). Downstream (icnss) không bị.
+- Nguyên nhân: ath10k_snoc chỉ cấp nguồn cho WCN3990 trong `hif_power_up`, tức là sau khi firmware WLAN trên modem báo sẵn
+  sàng; nhưng firmware đó cần chip có điện mới lên được. L1C/L2C/L10C dùng chung với Bluetooth (BT bật), riêng **L9A
+  (vdd-0.8-cx-mx) chỉ wifi dùng** nên vẫn tắt → WLAN PD không lên → modem assert sau 40 s. Từ lần thứ hai ath10k đã bật
+  nguồn nên không còn crash.
+- Sửa: `regulator-always-on` cho L9A, L1C, L2C, L10C (như icnss bật chip khi modem lên). Thử 3 lần boot liên tiếp:
+  0/0/0 crash, WLAN lên ~1 s sau modem (trước đó 2/1/1/2 crash mỗi lần boot).
+- Patch 0038 (QRTR ns thử lại khi quảng bá dịch vụ cho remote vừa HELLO thay vì bỏ phần còn lại) vẫn giữ: có ghi nhận
+  "announced service 14:1 ... after 1 retries" khi modem lên.
