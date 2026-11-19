@@ -387,3 +387,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - **Nguồn camera: PMIC S2MPB03** (0x56) trên bus I2C bit-bang GPIO 117 (SDA)/118 (SCL). Mainline không có driver →
   patch 0039 `regulator: s2mpb03` (regmap, 7 LDO tuyến tính; sơ đồ thanh ghi từ driver GPL downstream). Đã chạy:
   "S2MPB03 PMIC ID 0x02", cam_ldo1..7 đăng ký với điện áp như downstream (1,05/1,05/1,8/1,2/2,8/2,8/2,8 V).
+- **Camera sau chính đã trả lời trên mainline:** patch 0040 `a70q-campower` (công cụ bring-up: cấp nguồn vio = S2MPB03
+  LDO3, vdig = LDO2, vana = LDO6, vaf = L19A, MCLK0 24 MHz trên GPIO 28, bỏ reset GPIO 47). Quét CCI0: thiết bị ở
+  **0x2d**, chip ID (reg 0x0000, 16 bit) = **0x0841 = S5KGD1**. Lưu ý: bus i2c-gpio của PMIC thành i2c-1, CCI0 =
+  i2c-2, CCI1 = i2c-3.
+- Còn lại cho camera: driver V4L2 S5KGD1 (bảng thanh ghi init/mode từ Chromatix), node CAMSS + CSIPHY0, rồi các cảm
+  biến khác (trước S5KGD1, S5K4HA, GC5035) theo cùng cách.
