@@ -1,0 +1,48 @@
+--- a/net/qrtr/ns.c	2026-11-19 03:36:41.719139223 +0000
++++ b/net/qrtr/ns.c	2026-11-19 03:36:41.719139223 +0000
+@@ -5,6 +5,7 @@
+  * Copyright (c) 2020, Linaro Ltd.
+  */
+ 
++#include <linux/delay.h>
+ #include <linux/module.h>
+ #include <linux/qrtr.h>
+ #include <linux/workqueue.h>
+@@ -224,16 +225,28 @@
+ 	if (!node)
+ 		return 0;
+ 
+-	/* Announce the list of servers registered in this node */
++	/*
++	 * Announce the list of servers registered in this node. A remote that just came up
++	 * (HELLO) may not take every packet yet (e.g. no RX intent queued on its GLINK edge):
++	 * retry, and do not drop the rest of the list on one failure - a remote that never learns
++	 * of a service it waits for (modem: servreg locator from pd-mapper) asserts later.
++	 */
+ 	xa_for_each(&node->servers, index, srv) {
+-		ret = service_announce_new(sq, srv);
+-		if (ret < 0) {
+-			if (ret == -ENODEV)
+-				continue;
+-
+-			pr_err("failed to announce new service\n");
+-			return ret;
+-		}
++		int tries = 0;
++
++		do {
++			ret = service_announce_new(sq, srv);
++			if (ret >= 0 || ret == -ENODEV)
++				break;
++			msleep(20);
++		} while (++tries < 10);
++
++		if (ret < 0 && ret != -ENODEV)
++			pr_err("failed to announce service %u:%u to %d: %d\n",
++			       srv->service, srv->instance, sq->sq_node, ret);
++		else if (tries)
++			pr_info("announced service %u:%u to %d after %d retries\n",
++				srv->service, srv->instance, sq->sq_node, tries);
+ 	}
+ 	return 0;
+ }
