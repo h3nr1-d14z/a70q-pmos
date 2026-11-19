@@ -416,7 +416,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   - **libcamera chạy** (pipeline simple + soft-ISP): `cam -l` thấy 's5kgd1'; cần `CONFIG_DMABUF_HEAPS_SYSTEM=y` (trước là
     module, không nạp → "Could not open any dma-buf provider") + `UDMABUF`. `cam -c1 -C30 -s width=1632,height=1224,
     pixelformat=RGB888 --file=...ppm` ra ảnh màu. DT thêm `orientation = <1>`, `rotation = <90>` (downstream roll 90).
-  - AGC của soft-ISP chỉnh exposure (lên 1076) nhưng không chỉnh gain: libcamera chưa có camera sensor helper cho
-    s5kgd1 ("Failed to create camera sensor helper") → cần thêm helper (gain tuyến tính, mã = gain × 32, đơn vị của
-    0x0204) vào libcamera; ảnh trong phòng tối ban đêm còn tối (trung bình 38/255).
-  - Còn lại: helper libcamera + tinh chỉnh, các chế độ khác, camera trước/góc rộng/độ sâu.
+  - Gain: driver dùng thẳng mã thanh ghi 0x0204 (32..512 = 1×..16×). libcamera fork `pmos/pmaports/temp/libcamera`
+    (pmaports temp/libcamera 0.8.0 + patch 0003: CameraSensorHelper s5kgd1 = AnalogueGainLinear{1,0,0,32}, black
+    level 4096; sensor properties: ô 0,8 µm, mẫu thử, độ trễ 2 khung) - `pmos/pmb/run.sh` giờ đồng bộ cả `temp/*`.
+    Kết quả: AGC điều khiển exposure + gain, ảnh màu 1632×1224 qua soft-ISP ở 15 fps (phòng tối ban đêm: exposure/gain
+    lên tối đa). Ảnh mờ: chưa có driver actuator lấy nét (vaf = L19A, actuator trong `ref/camera-downstream.txt`).
+  - Còn lại: driver actuator lấy nét, tuning (`s5kgd1.yaml`), các chế độ khác, camera trước/góc rộng/độ sâu.

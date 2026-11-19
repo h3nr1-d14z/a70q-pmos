@@ -1,6 +1,6 @@
 diff -uN a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
---- a/drivers/media/i2c/Kconfig	2026-11-19 11:48:31.415202889 +0000
-+++ b/drivers/media/i2c/Kconfig	2026-11-19 11:48:31.421940735 +0000
+--- a/drivers/media/i2c/Kconfig	2026-11-19 17:05:35.306657678 +0000
++++ b/drivers/media/i2c/Kconfig	2026-11-19 17:05:35.315088575 +0000
 @@ -804,6 +804,16 @@
  	  To compile this driver as a module, choose M here: the
  	  module will be called s5k3m5.
@@ -19,8 +19,8 @@ diff -uN a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
  	tristate "Samsung S5K5BAF sensor support"
  	help
 diff -uN a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
---- a/drivers/media/i2c/Makefile	2026-11-19 11:48:31.415202889 +0000
-+++ b/drivers/media/i2c/Makefile	2026-11-19 11:48:31.422606532 +0000
+--- a/drivers/media/i2c/Makefile	2026-11-19 17:05:35.306657678 +0000
++++ b/drivers/media/i2c/Makefile	2026-11-19 17:05:35.315647740 +0000
 @@ -131,6 +131,7 @@
  obj-$(CONFIG_VIDEO_S5C73M3) += s5c73m3/
  obj-$(CONFIG_VIDEO_S5K3M5) += s5k3m5.o
@@ -31,7 +31,7 @@ diff -uN a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
  obj-$(CONFIG_VIDEO_SAA6588) += saa6588.o
 diff -uN a/drivers/media/i2c/s5kgd1.c b/drivers/media/i2c/s5kgd1.c
 --- a/drivers/media/i2c/s5kgd1.c	1970-01-01 00:00:00.000000000 +0000
-+++ b/drivers/media/i2c/s5kgd1.c	2026-11-19 11:48:31.415202889 +0000
++++ b/drivers/media/i2c/s5kgd1.c	2026-11-19 17:05:35.308258091 +0000
 @@ -0,0 +1,2120 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (c) 2025 Linaro Ltd
@@ -72,11 +72,11 @@ diff -uN a/drivers/media/i2c/s5kgd1.c b/drivers/media/i2c/s5kgd1.c
 +#define S5KGD1_EXPOSURE_MARGIN		4
 +
 +#define S5KGD1_REG_AGAIN		CCI_REG16(0x0204)
-+#define S5KGD1_AGAIN_MIN		1
-+#define S5KGD1_AGAIN_MAX		16
++/* register code, gain = code / 32 (1x .. 16x) */
++#define S5KGD1_AGAIN_MIN		32
++#define S5KGD1_AGAIN_MAX		512
 +#define S5KGD1_AGAIN_STEP		1
-+#define S5KGD1_AGAIN_DEFAULT		1
-+#define S5KGD1_AGAIN_SHIFT		5
++#define S5KGD1_AGAIN_DEFAULT		32
 +
 +#define S5KGD1_REG_VTS			CCI_REG16(0x0340)
 +#define S5KGD1_VTS_MAX			0xffff
@@ -1537,7 +1537,7 @@ diff -uN a/drivers/media/i2c/s5kgd1.c b/drivers/media/i2c/s5kgd1.c
 +	switch (ctrl->id) {
 +	case V4L2_CID_ANALOGUE_GAIN:
 +		ret = cci_write(s5kgd1->regmap, S5KGD1_REG_AGAIN,
-+				ctrl->val << S5KGD1_AGAIN_SHIFT, NULL);
++				ctrl->val, NULL);
 +		break;
 +	case V4L2_CID_EXPOSURE:
 +		ret = cci_write(s5kgd1->regmap, S5KGD1_REG_EXPOSURE,

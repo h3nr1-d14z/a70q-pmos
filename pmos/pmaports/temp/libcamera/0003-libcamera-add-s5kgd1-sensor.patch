@@ -1,0 +1,46 @@
+--- a/src/ipa/libipa/camera_sensor_helper.cpp	2026-11-20 00:06:41
++++ b/src/ipa/libipa/camera_sensor_helper.cpp	2026-11-20 00:06:42
+@@ -887,6 +887,18 @@
+ };
+ REGISTER_CAMERA_SENSOR_HELPER("ov13858", CameraSensorHelperOv13858)
+ 
++class CameraSensorHelperS5kgd1 : public CameraSensorHelper
++{
++public:
++	CameraSensorHelperS5kgd1()
++	{
++		/* 64 at 10 bits; analogue gain register code / 32 */
++		blackLevel_ = 4096;
++		gain_ = AnalogueGainLinear{ 1, 0, 0, 32 };
++	}
++};
++REGISTER_CAMERA_SENSOR_HELPER("s5kgd1", CameraSensorHelperS5kgd1)
++
+ class CameraSensorHelperVd55g1 : public CameraSensorHelper
+ {
+ public:
+--- a/src/libcamera/sensor/camera_sensor_properties.cpp	2026-11-20 00:06:41
++++ b/src/libcamera/sensor/camera_sensor_properties.cpp	2026-11-20 00:06:42
+@@ -571,6 +571,22 @@
+ 			},
+ 			.sensorDelays = { },
+ 		} },
++		{ "s5kgd1", {
++			.unitCellSize = { 800, 800 },
++			.testPatternModes = {
++				{ controls::draft::TestPatternModeOff, 0 },
++				{ controls::draft::TestPatternModeSolidColor, 1 },
++				{ controls::draft::TestPatternModeColorBars, 2 },
++				{ controls::draft::TestPatternModeColorBarsFadeToGray, 3 },
++				{ controls::draft::TestPatternModePn9, 4 },
++			},
++			.sensorDelays = {
++				.exposureDelay = 2,
++				.gainDelay = 2,
++				.vblankDelay = 2,
++				.hblankDelay = 2
++			},
++		} },
+ 		{ "vd55g1", {
+ 			.unitCellSize = { 2160, 2160 },
+ 			.testPatternModes = {

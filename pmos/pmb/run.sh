@@ -47,5 +47,11 @@ for d in /repo-pmos/pmaports/device/downstream/*/; do
   n=$(basename $d); rm -rf $W/cache_git/pmaports/device/downstream/$n
   cp -r $d $W/cache_git/pmaports/device/downstream/$n
 done
+# forked temp/ packages (e.g. libcamera with extra sensor support) replace the pmaports ones
+for d in /repo-pmos/pmaports/temp/*/; do
+  [ -d "$d" ] || continue
+  n=$(basename $d); rm -rf $W/cache_git/pmaports/temp/$n
+  cp -r $d $W/cache_git/pmaports/temp/$n
+done
 '"$CMD"'
 ' bash "$@"
