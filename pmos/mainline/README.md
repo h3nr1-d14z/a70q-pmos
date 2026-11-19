@@ -425,15 +425,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   sau. DT `camera@10` trên `cci_i2c1` (slave 8-bit 0x20), vio = LDO3, vdig = LDO1, vana = LDO5, MCLK1 GPIO 29, reset
   GPIO 45, công tắc MIPI GPIO 49 giữ thấp, CSIPHY1 (`&camss` port@1), rotation 270. libcamera: "Internal front camera",
   ảnh màu rõ nét 1632×1224 @15 fps.
-- **Camera góc rộng S5K4HA** (patch 0042, driver `s5k4ha` theo cùng khung, thanh ghi 8 bit; bảng init = khối 2,
-  chế độ 3264×2448 = khối 0; link 334 MHz từ PLL OP 24/6×167): `camera@2d` trên `cci_i2c1` (slave 8-bit 0x5a, ID
-  0x48ab), vio = LDO3, vdig = LDO2, vana = regulator cố định GPIO 95, MCLK3 GPIO 31, reset GPIO 100. Dùng chung CSIPHY1
-  với camera trước qua công tắc GPIO 49 (cao = góc rộng, thấp = trước): cả hai driver có GPIO tuỳ chọn `mipi-sel`
-  (non-exclusive) + `mipi-sel-value`, đặt khi bắt đầu stream (đặt lúc bật nguồn thì cảm biến bật sau cùng giành công
-  tắc). Chip ID đọc được, test pattern đúng (64..1023), ảnh thật có nội dung; libcamera liệt kê 3 camera.
-- Vấn đề mở: camera trước sau khi thêm góc rộng - libcamera ra khung đen, chụp raw thì test pattern không hiện (nghi
-  công tắc/cấu hình CSIPHY1 khi có 2 endpoint); một lần đổi liên kết media thủ công (csiphy1 → csid0) gây hard lockup
-  CPU (RCU stall → panic) - không xảy ra trên đường libcamera thường nhưng cần tìm nguyên nhân. Bug chép từ s5k3m5:
-  `get_selection` gán height = width (đã sửa trong cả hai driver).
-- Còn lại: camera trước + góc rộng chạy song song ổn định, helper libcamera cho s5k4ha, driver actuator lấy nét
-  (camera sau), tuning, các chế độ khác, GC5035 (độ sâu).
+- Camera góc rộng S5K4HA: driver `s5k4ha.c` + patch `patches-off/0042` (thanh ghi 8 bit, init = khối 2, chế độ
+  3264×2448 = khối 0, slave 0x2d trên CCI1, vana qua GPIO 95, MCLK3, reset GPIO 100, chung CSIPHY1 với camera trước qua
+  công tắc GPIO 49 cao). Cảm biến tự nó chạy (chip ID 0x48ab, test pattern, ảnh thật) nhưng bản tích hợp gây hard
+  lockup CPU (RCU stall → panic) khi stream camera, kể cả camera sau → đã gỡ, quay về trạng thái commit 4cc30c1 (camera
+  sau + trước chạy ổn: 15 fps, không treo). Làm lại từng bước sau.
+- Còn lại: S5K4HA (tích hợp lại từng bước), helper libcamera cho s5k4ha, actuator lấy nét, tuning, các chế độ khác,
+  GC5035 (độ sâu).

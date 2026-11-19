@@ -565,7 +565,7 @@ static int s5k4ha_get_selection(struct v4l2_subdev *sd,
 		sel->r.left = 0;
 		sel->r.top = 0;
 		sel->r.width = s5k4ha->mode->width;
-		sel->r.height = s5k4ha->mode->height;
+		sel->r.height = s5k4ha->mode->width;
 		return 0;
 	default:
 		return -EINVAL;

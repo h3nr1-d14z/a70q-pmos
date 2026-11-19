@@ -1391,11 +1391,13 @@
 		bias-disable;
 	};
 
-	cam_mclk3_default: cam-mclk3-default-state {
-		pins = "gpio31";
-		function = "cam_mclk";
-		drive-strength = <6>;
-		bias-disable;
+	/* downstream cam_sensor_mipi_sw (CAM_CUSTOM1) */
+	cam_mipi_sw_default: cam-mipi-sw-default-state {
+		pins = "gpio49";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		output-low;
 	};
 
 	cam_pmic_i2c_default: cam-pmic-i2c-default-state {
@@ -1491,10 +1493,7 @@
 		/* downstream sensor-position-roll = 270 */
 		orientation = <0>;
 		rotation = <270>;
-		/* CSIPHY1 is shared with the ultra wide camera through this switch: low = front */
-		mipi-sel-gpios = <&tlmm 49 GPIO_ACTIVE_HIGH>;
-		mipi-sel-value = <0>;
-		pinctrl-0 = <&cam_mclk1_default>;
+		pinctrl-0 = <&cam_mclk1_default>, <&cam_mipi_sw_default>;
 		pinctrl-names = "default";
 
 		port {
@@ -1504,51 +1503,6 @@
 				remote-endpoint = <&csiphy1_ep>;
 			};
 		};
-	};
-
-	/*
-	 * Ultra wide camera: Samsung S5K4HA at 0x2d on CCI1 (vendor module 2: slave 0x5a, ID 0x48ab),
-	 * downstream cam-sensor@2: vio = S2MPB03 LDO3, vdig ("cam_v_custom1") = LDO2, vana through
-	 * GPIO 95, MCLK3 (GPIO 31) 24 MHz, reset GPIO 100, MIPI switch GPIO 49 high, CSIPHY1.
-	 */
-	wide_cam: camera@2d {
-		compatible = "samsung,s5k4ha";
-		reg = <0x2d>;
-		clocks = <&camcc CAM_CC_MCLK3_CLK>;
-		assigned-clocks = <&camcc CAM_CC_MCLK3_CLK>;
-		assigned-clock-rates = <24000000>;
-		reset-gpios = <&tlmm 100 GPIO_ACTIVE_LOW>;
-		vddio-supply = <&cam_ldo3>;
-		vddd-supply = <&cam_ldo2>;
-		vdda-supply = <&wide_cam_vana>;
-		mipi-sel-gpios = <&tlmm 49 GPIO_ACTIVE_HIGH>;
-		mipi-sel-value = <1>;
-		/* downstream sensor-position-roll = 90 */
-		orientation = <1>;
-		rotation = <90>;
-		pinctrl-0 = <&cam_mclk3_default>;
-		pinctrl-names = "default";
-
-		port {
-			wide_cam_ep: endpoint {
-				data-lanes = <1 2 3 4>;
-				link-frequencies = /bits/ 64 <334000000>;
-				remote-endpoint = <&csiphy1_wide_ep>;
-			};
-		};
-	};
-};
-
-/ {
-	/* ultra wide camera analog supply: switched by GPIO 95 (downstream CAM_VANA) */
-	wide_cam_vana: regulator-wide-cam-vana {
-		compatible = "regulator-fixed";
-		regulator-name = "wide_cam_vana";
-		regulator-min-microvolt = <2800000>;
-		regulator-max-microvolt = <2800000>;
-		gpio = <&tlmm 95 GPIO_ACTIVE_HIGH>;
-		enable-active-high;
-		startup-delay-us = <1000>;
 	};
 };
 
@@ -1567,19 +1521,9 @@
 		};
 
 		port@1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			csiphy1_ep: endpoint@0 {
-				reg = <0>;
+			csiphy1_ep: endpoint {
 				data-lanes = <0 1 2 3>;
 				remote-endpoint = <&front_cam_ep>;
-			};
-
-			csiphy1_wide_ep: endpoint@1 {
-				reg = <1>;
-				data-lanes = <0 1 2 3>;
-				remote-endpoint = <&wide_cam_ep>;
 			};
 		};
 	};

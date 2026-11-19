@@ -105,8 +105,6 @@ struct s5kgd1 {
 	struct regmap *regmap;
 	struct clk *mclk;
 	struct gpio_desc *reset_gpio;
-	struct gpio_desc *mipi_sel_gpio;	/* shared MIPI lane switch (optional) */
-	u32 mipi_sel_value;
 	struct regulator_bulk_data supplies[S5KGD1_NUM_SUPPLIES];
 
 	struct v4l2_subdev sd;
@@ -1630,13 +1628,6 @@ static int s5kgd1_enable_streams(struct v4l2_subdev *sd,
 	if (ret)
 		return ret;
 
-	/*
-	 * Route a shared CSI PHY to this sensor when it starts streaming (Galaxy A70: front and
-	 * ultra wide cameras share CSIPHY1 through a switch); both sensors may be powered.
-	 */
-	if (s5kgd1->mipi_sel_gpio)
-		gpiod_direction_output_raw(s5kgd1->mipi_sel_gpio, s5kgd1->mipi_sel_value);
-
 	/* clock/analog setup, then wait as the vendor sequence does */
 	cci_multi_reg_write(s5kgd1->regmap, init_array_setting,
 			    ARRAY_SIZE(init_array_setting), &ret);
@@ -1804,7 +1795,7 @@ static int s5kgd1_get_selection(struct v4l2_subdev *sd,
 		sel->r.left = 0;
 		sel->r.top = 0;
 		sel->r.width = s5kgd1->mode->width;
-		sel->r.height = s5kgd1->mode->height;
+		sel->r.height = s5kgd1->mode->width;
 		return 0;
 	default:
 		return -EINVAL;
@@ -2003,14 +1994,6 @@ static int s5kgd1_probe(struct i2c_client *client)
 	if (IS_ERR(s5kgd1->reset_gpio))
 		return dev_err_probe(s5kgd1->dev, PTR_ERR(s5kgd1->reset_gpio),
 				     "cannot get reset GPIO\n");
-
-	s5kgd1->mipi_sel_gpio = devm_gpiod_get_optional(s5kgd1->dev, "mipi-sel",
-						GPIOD_ASIS | GPIOD_FLAGS_BIT_NONEXCLUSIVE);
-	if (IS_ERR(s5kgd1->mipi_sel_gpio))
-		return dev_err_probe(s5kgd1->dev, PTR_ERR(s5kgd1->mipi_sel_gpio),
-				     "cannot get MIPI switch GPIO\n");
-	if (s5kgd1->mipi_sel_gpio)
-		device_property_read_u32(s5kgd1->dev, "mipi-sel-value", &s5kgd1->mipi_sel_value);
 
 	for (i = 0; i < S5KGD1_NUM_SUPPLIES; i++)
 		s5kgd1->supplies[i].supply = s5kgd1_supply_names[i];
