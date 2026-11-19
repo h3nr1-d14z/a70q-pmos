@@ -1384,6 +1384,22 @@
 		bias-disable;
 	};
 
+	cam_mclk1_default: cam-mclk1-default-state {
+		pins = "gpio29";
+		function = "cam_mclk";
+		drive-strength = <6>;
+		bias-disable;
+	};
+
+	/* downstream cam_sensor_mipi_sw (CAM_CUSTOM1) */
+	cam_mipi_sw_default: cam-mipi-sw-default-state {
+		pins = "gpio49";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		output-low;
+	};
+
 	cam_pmic_i2c_default: cam-pmic-i2c-default-state {
 		pins = "gpio117", "gpio118";
 		function = "gpio";
@@ -1458,6 +1474,38 @@
 	};
 };
 
+/*
+ * Front camera: Samsung S5KGD1 at 0x10 on CCI1 (vendor module 1: slave 0x20, ID 0x0841, same
+ * register tables as the rear one), downstream cam-sensor@1: vio = S2MPB03 LDO3, vdig = LDO1,
+ * vana = LDO5, MCLK1 (GPIO 29) 24 MHz, reset GPIO 45, MIPI switch GPIO 49 (kept low), CSIPHY1.
+ */
+&cci_i2c1 {
+	front_cam: camera@10 {
+		compatible = "samsung,s5kgd1";
+		reg = <0x10>;
+		clocks = <&camcc CAM_CC_MCLK1_CLK>;
+		assigned-clocks = <&camcc CAM_CC_MCLK1_CLK>;
+		assigned-clock-rates = <24000000>;
+		reset-gpios = <&tlmm 45 GPIO_ACTIVE_LOW>;
+		vddio-supply = <&cam_ldo3>;
+		vddd-supply = <&cam_ldo1>;
+		vdda-supply = <&cam_ldo5>;
+		/* downstream sensor-position-roll = 270 */
+		orientation = <0>;
+		rotation = <270>;
+		pinctrl-0 = <&cam_mclk1_default>, <&cam_mipi_sw_default>;
+		pinctrl-names = "default";
+
+		port {
+			front_cam_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <513000000>;
+				remote-endpoint = <&csiphy1_ep>;
+			};
+		};
+	};
+};
+
 /* CSI PHY supplies as downstream csiphy (mipi-csi-vdd = pm6150l_l3, 1.2 V) */
 &camss {
 	vdd-csiphy-1p2-supply = <&vreg_l3c>;
@@ -1469,6 +1517,13 @@
 			csiphy0_ep: endpoint {
 				data-lanes = <0 1 2 3>;
 				remote-endpoint = <&rear_cam_ep>;
+			};
+		};
+
+		port@1 {
+			csiphy1_ep: endpoint {
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&front_cam_ep>;
 			};
 		};
 	};

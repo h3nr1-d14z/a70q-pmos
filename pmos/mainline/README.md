@@ -421,4 +421,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
     level 4096; sensor properties: ô 0,8 µm, mẫu thử, độ trễ 2 khung) - `pmos/pmb/run.sh` giờ đồng bộ cả `temp/*`.
     Kết quả: AGC điều khiển exposure + gain, ảnh màu 1632×1224 qua soft-ISP ở 15 fps (phòng tối ban đêm: exposure/gain
     lên tối đa). Ảnh mờ: chưa có driver actuator lấy nét (vaf = L19A, actuator trong `ref/camera-downstream.txt`).
-  - Còn lại: driver actuator lấy nét, tuning (`s5kgd1.yaml`), các chế độ khác, camera trước/góc rộng/độ sâu.
+- **Camera trước chạy** (cùng driver `s5kgd1`): module vendor 1 có bảng 3264×2448 và bản vá firmware giống hệt camera
+  sau. DT `camera@10` trên `cci_i2c1` (slave 8-bit 0x20), vio = LDO3, vdig = LDO1, vana = LDO5, MCLK1 GPIO 29, reset
+  GPIO 45, công tắc MIPI GPIO 49 giữ thấp, CSIPHY1 (`&camss` port@1), rotation 270. libcamera: "Internal front camera",
+  ảnh màu rõ nét 1632×1224 @15 fps.
+- Đã tìm từ Chromatix: S5K4HA (góc rộng) slave 8-bit 0x5a (0x2d), ID 0x48ab.
+- Còn lại: driver actuator lấy nét (camera sau), tuning, các chế độ khác, S5K4HA (góc rộng), GC5035 (độ sâu).
