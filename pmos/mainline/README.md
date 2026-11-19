@@ -327,4 +327,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   thu được**: im lặng rms ~21, khi loa phát 440 Hz rms ~360; thanh ghi cổng 2 = 0x01000103 như downstream.
 - Định tuyến micro: `MultiMedia2 Mixer TX_CODEC_DMA_TX_3`=1, `TX_AIF1_CAP Mixer DEC0`=1, `TX DEC0 MUX`=SWR_MIC,
   `TX SMIC MUX0`=ADC0, `ADC1 Switch`=1, `ADC1_MIXER Switch`=1, `ADC1 Volume`=16, `TX_DEC0 Volume`=84.
-- Chưa xong: ADC2 (micro phụ/micro tai nghe) ra dữ liệu rác (thông số port 3), phát hiện cắm tai nghe (MBHC).
+- ADC2 (WCD TX2) ở master port 3 trên lane 1 (LPI GPIO 20): `ADC2 MUX`=INP3 là micro phụ (AMIC3), INP2 là micro tai nghe
+  (AMIC2); `TX SMIC MUX0`=ADC2. Port 3 ở lane 0 thì bus clash.
+- MBHC: `qcom,ground-jack-type-normally-closed` (downstream gnd-swh = 0), ngưỡng 640 mV / 9999 mV; có input
+  "Samsung Galaxy A70 Headset Jack" và control `Headphone Jack`/`Mic Jack`.
+- Userspace (device r67): định tuyến micro chính lúc khởi động; PipeWire có source `pro-input-1` (mặc định), parecord
+  thu được.
+- Chưa có: tự chuyển loa ↔ tai nghe khi cắm (cần UCM hoặc script theo sự kiện jack).

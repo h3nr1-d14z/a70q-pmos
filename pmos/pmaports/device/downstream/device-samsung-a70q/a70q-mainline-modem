@@ -98,4 +98,13 @@ fi
   $C name="SpkrLeft DAC Switch" 1
   $C name="SpkrLeft VISENSE Switch" 0
   $C name="WSA_RX0 Digital Volume" 70
-  $C name="SpkrLeft PA Volume" 10 ) >/dev/null 2>&1 &
+  $C name="SpkrLeft PA Volume" 10
+  # main mic (AMIC1 -> WCD937x ADC1 -> TX SoundWire port 2 -> TX macro DEC0) on MultiMedia2
+  $C name="MultiMedia2 Mixer TX_CODEC_DMA_TX_3" 1
+  $C name="TX_AIF1_CAP Mixer DEC0" 1
+  $C name="TX DEC0 MUX" SWR_MIC
+  $C name="TX SMIC MUX0" ADC0
+  $C name="ADC1 Switch" 1
+  $C name="ADC1_MIXER Switch" 1
+  $C name="ADC1 Volume" 16
+  $C name="TX_DEC0 Volume" 84 ) >/dev/null 2>&1 &
