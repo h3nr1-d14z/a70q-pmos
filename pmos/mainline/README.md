@@ -411,4 +411,12 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
     `v4l2-ctl --stream-mmap` nhận đủ khung (9 987 840 byte/khung). Mẫu thử (test_pattern=2) ra đúng các sọc; ảnh thật ở
     exposure/gain tối đa lúc đầu chỉ là nhiễu (máy úp xuống bàn); dựng máy lên thì **ra ảnh thật** (khung raw 3264×2448,
     exposure 2620 dòng, gain 16: thấy rõ vật thể; ảnh tối/nhiễu vì chưa có ISP/AE).
-  - Còn lại: kiểm tra ảnh thật, thứ tự Bayer, libcamera (IPA soft-ISP), các chế độ khác, camera trước/góc rộng/độ sâu.
+  - Thứ tự Bayer **GRBG** (đo trên color bars: sọc vàng tắt góc dưới-trái = B, sọc cyan tắt góc trên-phải = R) = mặc
+    định của driver.
+  - **libcamera chạy** (pipeline simple + soft-ISP): `cam -l` thấy 's5kgd1'; cần `CONFIG_DMABUF_HEAPS_SYSTEM=y` (trước là
+    module, không nạp → "Could not open any dma-buf provider") + `UDMABUF`. `cam -c1 -C30 -s width=1632,height=1224,
+    pixelformat=RGB888 --file=...ppm` ra ảnh màu. DT thêm `orientation = <1>`, `rotation = <90>` (downstream roll 90).
+  - AGC của soft-ISP chỉnh exposure (lên 1076) nhưng không chỉnh gain: libcamera chưa có camera sensor helper cho
+    s5kgd1 ("Failed to create camera sensor helper") → cần thêm helper (gain tuyến tính, mã = gain × 32, đơn vị của
+    0x0204) vào libcamera; ảnh trong phòng tối ban đêm còn tối (trung bình 38/255).
+  - Còn lại: helper libcamera + tinh chỉnh, các chế độ khác, camera trước/góc rộng/độ sâu.

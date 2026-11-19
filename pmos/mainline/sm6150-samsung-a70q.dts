@@ -1442,6 +1442,9 @@
 		vddd-supply = <&cam_ldo2>;
 		vdda-supply = <&cam_ldo6>;
 		afvdd-supply = <&vreg_l19a>;
+		/* downstream sensor-position-roll = 90 */
+		orientation = <1>;
+		rotation = <90>;
 		pinctrl-0 = <&cam_mclk0_default>;
 		pinctrl-names = "default";
 
