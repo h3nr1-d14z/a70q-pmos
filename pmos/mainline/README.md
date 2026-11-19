@@ -409,5 +409,6 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   `cci_i2c0`, `&camss` (vdd-csiphy-1p2 = L3C, 1p8 = L12A), 4 lane, link 513 MHz.
   - Đường ống: `s5kgd1 2-002d → msm_csiphy0 → msm_csid0 → msm_vfe0_rdi0` (/dev/video0), SGRBG10 3264×2448, `pgAA`;
     `v4l2-ctl --stream-mmap` nhận đủ khung (9 987 840 byte/khung). Mẫu thử (test_pattern=2) ra đúng các sọc; ảnh thật ở
-    exposure/gain tối đa chỉ là nhiễu quanh mức đen 64 → có thể camera đang bị che (máy úp xuống bàn), cần thử lại.
+    exposure/gain tối đa lúc đầu chỉ là nhiễu (máy úp xuống bàn); dựng máy lên thì **ra ảnh thật** (khung raw 3264×2448,
+    exposure 2620 dòng, gain 16: thấy rõ vật thể; ảnh tối/nhiễu vì chưa có ISP/AE).
   - Còn lại: kiểm tra ảnh thật, thứ tự Bayer, libcamera (IPA soft-ISP), các chế độ khác, camera trước/góc rộng/độ sâu.
