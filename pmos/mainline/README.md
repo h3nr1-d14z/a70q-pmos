@@ -393,3 +393,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   i2c-2, CCI1 = i2c-3.
 - Còn lại cho camera: driver V4L2 S5KGD1 (bảng thanh ghi init/mode từ Chromatix), node CAMSS + CSIPHY0, rồi các cảm
   biến khác (trước S5KGD1, S5K4HA, GC5035) theo cùng cách.
+- Giải mã Chromatix (đang làm, `0_lsi_s5kgd1_pv_NEW.bin`): không có driver/bảng thanh ghi S5KGD1 công khai. Bảng
+  regSetting bắt đầu ở offset 725264: 646 bản ghi × 10 từ u64 = [registerAddr, 1, idA, 2 (addr 16 bit), 2 (data
+  16 bit), 0 (ghi), 1, idB, 0, idC], địa chỉ đầu: 0xfcfc, 0x6214, 0x6218, 0x6242, 0x6028, 0x602a, 0x6f12... (chuỗi init
+  gián tiếp kiểu Samsung). Giá trị registerData nằm ngoài bản ghi, tham chiếu qua id (A: 0x18..0x7a7); sau bảng (offset
+  776944) là vùng ô 16 byte nhưng chưa ánh xạ được id → giá trị (0x4000 cho 0xfcfc chưa thấy). Bước tiếp: tìm bảng
+  id → offset trong header.
