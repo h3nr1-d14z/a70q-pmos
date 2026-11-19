@@ -307,3 +307,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Định tuyến (tạm, chưa có UCM): `WSA_CODEC_DMA_RX_0 Audio Mixer MultiMedia1`=1, `WSA RX0 MUX`=AIF1_PB,
   `WSA_RX0 INP0`=RX0, `WSA_COMP1 Switch`=1, `SpkrLeft COMP/BOOST/DAC Switch`=1, `SpkrLeft VISENSE Switch`=0,
   `WSA_RX0 Digital Volume`=70, `SpkrLeft PA Volume`=10.
+- Userspace: `a70q-mainline-modem` đặt định tuyến mixer loa khi card xuất hiện (device r65); WirePlumber
+  (`51-a70q-alsa.conf`, r66) đặt profile `pro-audio` cho card mainline (profile stereo-fallback gắn với cổng tai
+  nghe không có) → sink `alsa_output.platform-soc_0_sound.pro-output-0` là mặc định, `paplay` chạy, quantum 2048 như
+  downstream. Chưa có tai nghe/micro (WCD937x cần pinctrl LPASS LPI cho reset GPIO 24 và swr1/swr2).

@@ -84,3 +84,18 @@ fi
 	kill -0 $pid 2>/dev/null && break
   done
   rc-service -q iio-sensor-proxy restart 2>/dev/null ) >/dev/null 2>&1 &
+
+# Speaker (WSA881x on the WSA SoundWire master): route MultiMedia1 -> WSA codec DMA -> speaker
+# once the card is there (no UCM for this card yet), so plain ALSA/PipeWire output works.
+( for i in $(seq 1 120); do grep -q "Samsung Galaxy A70" /proc/asound/cards 2>/dev/null && break; sleep 1; done
+  C="amixer -q -c 0 cset"
+  $C name="WSA_CODEC_DMA_RX_0 Audio Mixer MultiMedia1" 1
+  $C name="WSA RX0 MUX" AIF1_PB
+  $C name="WSA_RX0 INP0" RX0
+  $C name="WSA_COMP1 Switch" 1
+  $C name="SpkrLeft COMP Switch" 1
+  $C name="SpkrLeft BOOST Switch" 1
+  $C name="SpkrLeft DAC Switch" 1
+  $C name="SpkrLeft VISENSE Switch" 0
+  $C name="WSA_RX0 Digital Volume" 70
+  $C name="SpkrLeft PA Volume" 10 ) >/dev/null 2>&1 &
