@@ -384,3 +384,6 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   địa chỉ gain/exposure) nằm trong `com.samsung.sensormodule.*.bin` (QTI Chromatix, Parameter Parser V1.4.0) -
   đã chép về `ref/camera-vendor/` (gitignore, file vendor); bước tiếp theo là viết bộ giải mã định dạng này để lấy
   bảng thanh ghi cho driver V4L2.
+- **Nguồn camera: PMIC S2MPB03** (0x56) trên bus I2C bit-bang GPIO 117 (SDA)/118 (SCL). Mainline không có driver →
+  patch 0039 `regulator: s2mpb03` (regmap, 7 LDO tuyến tính; sơ đồ thanh ghi từ driver GPL downstream). Đã chạy:
+  "S2MPB03 PMIC ID 0x02", cam_ldo1..7 đăng ký với điện áp như downstream (1,05/1,05/1,8/1,2/2,8/2,8/2,8 V).
