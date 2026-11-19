@@ -333,7 +333,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   "Samsung Galaxy A70 Headset Jack" và control `Headphone Jack`/`Mic Jack`.
 - Userspace (device r67): định tuyến micro chính lúc khởi động; PipeWire có source `pro-input-1` (mặc định), parecord
   thu được.
-- Chưa có: tự chuyển loa ↔ tai nghe khi cắm (cần UCM hoặc script theo sự kiện jack).
+- Tự chuyển loa ↔ tai nghe: `a70q-jack-switch` (device r68, chạy từ `a70q-mainline-modem`) đọc input "Headset Jack"
+  (EVIOCGSW lúc khởi động, rồi sự kiện SW_HEADPHONE_INSERT / SW_MICROPHONE_INSERT): cắm tai nghe → MultiMedia1 sang
+  RX codec DMA (HPHL/HPHR), tắt loa; rút ra → loa; có mic tai nghe → thu từ AMIC2 (ADC2 INP2), không → AMIC1. Đã chạy
+  lúc boot và đặt đúng trạng thái "không cắm"; chưa thử cắm thật.
 
 ### ✅ Modem crash 40 s sau khi khởi động (2026-11-19): đã tìm ra nguyên nhân
 - Dấu hiệu: "fatal error without message" đúng 40,03 s sau "modem is now up", chỉ ở lần khởi động modem **đầu tiên** sau

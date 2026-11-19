@@ -107,4 +107,6 @@ fi
   $C name="ADC1 Switch" 1
   $C name="ADC1_MIXER Switch" 1
   $C name="ADC1 Volume" 16
-  $C name="TX_DEC0 Volume" 84 ) >/dev/null 2>&1 &
+  $C name="TX_DEC0 Volume" 84
+  # speaker <-> 3.5 mm jack, headset mic, following the jack input events
+  exec /usr/libexec/a70q/a70q-jack-switch ) >/var/log/a70q-jack-switch.log 2>&1 &
