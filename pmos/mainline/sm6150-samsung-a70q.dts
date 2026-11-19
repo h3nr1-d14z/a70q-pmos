@@ -1441,11 +1441,9 @@
 
 
 	/*
-	 * No UHS: switching vqmmc (L6C) to 1.8 V for SDR104 makes the modem assert ("fatal error
-	 * without message") 40 s after every start, on and on (bisected; downstream does run SDR104,
-	 * cause not found yet). High speed (50 MHz) at 3 V signalling is stable.
+	 * UHS SDR104 (L6C at 1.8 V): the modem asserts that once blamed on it were the WCN3990 cx/mx
+	 * supply being off at the first modem start (see vreg_l9a). SDR104 at 202 MHz, ~88 MB/s.
 	 */
-	no-1-8-v;
 	status = "okay";
 };
 

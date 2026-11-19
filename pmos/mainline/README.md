@@ -347,3 +347,5 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   0/0/0 crash, WLAN lên ~1 s sau modem (trước đó 2/1/1/2 crash mỗi lần boot).
 - Patch 0038 (QRTR ns thử lại khi quảng bá dịch vụ cho remote vừa HELLO thay vì bỏ phần còn lại) vẫn giữ: có ghi nhận
   "announced service 14:1 ... after 1 retries" khi modem lên.
+- Hệ quả: **microSD UHS SDR104 chạy** (bỏ `no-1-8-v`): 202 MHz, 1,8 V, đọc 87,6 MB/s, 2/2 lần boot không crash. Lỗi
+  "UHS làm modem crash" trước đây chính là lỗi nguồn WCN3990 ở trên.
