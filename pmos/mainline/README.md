@@ -370,3 +370,8 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - DT: syscon trên IMEM 0x146aa000 + `syscon-reboot-mode` offset 0x65c (downstream qcom,msm-imem-restart_reason):
   recovery 0x77665502, bootloader 0x77665500, normal 0x77665501. Đã thử: từ mainline `reboot-mode recovery` → boot lại
   vào RECOVERY (mainline).
+
+### Build chính thức (2026-11-19, OrbStack chuyển sang SSD ngoài)
+- Build lại từ DTS + patch (0021 có thử lại khởi tạo panel), device r68 (jack-switch, watcher crash modem). Thử 3 lần
+  boot liên tiếp (2 lần khởi động từ mainline qua reboot-mode): 3/3 vào mainline, 0 crash modem, WLAN ~36 s, panel
+  không lỗi, microSD SDR104, jack-switch chạy.
