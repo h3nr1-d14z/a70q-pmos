@@ -352,3 +352,11 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   "announced service 14:1 ... after 1 retries" khi modem lên.
 - Hệ quả: **microSD UHS SDR104 chạy** (bỏ `no-1-8-v`): 202 MHz, 1,8 V, đọc 87,6 MB/s, 2/2 lần boot không crash. Lỗi
   "UHS làm modem crash" trước đây chính là lỗi nguồn WCN3990 ở trên.
+
+### Camera: khảo sát (2026-11-19)
+- Linux 7.3.4 đã có driver CAMSS cho SM6150 (`qcom,sm6150-camss`: CSIPHY/CSID/VFE), driver CCI
+  (`qcom,msm8996-cci`/`sm8250-cci` dạng v2) và camcc QCS615; `talos.dtsi` chưa có node camss/cci → phải tự thêm.
+- Downstream: CCI @0xac4a000 (SPI 460), 5 cảm biến + 1 EEPROM, MCLK GPIO 28-31, reset GPIO 45/46/47/100, CSIPHY 0-2
+  (0xac65000/0xac66000/0xac67000); tóm tắt trong `ref/camera-downstream.txt`.
+- Việc còn lại: node CCI + CAMSS trong DT, đọc chip ID cảm biến qua CCI, rồi viết driver cảm biến (S5KGD1, S5K4HA,
+  GC5035 chưa có trong mainline; chuỗi thanh ghi phải lấy từ thư viện camera của vendor).
