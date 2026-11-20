@@ -1721,15 +1721,6 @@
 	};
 };
 
-/ {
-	vibrator {
-		compatible = "pwm-vibrator";
-		pwms = <&pm6150l_lpg 3 1000000>;
-		pwm-names = "enable";
-		pinctrl-0 = <&vib_pwm_default>;
-		pinctrl-names = "default";
-	};
-};
 
 
 /*

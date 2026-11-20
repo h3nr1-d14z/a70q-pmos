@@ -486,3 +486,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   `devm_of_platform_populate` không tạo thiết bị con (kể cả khi unbind/bind lại) - chưa rõ vì sao; cần tìm tiếp
   (hoặc dựng thiết bị từ driver khác). Một lần trước, nạp tay `pm8xxx-vibrator` đi kèm một lần sập (chưa chắc liên quan).
 - PipeWire thu âm: node input của card mainline phải mono S16 (DSP trả AFE error 9 khi mở 2 kênh) - device r71.
+- Gỡ node `pwm-vibrator` (PWM LPG không điều khiển motor). Dynamic debug khi bind lại SID 1: `of_platform_populate`
+  in "create platform device: .../pmic@1/vibrator@5300" nhưng không có `device_add` nào sau đó - thiết bị không thành
+  hình, lặng lẽ (nghi xung đột/dịch địa chỉ tài nguyên `reg` trên SID 1). Bước tiếp: dyndbg `drivers/of/address.c`,
+  hoặc tạo thiết bị qua mfd cell / driver riêng ghi thẳng regmap SID 1 (0x5340/41 = mV, 0x5346 bit 7).
