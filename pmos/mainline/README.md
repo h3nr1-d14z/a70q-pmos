@@ -457,3 +457,12 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - **Tai nghe 3.5 mm nghe được** (người dùng xác nhận): cắm vào → `a70q-jack-switch` chuyển sang tai nghe (loa tắt), MBHC
   đo ~45 Ω/kênh; ban đầu nhỏ → digital RX 94 (+10 dB), HPH Volume 20 (device r70). MBHC báo "cross connection, plug
   type 4" (mic/GND có thể đảo) → mic tai nghe chưa nhận. `RX HPH Mode` = CLS_AB_HIFI ghi lỗi EINVAL.
+
+### Thử tay với người dùng (2026-11-20)
+- ✅ Loa: to, rõ (ALSA và PipeWire). ✅ Tai nghe: cắm → tự chuyển, nghe được (cần +10 dB); rút → về loa.
+- ✅ Nút nguồn: màn hình tắt/bật theo nút.
+- ❌ Rung: pwm-vibrator nhận hiệu ứng, PWM LPG 0xbc00 (kênh 3) bật 100 % duty, PM6150L GPIO6 ở func1 - nhưng motor
+  không quay. Downstream còn bật `qcom,qpnp-vibrator-ldo` @0x5300 trên PM6150 SID 1 (3,3 V) - có thể là nguồn motor;
+  thử `qcom,pmi632-vib` ở đó thì không thấy thiết bị input và lần boot đó bị treo → đã gỡ, cần điều tra tiếp.
+- Camera (ảnh thật khi có sáng): 3 camera ra ảnh, nhưng ánh xạ có vẻ lẫn (camera 1 ra kích thước của GC5035, camera
+  "trước" ra ảnh góc rộng có vignetting) - cần kiểm tra đường CSIPHY/CSID mà libcamera chọn khi có 4 cảm biến.
