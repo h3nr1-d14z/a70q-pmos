@@ -1478,6 +1478,16 @@
  * vana = LDO5, MCLK1 (GPIO 29) 24 MHz, reset GPIO 45, MIPI switch GPIO 49 (kept low), CSIPHY1.
  */
 &cci_i2c1 {
+	/* rear camera focus: FitiPower FP5529 (vendor actuatorName "fp5529"), downstream actuator on CCI1 */
+	rear_vcm: lens@c {
+		compatible = "fitipower,fp5529";
+		reg = <0x0c>;
+		vdd-supply = <&vreg_l19a>;
+		vio-supply = <&cam_ldo3>;
+		/* does not answer at 0x0c on CCI1 yet (address/bus to be confirmed) */
+		status = "disabled";
+	};
+
 	front_cam: camera@10 {
 		compatible = "samsung,s5kgd1";
 		reg = <0x10>;

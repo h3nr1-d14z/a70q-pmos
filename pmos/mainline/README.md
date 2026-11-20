@@ -436,4 +436,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Kết quả: libcamera liệt kê 3 camera (sau, góc rộng, trước), mỗi camera ghi 30 khung @15 fps, không treo; test pattern
   qua đường raw đúng. Khi thử raw bằng tay phải đặt lại liên kết csiphy→csid0 (libcamera đổi liên kết theo camera).
 - libcamera fork r3: patch `0003-libcamera-add-a70q-sensors.patch` thêm helper + sensor properties cho s5k4ha (mã gain / 32): AGC điều khiển exposure + gain cả camera góc rộng.
-- Còn lại: actuator lấy nét (camera sau), tuning, các chế độ khác, GC5035 (độ sâu).
+- Actuator lấy nét camera sau: chip **FitiPower FP5529** (actuatorName "fp5529" trong module vendor; chuỗi init là
+  khối 8 ghi byte: 0x02 ← 0x01/0x00 (5 ms), 0x06 ← 0x60, 0x07 ← 0x05, DAC 10 bit ở 0x03/0x04, 0x02 ← 0x02). Driver
+  V4L2 lens `fp5529` (patch 0043) + node `lens@c` trên CCI1 (downstream actuator cci-master 1, vaf = L19A, vio = LDO3)
+  - nhưng không thấy thiết bị trả lời trên CCI0/CCI1 kể cả khi L19A + LDO3 bật và camera sau đang stream → node để
+  disabled (để `lens-focus` thì camera sau chờ lens mãi, mất camera). Cần tìm địa chỉ/điều kiện cấp nguồn đúng.
+- Còn lại: actuator (ở trên), tuning, các chế độ khác, GC5035 (độ sâu).
