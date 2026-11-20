@@ -435,4 +435,5 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   "camera trước hỏng / treo" trước đó đều do thay đổi này.
 - Kết quả: libcamera liệt kê 3 camera (sau, góc rộng, trước), mỗi camera ghi 30 khung @15 fps, không treo; test pattern
   qua đường raw đúng. Khi thử raw bằng tay phải đặt lại liên kết csiphy→csid0 (libcamera đổi liên kết theo camera).
-- Còn lại: helper libcamera cho s5k4ha (AGC), actuator lấy nét (camera sau), tuning, các chế độ khác, GC5035 (độ sâu).
+- libcamera fork r3: patch `0003-libcamera-add-a70q-sensors.patch` thêm helper + sensor properties cho s5k4ha (mã gain / 32): AGC điều khiển exposure + gain cả camera góc rộng.
+- Còn lại: actuator lấy nét (camera sau), tuning, các chế độ khác, GC5035 (độ sâu).
