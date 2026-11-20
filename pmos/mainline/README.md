@@ -446,3 +446,11 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   bảng = khối 0 vendor, 2576×1932, 2 lane, 438 MHz): `camera@37` trên CCI1, vio = LDO3, vdig = LDO4, vana = LDO7,
   MCLK2 GPIO 30, reset GPIO 46, CSIPHY2 (`&camss` port@2). libcamera: 4 camera; GC5035 ghi khung (~5-6 fps).
 - Còn lại: actuator (ở trên), tuning, các chế độ khác, helper libcamera cho gc5035.
+
+### ✅ Loa đã nghe thử được (2026-11-20)
+- Người dùng xác nhận: loa **to và rõ** qua ALSA và qua PipeWire.
+- Hai lỗi đã sửa (device r69): gain quá thấp (`WSA_RX0 Digital Volume` 70 = −14 dB → 84 = 0 dB, `SpkrLeft PA Volume`
+  → 12 = tối đa); node pro-audio của PipeWire mở 8 kênh / 32 bit, q6asm từ chối mọi buffer ("Error queuing playback
+  buffer -16") → WirePlumber ép `audio.channels = 2`, `audio.format = S16LE` cho node của card mainline.
+- Lưu ý: nếu từng `pactl set-card-profile ... off` thì WirePlumber lưu "off" vào `~/.local/state/wireplumber/
+  default-profile` và bỏ qua luật `device.profile` - xoá dòng đó.
