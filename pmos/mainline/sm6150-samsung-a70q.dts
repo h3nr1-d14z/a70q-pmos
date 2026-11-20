@@ -1703,9 +1703,21 @@
 		function = "func1";
 		output-low;
 		bias-disable;
-		power-source = <0>;
+		/* no power-source: keep the PMIC default as downstream (pwm_out_gpio6_default) */
 		qcom,drive-strength = <3>;
 		drive-push-pull;
+	};
+};
+
+/*
+ * Vibration motor supply/driver: PM6150 vibrator LDO @0x5300 (SID 1). Downstream (samsung_vib +
+ * qcom,qpnp-vibrator-ldo) vibrates by writing 3304 mV to 0x40/0x41 and setting bit 7 of 0x46 there
+ * (register dump while vibrating); the LPG/PWM pin is not touched. Same block as PMI632.
+ */
+&pm6150_lsid1 {
+	pm6150_vib: vibrator@5300 {
+		compatible = "qcom,pmi632-vib";
+		reg = <0x5300>;
 	};
 };
 

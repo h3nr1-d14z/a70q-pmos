@@ -476,3 +476,13 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   endpoint/PHY? công tắc phần cứng?).
 - Cũng gặp: `modules.dep` 0 byte sau một lần cài module bị ngắt → không module nào nạp (mất WiFi/âm thanh/camera); cài
   lại thì hết.
+
+### Rung: motor do vibrator LDO điều khiển, không phải PWM (2026-11-21)
+- Đọc thanh ghi trên downstream trong lúc `timed_output/vibrator` rung: LPG 0xbc00 (PM6150L) **không đổi**; khối
+  vibrator LDO của PM6150 SID 1 đổi: 0x5340/0x5341 = 0x0ce8 (3304 mV, đơn vị 1 mV), 0x5346 bit 7 = 1 (bật). Đúng mô
+  hình `qcom,pmi632-vib` của `pm8xxx-vibrator` (drv 0x40/0x41 theo mV, enable 0x46 bit 7).
+- Kiểm chứng motor không quay với pwm-vibrator: dùng micro (thu 8 s, rung từ giây 4.5) - RMS không tăng (21 → 15).
+- Node `vibrator@5300` trong `&pm6150_lsid1` có trong DT đang chạy, SID 1 được `pmic-spmi` bind, nhưng
+  `devm_of_platform_populate` không tạo thiết bị con (kể cả khi unbind/bind lại) - chưa rõ vì sao; cần tìm tiếp
+  (hoặc dựng thiết bị từ driver khác). Một lần trước, nạp tay `pm8xxx-vibrator` đi kèm một lần sập (chưa chắc liên quan).
+- PipeWire thu âm: node input của card mainline phải mono S16 (DSP trả AFE error 9 khi mở 2 kênh) - device r71.
