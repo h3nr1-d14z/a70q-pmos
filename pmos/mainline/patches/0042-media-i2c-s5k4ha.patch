@@ -1,6 +1,6 @@
-diff -uN a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
---- a/drivers/media/i2c/Kconfig	2026-11-19 17:34:27.828032885 +0000
-+++ b/drivers/media/i2c/Kconfig	2026-11-19 17:34:27.833726963 +0000
+diff -uNr b/drivers/media/i2c/Kconfig c/drivers/media/i2c/Kconfig
+--- b/drivers/media/i2c/Kconfig	2026-11-20 09:32:57
++++ c/drivers/media/i2c/Kconfig	2026-11-20 09:32:57
 @@ -814,6 +814,16 @@
  	  To compile this driver as a module, choose M here: the module will be
  	  called s5kgd1.
@@ -18,9 +18,9 @@ diff -uN a/drivers/media/i2c/Kconfig b/drivers/media/i2c/Kconfig
  config VIDEO_S5K5BAF
  	tristate "Samsung S5K5BAF sensor support"
  	help
-diff -uN a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
---- a/drivers/media/i2c/Makefile	2026-11-19 17:34:27.828032885 +0000
-+++ b/drivers/media/i2c/Makefile	2026-11-19 17:34:27.834104626 +0000
+diff -uNr b/drivers/media/i2c/Makefile c/drivers/media/i2c/Makefile
+--- b/drivers/media/i2c/Makefile	2026-11-20 09:32:57
++++ c/drivers/media/i2c/Makefile	2026-11-20 09:32:57
 @@ -130,6 +130,7 @@
  obj-$(CONFIG_VIDEO_RJ54N1) += rj54n1cb0c.o
  obj-$(CONFIG_VIDEO_S5C73M3) += s5c73m3/
@@ -29,9 +29,9 @@ diff -uN a/drivers/media/i2c/Makefile b/drivers/media/i2c/Makefile
  obj-$(CONFIG_VIDEO_S5K5BAF) += s5k5baf.o
  obj-$(CONFIG_VIDEO_S5KGD1) += s5kgd1.o
  obj-$(CONFIG_VIDEO_S5K6A3) += s5k6a3.o
-diff -uN a/drivers/media/i2c/s5k4ha.c b/drivers/media/i2c/s5k4ha.c
---- a/drivers/media/i2c/s5k4ha.c	1970-01-01 00:00:00.000000000 +0000
-+++ b/drivers/media/i2c/s5k4ha.c	2026-11-19 17:34:27.828032885 +0000
+diff -uNr b/drivers/media/i2c/s5k4ha.c c/drivers/media/i2c/s5k4ha.c
+--- b/drivers/media/i2c/s5k4ha.c	1970-01-01 08:00:00
++++ c/drivers/media/i2c/s5k4ha.c	2026-11-20 09:32:57
 @@ -0,0 +1,898 @@
 +// SPDX-License-Identifier: GPL-2.0
 +// Copyright (c) 2025 Linaro Ltd
@@ -600,7 +600,7 @@ diff -uN a/drivers/media/i2c/s5k4ha.c b/drivers/media/i2c/s5k4ha.c
 +		sel->r.left = 0;
 +		sel->r.top = 0;
 +		sel->r.width = s5k4ha->mode->width;
-+		sel->r.height = s5k4ha->mode->height;
++		sel->r.height = s5k4ha->mode->width;	/* as upstream s5k3m5; the correct height breaks the libcamera pipeline here */
 +		return 0;
 +	default:
 +		return -EINVAL;

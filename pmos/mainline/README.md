@@ -425,10 +425,14 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   sau. DT `camera@10` trên `cci_i2c1` (slave 8-bit 0x20), vio = LDO3, vdig = LDO1, vana = LDO5, MCLK1 GPIO 29, reset
   GPIO 45, công tắc MIPI GPIO 49 giữ thấp, CSIPHY1 (`&camss` port@1), rotation 270. libcamera: "Internal front camera",
   ảnh màu rõ nét 1632×1224 @15 fps.
-- Camera góc rộng S5K4HA: driver `s5k4ha.c` + patch `patches-off/0042` (thanh ghi 8 bit, init = khối 2, chế độ
-  3264×2448 = khối 0, slave 0x2d trên CCI1, vana qua GPIO 95, MCLK3, reset GPIO 100, chung CSIPHY1 với camera trước qua
-  công tắc GPIO 49 cao). Cảm biến tự nó chạy (chip ID 0x48ab, test pattern, ảnh thật) nhưng bản tích hợp gây hard
-  lockup CPU (RCU stall → panic) khi stream camera, kể cả camera sau → đã gỡ, quay về trạng thái commit 4cc30c1 (camera
-  sau + trước chạy ổn: 15 fps, không treo). Làm lại từng bước sau.
-- Còn lại: S5K4HA (tích hợp lại từng bước), helper libcamera cho s5k4ha, actuator lấy nét, tuning, các chế độ khác,
-  GC5035 (độ sâu).
+- **Camera góc rộng S5K4HA chạy** (patch 0042, driver `s5k4ha`, thanh ghi 8 bit; init = khối 2, chế độ 3264×2448 =
+  khối 0; link 334 MHz từ PLL OP 24/6×167): `camera@2d` trên `cci_i2c1` (slave 8-bit 0x5a, ID 0x48ab), vio = LDO3,
+  vdig = LDO2, vana = regulator cố định GPIO 95, MCLK3 GPIO 31, reset GPIO 100. Chung CSIPHY1 với camera trước qua công
+  tắc GPIO 49 (cao = góc rộng, thấp = trước): GPIO tuỳ chọn `mipi-sel` (non-exclusive) + `mipi-sel-value` trong cả hai
+  driver, đặt khi bắt đầu stream; CSIPHY1 có hai endpoint.
+- **Bài học:** sửa `get_selection` (height = width chép từ s5k3m5) cho đúng làm libcamera chọn cấu hình khác → CAMSS ra
+  khung rỗng hoặc hard lockup CPU (RCU stall → panic). Giữ nguyên như s5k3m5 (có chú thích trong driver). Các lần
+  "camera trước hỏng / treo" trước đó đều do thay đổi này.
+- Kết quả: libcamera liệt kê 3 camera (sau, góc rộng, trước), mỗi camera ghi 30 khung @15 fps, không treo; test pattern
+  qua đường raw đúng. Khi thử raw bằng tay phải đặt lại liên kết csiphy→csid0 (libcamera đổi liên kết theo camera).
+- Còn lại: helper libcamera cho s5k4ha (AGC), actuator lấy nét (camera sau), tuning, các chế độ khác, GC5035 (độ sâu).
