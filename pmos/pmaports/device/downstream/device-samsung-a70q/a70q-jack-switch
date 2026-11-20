@@ -30,8 +30,8 @@ def route_playback(headphones):
                      ("RX INT0 DEM MUX", "CLSH_DSM_OUT"), ("RX INT1 DEM MUX", "CLSH_DSM_OUT"),
                      ("HPHL_RDAC Switch", 1), ("HPHR_RDAC Switch", 1),
                      ("HPHL Switch", 1), ("HPHR Switch", 1),
-                     ("HPHL Volume", 18), ("HPHR Volume", 18),
-                     ("RX_RX0 Digital Volume", 80), ("RX_RX1 Digital Volume", 80),
+                     ("HPHL Volume", 20), ("HPHR Volume", 20),
+                     ("RX_RX0 Digital Volume", 94), ("RX_RX1 Digital Volume", 94),
                      ("RX_CODEC_DMA_RX_0 Audio Mixer MultiMedia1", 1),
                      ("WSA_CODEC_DMA_RX_0 Audio Mixer MultiMedia1", 0)):
             cset(n, v)

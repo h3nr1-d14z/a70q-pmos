@@ -454,3 +454,6 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   buffer -16") → WirePlumber ép `audio.channels = 2`, `audio.format = S16LE` cho node của card mainline.
 - Lưu ý: nếu từng `pactl set-card-profile ... off` thì WirePlumber lưu "off" vào `~/.local/state/wireplumber/
   default-profile` và bỏ qua luật `device.profile` - xoá dòng đó.
+- **Tai nghe 3.5 mm nghe được** (người dùng xác nhận): cắm vào → `a70q-jack-switch` chuyển sang tai nghe (loa tắt), MBHC
+  đo ~45 Ω/kênh; ban đầu nhỏ → digital RX 94 (+10 dB), HPH Volume 20 (device r70). MBHC báo "cross connection, plug
+  type 4" (mic/GND có thể đảo) → mic tai nghe chưa nhận. `RX HPH Mode` = CLS_AB_HIFI ghi lỗi EINVAL.
