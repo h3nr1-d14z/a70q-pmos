@@ -1391,6 +1391,13 @@
 		bias-disable;
 	};
 
+	cam_mclk2_default: cam-mclk2-default-state {
+		pins = "gpio30";
+		function = "cam_mclk";
+		drive-strength = <6>;
+		bias-disable;
+	};
+
 	cam_mclk3_default: cam-mclk3-default-state {
 		pins = "gpio31";
 		function = "cam_mclk";
@@ -1486,6 +1493,34 @@
 		vio-supply = <&cam_ldo3>;
 		/* does not answer at 0x0c on CCI1 yet (address/bus to be confirmed) */
 		status = "disabled";
+	};
+
+	/*
+	 * Depth camera: GalaxyCore GC5035 on CCI1, downstream cam-sensor@3: vio = S2MPB03 LDO3,
+	 * vdig = LDO4, vana = LDO7, MCLK2 (GPIO 30) 24 MHz, reset GPIO 46, CSIPHY2, 2 lanes.
+	 */
+	depth_cam: camera@37 {
+		compatible = "galaxycore,gc5035";
+		reg = <0x37>;
+		clocks = <&camcc CAM_CC_MCLK2_CLK>;
+		assigned-clocks = <&camcc CAM_CC_MCLK2_CLK>;
+		assigned-clock-rates = <24000000>;
+		reset-gpios = <&tlmm 46 GPIO_ACTIVE_LOW>;
+		vddio-supply = <&cam_ldo3>;
+		vddd-supply = <&cam_ldo4>;
+		vdda-supply = <&cam_ldo7>;
+		orientation = <1>;
+		rotation = <90>;
+		pinctrl-0 = <&cam_mclk2_default>;
+		pinctrl-names = "default";
+
+		port {
+			depth_cam_ep: endpoint {
+				data-lanes = <1 2>;
+				link-frequencies = /bits/ 64 <438000000>;
+				remote-endpoint = <&csiphy2_ep>;
+			};
+		};
 	};
 
 	front_cam: camera@10 {
@@ -1590,6 +1625,13 @@
 				reg = <1>;
 				data-lanes = <0 1 2 3>;
 				remote-endpoint = <&wide_cam_ep>;
+			};
+		};
+
+		port@2 {
+			csiphy2_ep: endpoint {
+				data-lanes = <0 1>;
+				remote-endpoint = <&depth_cam_ep>;
 			};
 		};
 	};

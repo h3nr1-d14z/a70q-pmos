@@ -441,4 +441,8 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   V4L2 lens `fp5529` (patch 0043) + node `lens@c` trên CCI1 (downstream actuator cci-master 1, vaf = L19A, vio = LDO3)
   - nhưng không thấy thiết bị trả lời trên CCI0/CCI1 kể cả khi L19A + LDO3 bật và camera sau đang stream → node để
   disabled (để `lens-focus` thì camera sau chờ lens mãi, mất camera). Cần tìm địa chỉ/điều kiện cấp nguồn đúng.
-- Còn lại: actuator (ở trên), tuning, các chế độ khác, GC5035 (độ sâu).
+- **Camera độ sâu GC5035 chạy** (patch 0044, driver `gc5035` trên khung cũ: địa chỉ 8 bit, trang 0xfe, chip ID
+  0xf0/0xf1 = 0x5035, exposure 0x03/0x04, gain 0xb6, VTS 0x41/0x42, stream 0x3e = 0x91/0x00 - theo driver ChromeOS;
+  bảng = khối 0 vendor, 2576×1932, 2 lane, 438 MHz): `camera@37` trên CCI1, vio = LDO3, vdig = LDO4, vana = LDO7,
+  MCLK2 GPIO 30, reset GPIO 46, CSIPHY2 (`&camss` port@2). libcamera: 4 camera; GC5035 ghi khung (~5-6 fps).
+- Còn lại: actuator (ở trên), tuning, các chế độ khác, helper libcamera cho gc5035.
