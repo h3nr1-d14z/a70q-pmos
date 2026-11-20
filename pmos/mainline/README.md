@@ -466,3 +466,13 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   thử `qcom,pmi632-vib` ở đó thì không thấy thiết bị input và lần boot đó bị treo → đã gỡ, cần điều tra tiếp.
 - Camera (ảnh thật khi có sáng): 3 camera ra ảnh, nhưng ánh xạ có vẻ lẫn (camera 1 ra kích thước của GC5035, camera
   "trước" ra ảnh góc rộng có vignetting) - cần kiểm tra đường CSIPHY/CSID mà libcamera chọn khi có 4 cảm biến.
+
+### Camera: kiểm tra bằng test pattern từng cảm biến (2026-11-21)
+- Có cả 4 cảm biến trên CSIPHY: test pattern đúng cho sau (csiphy0), góc rộng (csiphy1) và GC5035 (csiphy2); camera
+  trước (csiphy1) chỉ ra khung mức đen, bỏ qua test pattern - dù GPIO 49 thấp hay cao. Lỗi CSI khi đó có lúc làm hard
+  lockup CPU (RCU stall).
+- Tắt camera góc rộng (bỏ endpoint thứ hai trên CSIPHY1, node `disabled`): **sau, trước, độ sâu đều đúng** (test
+  pattern + ảnh thật). → Cấu hình hiện tại: 3 camera; S5K4HA cần cách chia CSIPHY1 khác (camss chỉ cấu hình một
+  endpoint/PHY? công tắc phần cứng?).
+- Cũng gặp: `modules.dep` 0 byte sau một lần cài module bị ngắt → không module nào nạp (mất WiFi/âm thanh/camera); cài
+  lại thì hết.

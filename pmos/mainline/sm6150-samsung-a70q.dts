@@ -1574,13 +1574,12 @@
 		pinctrl-0 = <&cam_mclk3_default>;
 		pinctrl-names = "default";
 
-		port {
-			wide_cam_ep: endpoint {
-				data-lanes = <1 2 3 4>;
-				link-frequencies = /bits/ 64 <334000000>;
-				remote-endpoint = <&csiphy1_wide_ep>;
-			};
-		};
+		/*
+		 * Disabled for now: with this sensor as a second endpoint on CSIPHY1 the front camera only
+		 * delivers black frames (and CSI errors there hard-locked a CPU); the sensor itself works
+		 * (chip ID, test pattern, frames).
+		 */
+		status = "disabled";
 	};
 };
 
@@ -1612,19 +1611,9 @@
 		};
 
 		port@1 {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			csiphy1_ep: endpoint@0 {
-				reg = <0>;
+			csiphy1_ep: endpoint {
 				data-lanes = <0 1 2 3>;
 				remote-endpoint = <&front_cam_ep>;
-			};
-
-			csiphy1_wide_ep: endpoint@1 {
-				reg = <1>;
-				data-lanes = <0 1 2 3>;
-				remote-endpoint = <&wide_cam_ep>;
 			};
 		};
 
