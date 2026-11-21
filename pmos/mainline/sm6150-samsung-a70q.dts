@@ -1714,11 +1714,8 @@
  * qcom,qpnp-vibrator-ldo) vibrates by writing 3304 mV to 0x40/0x41 and setting bit 7 of 0x46 there
  * (register dump while vibrating); the LPG/PWM pin is not touched. Same block as PMI632.
  */
-&pm6150_lsid1 {
-	pm6150_vib: vibrator@5300 {
-		compatible = "qcom,pmi632-vib";
-		reg = <0x5300>;
-	};
+&pm6150_vib {
+	status = "okay";
 };
 
 

@@ -1,0 +1,15 @@
+--- a/drivers/input/misc/pm8xxx-vibrator.c	2026-11-21 10:30:44
++++ b/drivers/input/misc/pm8xxx-vibrator.c	2026-11-21 10:30:44
+@@ -118,7 +118,11 @@
+ 	vib->reg_vib_drv = val;
+ 
+ 	if (regs->drv2_mask) {
+-		val = vib->level << regs->drv2_shift;
++		/*
++		 * drv2 holds the upper bits of the level (drv2_shift = 8): shift right; shifting left
++		 * and masking with drv2_mask always wrote 0, so PMI632/PM6150 vibrated at ~224 mV.
++		 */
++		val = vib->level >> regs->drv2_shift;
+ 		rc = regmap_write_bits(vib->regmap, vib->drv2_addr,
+ 				regs->drv2_mask, on ? val : 0);
+ 		if (rc < 0)

@@ -490,3 +490,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   in "create platform device: .../pmic@1/vibrator@5300" nhưng không có `device_add` nào sau đó - thiết bị không thành
   hình, lặng lẽ (nghi xung đột/dịch địa chỉ tài nguyên `reg` trên SID 1). Bước tiếp: dyndbg `drivers/of/address.c`,
   hoặc tạo thiết bị qua mfd cell / driver riêng ghi thẳng regmap SID 1 (0x5340/41 = mV, 0x5346 bit 7).
+- **Đã tạo được thiết bị**: node `pm6150_vib` có sẵn trong `pm6150.dtsi` upstream (status disabled) - chỉ cần
+  `&pm6150_vib { status = "okay"; }`. Node tự viết trùng địa chỉ trước đó không thành thiết bị (2 node cùng reg).
+- **Lỗi upstream trong `pm8xxx-vibrator`** (patch 0045): với PMI632/PM6150, byte cao của mức điện áp ghi vào 0x41 bằng
+  `level << 8` rồi `& 0xf` → luôn 0, motor chỉ được cấp ~224 mV. Sửa thành `level >> 8`. Sau sửa, lúc rung:
+  0x5340/41 = 0x0de0 (3552 mV), 0x5346 = 0x80 - cùng cơ chế với downstream (3304 mV).
+- Chưa xác nhận motor quay bằng tai/micro (lần thu âm cuối rỗng). Cần người thử: `fftest` hoặc rumble FF trên input
+  `pm8xxx_vib_ffmemless`.
