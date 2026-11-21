@@ -541,3 +541,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Bin vendor (`sensormodule.0_lsi_s5kgd1_*`, phần actuatorDriver/EEPROM): EEPROM slave 0xb0 (= 0x58), nguồn
   actuator chỉ VAF 2.8 V + VIO 1.8 V; chân CCI (GPIO 32/33, 34/35) giống downstream; mọi LDO S2MPB03 đều có chủ.
   → Chưa rõ vì sao module sau im trên CCI1; node `lens@c` giữ disabled.
+
+### Lỗi hiển thị `vblank wait timed out` / `frame done timeout` (2026-11-21)
+- Thấy 2 lần, từ ~785-792 s sau boot, lặp mỗi ~3.6 s (`drm_fb_helper_damage_work` chờ vblank, DPU `ctl 1 reset
+  failure`, `kickoff timeout`) - cả hai đều ở boot bất thường (một lần sau treo khi thử mux, một lần `sysrq b`
+  không khởi động lại được).
+- Boot thường (bản sạch, không thao tác) theo dõi mỗi 15 s tới 880 s: sxmo `unlock`, output power on, đèn nền 31,
+  DPMS On, **0 lỗi** → không phải hẹn giờ cố định; chưa tái hiện được.
