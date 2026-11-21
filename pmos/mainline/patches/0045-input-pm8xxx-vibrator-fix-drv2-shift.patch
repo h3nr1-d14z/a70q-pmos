@@ -1,5 +1,5 @@
 --- a/drivers/input/misc/pm8xxx-vibrator.c	2026-11-21 10:30:44
-+++ b/drivers/input/misc/pm8xxx-vibrator.c	2026-11-21 10:30:44
++++ b/drivers/input/misc/pm8xxx-vibrator.c	2026-11-21 16:40:42
 @@ -118,7 +118,11 @@
  	vib->reg_vib_drv = val;
  
@@ -13,3 +13,15 @@
  		rc = regmap_write_bits(vib->regmap, vib->drv2_addr,
  				regs->drv2_mask, on ? val : 0);
  		if (rc < 0)
+@@ -154,6 +158,11 @@
+ 		vib->active = true;
+ 		vib->level = VIB_MIN_LEVEL_mV(vib);
+ 		vib->level += mult_frac(VIB_MAX_LEVELS(vib), vib->speed, MAX_FF_SPEED);
++		/*
++		 * VIB_MAX_LEVELS includes one extra step, so full speed asked for 3552 mV on
++		 * PMI632/PM6150: the LDO rejects it (VSET status reads 0) and the motor stays off.
++		 */
++		vib->level = min(vib->level, VIB_MAX_LEVEL_mV(vib));
+ 	} else {
+ 		vib->active = false;
+ 		vib->level = VIB_MIN_LEVEL_mV(vib);

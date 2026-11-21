@@ -495,5 +495,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - **Lỗi upstream trong `pm8xxx-vibrator`** (patch 0045): với PMI632/PM6150, byte cao của mức điện áp ghi vào 0x41 bằng
   `level << 8` rồi `& 0xf` → luôn 0, motor chỉ được cấp ~224 mV. Sửa thành `level >> 8`. Sau sửa, lúc rung:
   0x5340/41 = 0x0de0 (3552 mV), 0x5346 = 0x80 - cùng cơ chế với downstream (3304 mV).
-- Chưa xác nhận motor quay bằng tai/micro (lần thu âm cuối rỗng). Cần người thử: `fftest` hoặc rumble FF trên input
-  `pm8xxx_vib_ffmemless`.
+- Lỗi thứ hai (cũng trong 0045): `VIB_MAX_LEVELS` dư một bước nên tốc độ tối đa xin 3552 mV > 3544 mV - LDO từ chối
+  (thanh ghi trạng thái 0x5342/43 đọc 0, motor đứng yên). Chặn `level` ở `VIB_MAX_LEVEL_mV`.
+- **Rung chạy (kiểm bằng micro, `arecord hw:0,1`, rumble từ giây 4.5)**: RMS nghỉ ~15-30, lúc rung 310-430; đối chứng
+  (không gửi rumble) không đổi. Trạng thái LDO lúc rung: 0xe000 → 3304 mV, 0xffff → 3544 mV.
