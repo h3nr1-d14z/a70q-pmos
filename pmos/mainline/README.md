@@ -511,3 +511,16 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 ### GPS (2026-11-21)
 - ModemManager trên mainline: `--location-enable-gps-raw --location-enable-gps-nmea` chạy, có luồng NMEA ($GPGGA,
   $GPRMC, $PQWP*), engine lấy được giờ GPS; trong nhà chưa fix (`GPRMC V`). Cần thử ngoài trời.
+
+### ✅ Camera góc rộng chạy chung CSIPHY1 với camera trước (2026-11-21)
+- GPIO 49 là công tắc làn MIPI (thấp = trước, cao = góc rộng). Thay vì 2 endpoint trên cổng CSIPHY1 (CAMSS chỉ nhận
+  một remote/cổng → khung đen, treo), DT dùng `gpio-mux` (GPIO 49) + `video-mux` (port 0 = trước, 1 = góc rộng,
+  2 → `csiphy1_ep`); bỏ `mipi-sel-gpios` khỏi 2 sensor. `CONFIG_VIDEO_MUX=m`.
+- Patch 0046 (CAMSS): `camss_find_sensor_pad` theo sink pad có link đang bật (không chỉ pad 0) để lấy link-freq /
+  pixel rate qua mux; `video_start/stop_streaming` dừng ở video-mux (mux tự gọi `s_stream` cho ngõ vào đang chọn -
+  trước đó sensor bị gọi 2 lần, WARN `call_s_stream`).
+- Kiểm chứng: test pattern trước → góc rộng → trước (mỗi sensor pattern riêng), sau và độ sâu không hồi quy, không
+  WARN; libcamera liệt kê 4 camera, `cam -c 1..4 --capture=10` mỗi camera đủ 10 khung.
+- Chuyển ngõ bằng tay: tắt link đang bật trước (`media-ctl -l` riêng từng link; video-mux trả EBUSY nếu còn link khác).
+- Cảnh báo: 2 lần treo cứng trong lúc thử đều có bước `cat /sys/kernel/debug/gpio` (nghi đọc chân TLMM bị khoá) -
+  tránh lệnh này.

@@ -1,0 +1,52 @@
+diff -ru a/drivers/media/platform/qcom/camss/camss-video.c b/drivers/media/platform/qcom/camss/camss-video.c
+--- a/drivers/media/platform/qcom/camss/camss-video.c	2026-11-21 17:45:52
++++ b/drivers/media/platform/qcom/camss/camss-video.c	2026-11-21 17:46:06
+@@ -284,6 +284,10 @@
+ 		ret = v4l2_subdev_call(subdev, video, s_stream, 1);
+ 		if (ret < 0 && ret != -ENOIOCTLCMD)
+ 			goto error;
++
++		/* a video-mux streams its selected input itself (video_mux_s_stream) */
++		if (entity->function == MEDIA_ENT_F_VID_MUX)
++			break;
+ 	}
+ 
+ 	return 0;
+@@ -325,6 +329,10 @@
+ 			dev_err(video->camss->dev, "Video pipeline stop failed: %d\n", ret);
+ 			return;
+ 		}
++
++		/* a video-mux streams its selected input itself (video_mux_s_stream) */
++		if (entity->function == MEDIA_ENT_F_VID_MUX)
++			break;
+ 	}
+ 
+ 	video_device_pipeline_stop(vdev);
+diff -ru a/drivers/media/platform/qcom/camss/camss.c b/drivers/media/platform/qcom/camss/camss.c
+--- a/drivers/media/platform/qcom/camss/camss.c	2026-11-21 17:00:48
++++ b/drivers/media/platform/qcom/camss/camss.c	2026-11-21 17:00:49
+@@ -4609,11 +4609,19 @@
+ 	struct media_pad *pad;
+ 
+ 	while (1) {
+-		pad = &entity->pads[0];
+-		if (!(pad->flags & MEDIA_PAD_FL_SINK))
+-			return NULL;
++		struct media_pad *remote = NULL;
++		unsigned int i;
+ 
+-		pad = media_pad_remote_pad_first(pad);
++		/*
++		 * Follow the sink pad with an enabled link, not just pad 0: a video-mux in front
++		 * of a CSIPHY (two sensors on one PHY) has one sink pad per input.
++		 */
++		for (i = 0; i < entity->num_pads && !remote; i++) {
++			pad = &entity->pads[i];
++			if (pad->flags & MEDIA_PAD_FL_SINK)
++				remote = media_pad_remote_pad_first(pad);
++		}
++		pad = remote;
+ 		if (!pad || !is_media_entity_v4l2_subdev(pad->entity))
+ 			return NULL;
+ 

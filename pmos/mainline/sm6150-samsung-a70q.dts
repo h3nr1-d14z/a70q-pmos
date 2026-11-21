@@ -1536,9 +1536,7 @@
 		/* downstream sensor-position-roll = 270 */
 		orientation = <0>;
 		rotation = <270>;
-		/* CSIPHY1 is shared with the ultra wide camera through this switch: low = front */
-		mipi-sel-gpios = <&tlmm 49 GPIO_ACTIVE_HIGH>;
-		mipi-sel-value = <0>;
+		/* CSIPHY1 is shared with the ultra wide camera through cam_csi1_mux (input 0) */
 		pinctrl-0 = <&cam_mclk1_default>;
 		pinctrl-names = "default";
 
@@ -1546,7 +1544,7 @@
 			front_cam_ep: endpoint {
 				data-lanes = <1 2 3 4>;
 				link-frequencies = /bits/ 64 <513000000>;
-				remote-endpoint = <&csiphy1_ep>;
+				remote-endpoint = <&vmux_front_ep>;
 			};
 		};
 	};
@@ -1566,20 +1564,62 @@
 		vddio-supply = <&cam_ldo3>;
 		vddd-supply = <&cam_ldo2>;
 		vdda-supply = <&wide_cam_vana>;
-		mipi-sel-gpios = <&tlmm 49 GPIO_ACTIVE_HIGH>;
-		mipi-sel-value = <1>;
 		/* downstream sensor-position-roll = 90 */
 		orientation = <1>;
 		rotation = <90>;
 		pinctrl-0 = <&cam_mclk3_default>;
 		pinctrl-names = "default";
 
-		/*
-		 * Disabled for now: with this sensor as a second endpoint on CSIPHY1 the front camera only
-		 * delivers black frames (and CSI errors there hard-locked a CPU); the sensor itself works
-		 * (chip ID, test pattern, frames).
-		 */
-		status = "disabled";
+		/* CSIPHY1 through cam_csi1_mux (input 1) */
+		port {
+			wide_cam_ep: endpoint {
+				data-lanes = <1 2 3 4>;
+				link-frequencies = /bits/ 64 <334000000>;
+				remote-endpoint = <&vmux_wide_ep>;
+			};
+		};
+	};
+};
+
+/*
+ * Front and ultra wide camera share CSIPHY1 through a MIPI lane switch on GPIO 49 (low = front,
+ * high = wide; downstream gpio table of both sensors). A second endpoint on the CSIPHY port does
+ * not work (CAMSS takes one remote per port), so the switch is a video-mux; CAMSS follows the
+ * enabled mux input to find the sensor (patch 0046).
+ */
+/ {
+	cam_mipi_sel: mux-controller-cam-mipi {
+		compatible = "gpio-mux";
+		#mux-control-cells = <0>;
+		mux-gpios = <&tlmm 49 GPIO_ACTIVE_HIGH>;
+	};
+
+	cam_csi1_mux: video-mux {
+		compatible = "video-mux";
+		mux-controls = <&cam_mipi_sel>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			vmux_front_ep: endpoint {
+				remote-endpoint = <&front_cam_ep>;
+			};
+		};
+
+		port@1 {
+			reg = <1>;
+			vmux_wide_ep: endpoint {
+				remote-endpoint = <&wide_cam_ep>;
+			};
+		};
+
+		port@2 {
+			reg = <2>;
+			vmux_out_ep: endpoint {
+				remote-endpoint = <&csiphy1_ep>;
+			};
+		};
 	};
 };
 
@@ -1613,7 +1653,7 @@
 		port@1 {
 			csiphy1_ep: endpoint {
 				data-lanes = <0 1 2 3>;
-				remote-endpoint = <&front_cam_ep>;
+				remote-endpoint = <&vmux_out_ep>;
 			};
 		};
 
