@@ -499,3 +499,15 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   (thanh ghi trạng thái 0x5342/43 đọc 0, motor đứng yên). Chặn `level` ở `VIB_MAX_LEVEL_mV`.
 - **Rung chạy (kiểm bằng micro, `arecord hw:0,1`, rumble từ giây 4.5)**: RMS nghỉ ~15-30, lúc rung 310-430; đối chứng
   (không gửi rumble) không đổi. Trạng thái LDO lúc rung: 0xe000 → 3304 mV, 0xffff → 3544 mV.
+
+### FP5529 / EEPROM camera sau: vẫn không trả lời (2026-11-21)
+- Downstream: actuator `qcom,actuator@0xC` (0x0c) và EEPROM `qcom,eeprom@58` (0x58) của module sau đều `cci-master 1`,
+  vaf = `pm6150_l19`, vio = `s2mpb03-ldo3` (đã kiểm phandle); sensor sau `cci-master 0`, gpio chỉ MCLK0 + RESET0.
+- Thí nghiệm (không commit): driver giữ nguồn khi chip không đáp - L19A 2.848 V + LDO3 1.8 V bật, camera sau đang
+  stream (`cam -c 1`), quét `i2cdetect -r` bus 2 (CCI0) và bus 3 (CCI1), thêm GPIO 49 = 0/1 (front unbind): **không
+  có gì ở 0x0c hay 0x58**; chỉ thấy 0x2d (bus 2), 0x10/0x37 (bus 3). Cả EEPROM lẫn AF đều im → thiếu một điều kiện
+  chung của module (nguồn/đường I²C khác) chưa thấy trong DT downstream. Node `lens@c` giữ disabled.
+
+### GPS (2026-11-21)
+- ModemManager trên mainline: `--location-enable-gps-raw --location-enable-gps-nmea` chạy, có luồng NMEA ($GPGGA,
+  $GPRMC, $PQWP*), engine lấy được giờ GPS; trong nhà chưa fix (`GPRMC V`). Cần thử ngoài trời.
