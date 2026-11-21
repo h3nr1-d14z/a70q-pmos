@@ -524,3 +524,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Chuyển ngõ bằng tay: tắt link đang bật trước (`media-ctl -l` riêng từng link; video-mux trả EBUSY nếu còn link khác).
 - Cảnh báo: 2 lần treo cứng trong lúc thử đều có bước `cat /sys/kernel/debug/gpio` (nghi đọc chân TLMM bị khoá) -
   tránh lệnh này.
+
+### USB host (2026-11-21)
+- Ghi `host` vào `/sys/class/usb_role/a600000.usb-role-switch/role` (qua SSH WiFi, tự quay lại `device` sau 8 s):
+  dwc3 chuyển vai, `xhci-hcd` đăng ký bus 1 (USB 2.0) + bus 2 (USB 3.0 SuperSpeed), mỗi root hub 1 cổng; VBUS
+  (`usb_vbus`) vẫn tắt khi ép vai bằng tay (boost chỉ bật theo cáp qua Type-C); quay lại device, mạng USB có lại.
+- Chưa thử thiết bị thật qua cáp OTG (cần người cắm).
