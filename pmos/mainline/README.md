@@ -548,3 +548,8 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   không khởi động lại được).
 - Boot thường (bản sạch, không thao tác) theo dõi mỗi 15 s tới 880 s: sxmo `unlock`, output power on, đèn nền 31,
   DPMS On, **0 lỗi** → không phải hẹn giờ cố định; chưa tái hiện được.
+
+### Panel: khởi tạo ổn định (2026-11-21)
+- 3 lần boot mainline liên tiếp, mỗi lần đọc `panel_state` lúc boot và sau 3 vòng sway `output * power off/on`:
+  9/9 + 3/3 lúc boot đều `power_mode 9f` (sleep out + display on), `dsi_errors 00`, 0 `panel init failed`,
+  0 lần thử lại, 0 lỗi DPU. Cộng ~10 lần boot khác trong phiên không lỗi panel.
