@@ -530,3 +530,14 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   dwc3 chuyển vai, `xhci-hcd` đăng ký bus 1 (USB 2.0) + bus 2 (USB 3.0 SuperSpeed), mỗi root hub 1 cổng; VBUS
   (`usb_vbus`) vẫn tắt khi ép vai bằng tay (boost chỉ bật theo cáp qua Type-C); quay lại device, mạng USB có lại.
 - Chưa thử thiết bị thật qua cáp OTG (cần người cắm).
+
+### FP5529 / EEPROM: kiểm lại trong kernel (2026-11-21)
+- **i2c-dev qua CCI không dùng để dò được**: đọc chip ID sensor sau (0x2d, bus 2) từ userspace trong lúc nó đang stream
+  (khung vẫn chạy) vẫn trả ENXIO, dmesg không báo gì → mọi kết quả quét/thử bằng `i2cdetect`/`i2ctransfer` trước
+  đây không có giá trị.
+- Thí nghiệm trong kernel (không commit): `fp5529` probe không thất bại, mỗi lần runtime-resume thì `i2c_transfer`
+  EEPROM 0x58 (đọc 4 byte từ 0x0000) và ghi/đọc VCM 0x0c trên bus CCI1; ép resume bằng `power/control` khi nghỉ, khi
+  camera sau stream, khi camera trước stream: **lần nào cũng -ENXIO cả hai** (L19A + LDO3 bật).
+- Bin vendor (`sensormodule.0_lsi_s5kgd1_*`, phần actuatorDriver/EEPROM): EEPROM slave 0xb0 (= 0x58), nguồn
+  actuator chỉ VAF 2.8 V + VIO 1.8 V; chân CCI (GPIO 32/33, 34/35) giống downstream; mọi LDO S2MPB03 đều có chủ.
+  → Chưa rõ vì sao module sau im trên CCI1; node `lens@c` giữ disabled.
