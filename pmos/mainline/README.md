@@ -571,3 +571,16 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   có sink/source `usb-KTMicro_Chu2_DSP` (profile `output:analog-stereo+input:mono-fallback`).
 - **Người dùng xác nhận**: nghe được tiếng bíp và nghe lại giọng mình (mic thu → phát lại) qua tai nghe USB-C.
 - Mic tai nghe 3.5 mm (MBHC báo cross connection) vẫn chưa thử lại - người dùng không có tai nghe 3.5 mm có mic.
+
+### FP5529 / EEPROM: quét trong kernel (2026-11-22)
+- Người dùng xác nhận: trên Android stock, camera sau **lấy nét bình thường** → chip có thật.
+- `cciscan.c` (module dùng một lần, ngoài cây: `make -C linux O=build M=<dir>`; `insmod cciscan.ko bus=N`, đọc 1 byte
+  ở 0x03-0x77 qua `i2c_transfer`, tự gỡ): đúng đường kernel mà sensor dùng (i2c-dev qua CCI thì không dò được).
+  Kiểm chứng: sensor đang có nguồn đều trả lời (0x10, 0x2d trên bus 3; 0x2d trên bus 2).
+- Camera sau đang stream (gọi theo id `/base/soc@0/cci@ac4a000/i2c-bus@0/camera@2d`; chỉ số `cam -c N` đổi giữa các
+  lần chạy), mọi nguồn bật (L19A 2.848 V qua `afvdd`, LDO2/3/6): bus 2 chỉ có 0x2d, bus 3 **không có gì** - không có
+  0x0c (VCM) hay 0x58 (EEPROM). Đổi GPIO 49 (mux front/wide) cả 2 trạng thái: như cũ. CCI1 400 kHz (như downstream
+  `i2c-freq-mode 1`): FP5529 vẫn -ENXIO → giữ 1 MHz.
+- Chỉ GPIO 32-35 có chức năng `cci_i2c` (2 master), nên không có đường I²C camera nào khác. Downstream probe
+  EEPROM/actuator từ userspace (CamX, `Userspace_probe: 1`) - không có log boot để so. Bước tiếp (lớn): trên
+  downstream gọi UAPI camera Qualcomm (power-up actuator + đọc I²C) để xem Android cấp nguồn/bus thế nào.
