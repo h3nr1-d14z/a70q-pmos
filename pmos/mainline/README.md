@@ -569,3 +569,5 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Tai nghe USB-C digital KTMicro Chu2 DSP (31b2:0113): `snd-usb-audio` card 2 (phát S16/S24 2 kênh, thu mono 48 kHz)
   + phím HID. Phát bíp `aplay -D hw:2,0` và thu mic `arecord -D hw:2,0 -c 1` chạy (RMS 120-1130 khi nói); PipeWire
   có sink/source `usb-KTMicro_Chu2_DSP` (profile `output:analog-stereo+input:mono-fallback`).
+- **Người dùng xác nhận**: nghe được tiếng bíp và nghe lại giọng mình (mic thu → phát lại) qua tai nghe USB-C.
+- Mic tai nghe 3.5 mm (MBHC báo cross connection) vẫn chưa thử lại - người dùng không có tai nghe 3.5 mm có mic.
