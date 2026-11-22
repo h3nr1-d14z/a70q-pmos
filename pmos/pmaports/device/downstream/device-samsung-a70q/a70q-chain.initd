@@ -1,0 +1,32 @@
+#!/sbin/openrc-run
+# a70q, downstream kernel only: when the mainline kernel is the default (a70q-boot-default), reboot
+# into RECOVERY where it lives. At most twice in a row: a70q-arm-mainline resets the counter once a
+# mainline boot is healthy, so a broken mainline leaves the phone on downstream.
+description="a70q: hand over to the mainline kernel"
+L=/var/lib/a70q
+
+depend() {
+	need localmount
+	before networkmanager bluetooth
+}
+
+start() {
+	[ -e /sys/class/kgsl ] || { mark_service_inactive; return 0; }	# not the downstream kernel
+	[ "$(cat $L/boot-default 2>/dev/null)" = mainline ] || { mark_service_inactive; return 0; }
+	n=$(cat $L/chain-tries 2>/dev/null); n=${n:-0}
+	if [ "$n" -ge 2 ]; then
+		ewarn "mainline did not come up healthy $n times: staying on downstream (a70q-boot-default)"
+		mark_service_inactive
+		return 0
+	fi
+	# RECOVERY must hold a mainline image (its cmdline has the mainline-only fw_devlink option)
+	if ! head -c 2048 /dev/disk/by-partlabel/recovery | grep -q -a fw_devlink.sync_state; then
+		ewarn "RECOVERY has no mainline image: staying on downstream"
+		mark_service_inactive
+		return 0
+	fi
+	echo $((n + 1)) > $L/chain-tries; sync
+	ebegin "Rebooting into the mainline kernel (attempt $((n + 1)))"
+	/usr/bin/reboot-mode recovery
+	eend $?
+}

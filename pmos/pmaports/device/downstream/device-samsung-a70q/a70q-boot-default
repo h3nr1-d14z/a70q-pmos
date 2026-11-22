@@ -1,0 +1,23 @@
+#!/bin/sh
+# a70q: choose the kernel the phone boots by default.
+#   a70q-boot-default                 show the current choice
+#   a70q-boot-default mainline        boot the mainline kernel (RECOVERY partition) by default
+#   a70q-boot-default downstream      boot the downstream kernel (BOOT partition) by default
+# How it works: the mainline kernel resets the restart reason to normal at every boot, and the
+# service a70q-arm-mainline arms RECOVERY again once pmOS has been up for a while, so a mainline
+# kernel that breaks early falls back to downstream by itself. On downstream, a70q-chain reboots
+# into RECOVERY when mainline is the default (at most twice in a row without a healthy mainline boot).
+S=/var/lib/a70q/boot-default
+mkdir -p /var/lib/a70q
+case "$1" in
+	"") cat "$S" 2>/dev/null || echo downstream ;;
+	mainline|downstream)
+		[ "$(id -u)" = 0 ] || exec doas "$0" "$@"
+		echo "$1" > "$S"; echo 0 > /var/lib/a70q/chain-tries; sync
+		A=/sys/module/a70q_mark/parameters/arm_recovery
+		if [ -e "$A" ]; then	# running mainline: apply to the next boot right away
+			if [ "$1" = mainline ]; then echo 1 > "$A"; else echo 0 > "$A"; fi
+		fi
+		echo "default kernel: $1" ;;
+	*) sed -n '2,5p' "$0"; exit 2 ;;
+esac

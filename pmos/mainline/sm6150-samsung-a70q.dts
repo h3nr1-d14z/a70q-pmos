@@ -1025,7 +1025,10 @@
 		reboot-mode {
 			compatible = "syscon-reboot-mode";
 			offset = <0x65c>;
-			mode-normal = <0x77665501>;
+			/*
+			 * no mode-normal: a plain reboot must not overwrite the reason armed through
+			 * a70q_mark.arm_recovery (the kernel resets it to normal itself at every boot)
+			 */
 			mode-bootloader = <0x77665500>;
 			mode-recovery = <0x77665502>;
 		};

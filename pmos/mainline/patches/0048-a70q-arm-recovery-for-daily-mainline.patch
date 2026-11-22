@@ -1,0 +1,72 @@
+--- a/arch/arm64/kernel/a70q-mark.c	2026-11-23 02:37:59
++++ b/arch/arm64/kernel/a70q-mark.c	2026-11-23 02:38:14
+@@ -18,6 +18,8 @@
+ #include <linux/spmi.h>
+ #include <linux/regmap.h>
+ #include <linux/err.h>
++#include <linux/moduleparam.h>
++#include <linux/kstrtox.h>
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+ #include <linux/ktime.h>
+@@ -610,3 +612,60 @@
+ 	return 0;
+ }
+ late_initcall(a70q_pon_init);
++
++/*
++ * Daily use with the mainline kernel in RECOVERY. The code above resets the restart reason to
++ * normal at every boot, so a kernel that breaks before userspace falls back to the normal (BOOT,
++ * downstream) boot. Once pmOS is up and healthy, userspace writes 1 to
++ * /sys/module/a70q_mark/parameters/arm_recovery: the next reset or power-on boots RECOVERY (this
++ * kernel) again, as "reboot recovery" does (IMEM 0x77665502, PMIC SOFT_RB_SPARE recovery 0x1).
++ * Writing 0 disarms it (next boot: downstream).
++ */
++#define RESTART_RECOVERY	0x77665502
++#define PON_RECOVERY		0x1
++
++static bool a70q_armed;
++
++static int a70q_arm_recovery_set(const char *val, const struct kernel_param *kp)
++{
++	struct device_node *np;
++	struct spmi_device *sdev;
++	void __iomem *imem;
++	struct regmap *map;
++	bool on;
++	int rc;
++
++	rc = kstrtobool(val, &on);
++	if (rc)
++		return rc;
++
++	np = of_find_node_by_path("/soc@0/spmi@c440000/pmic@0");
++	if (!np)
++		return -ENODEV;
++	sdev = spmi_find_device_by_of_node(np);
++	of_node_put(np);
++	if (IS_ERR_OR_NULL(sdev))
++		return -ENODEV;
++	map = dev_get_regmap(&sdev->dev, NULL);
++	if (!map)
++		return -ENODEV;
++	rc = regmap_update_bits(map, 0x88f, 0xfe, (on ? PON_RECOVERY : PON_NORMALBOOT) << 1);
++	if (rc)
++		return rc;
++
++	imem = ioremap(IMEM_BASE, 0x1000);
++	if (!imem)
++		return -ENOMEM;
++	writel(on ? RESTART_RECOVERY : RESTART_NORMAL, imem + IMEM_RESTART_REASON);
++	iounmap(imem);
++
++	a70q_armed = on;
++	pr_info("a70q: next boot: %s\n", on ? "RECOVERY (mainline)" : "normal (downstream)");
++	return 0;
++}
++
++static const struct kernel_param_ops a70q_arm_recovery_ops = {
++	.set = a70q_arm_recovery_set,
++	.get = param_get_bool,
++};
++module_param_cb(arm_recovery, &a70q_arm_recovery_ops, &a70q_armed, 0644);

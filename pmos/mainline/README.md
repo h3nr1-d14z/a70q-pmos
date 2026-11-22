@@ -639,3 +639,23 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Còn ngỏ: 3 bus SoundWire `power/control=on` (cấm runtime PM, từ lúc đưa WSA lên không dùng clock stop) → 3 macro
   LPASS luôn `active`; ghi `auto` không có tác dụng. Gỡ card âm thanh trong phép đo E3 không làm dòng giảm rõ.
 - Bước đo tiếp: thử qua đêm trên mainline (Sxmo tự suspend) để có số mAh/giờ thật.
+
+### Mainline là kernel mặc định (2026-11-23)
+- **Không ghi mainline vào BOOT**: bootloader áp overlay của phân vùng `dtbo` (downstream) lên DTB khi boot BOOT →
+  treo ở logo Samsung rồi bootloop (phải Download Mode + `pmos/tools/flash.sh --BOOT <bản downstream>` để cứu; bản
+  sao lưu BOOT downstream: `pmos/out/mainline-pmos/boot-downstream-partition.img`). RECOVERY dùng `recovery_dtbo`
+  (rỗng) trong chính image nên mainline chạy được ở đó.
+- Bố trí: **BOOT = downstream, RECOVERY = mainline** (image hằng ngày `mkboot-pmos.sh`: kernel + initramfs pmOS
+  thường + UUID rootfs, không có hẹn giờ 15 phút; cài bằng `deploy-daily.sh`). Bootloader Samsung giữ cờ recovery
+  qua các lần khởi động lại cho tới khi có ai ghi đè.
+- Patch 0048: `/sys/module/a70q_mark/parameters/arm_recovery` (1 = lần boot sau vào RECOVERY: IMEM 0x77665502 +
+  PMIC SOFT_RB_SPARE 0x1; 0 = normal). Kernel vẫn tự ghi "normal" sớm mỗi lần boot (patch 0010/0011), nên kernel hỏng
+  trước userspace sẽ rơi về downstream. DT: bỏ `mode-normal` của syscon-reboot-mode (reboot thường không ghi đè cờ).
+- Device r74: `a70q-boot-default mainline|downstream`; `a70q-arm-mainline` (mainline, runlevel default: 90 s sau khi
+  lên → arm + `chain-tries=0`); `a70q-chain` (downstream, runlevel boot: nếu mặc định là mainline, RECOVERY có image
+  mainline và `chain-tries < 2` → `chain-tries+1`, `reboot-mode recovery`).
+- Kiểm chứng: downstream → chain → mainline hằng ngày (124 s); `reboot` từ mainline → thẳng mainline (uptime 46 s,
+  không qua downstream); giả lập kernel hỏng (panic trước khi arm, 2 lần liên tiếp) → lần 1 chain lại, lần 2 **đứng ở
+  downstream** (chain-tries=2), `a70q-boot-default mainline` + reboot → về mainline.
+- Lưu ý khi phát triển: `remote-test.sh` ghi image thử nghiệm vào RECOVERY; thử xong chạy lại `deploy-daily.sh`.
+  Muốn dùng downstream: `a70q-boot-default downstream` rồi reboot.

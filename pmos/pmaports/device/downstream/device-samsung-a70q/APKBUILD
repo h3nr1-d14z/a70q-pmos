@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=73
+pkgrel=74
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -88,6 +88,9 @@ source="
 	sxmo_brun.sh
 	a70q-qgd.py
 	a70q-qgd.initd
+	a70q-boot-default
+	a70q-arm-mainline.initd
+	a70q-chain.initd
 	50-a70q.gschema.override
 "
 options="!archcheck !check"
@@ -169,6 +172,13 @@ package() {
 	install -Dm755 "$srcdir"/a70q-qgd.py "$pkgdir"/usr/libexec/a70q/a70q-qgd
 	install -Dm755 "$srcdir"/a70q-qgd.initd "$pkgdir"/etc/init.d/a70q-qgd
 	ln -s /etc/init.d/a70q-qgd "$pkgdir"/etc/runlevels/default/a70q-qgd
+	# default kernel choice (mainline in RECOVERY / downstream in BOOT), see a70q-boot-default
+	install -Dm755 "$srcdir"/a70q-boot-default "$pkgdir"/usr/bin/a70q-boot-default
+	install -Dm755 "$srcdir"/a70q-arm-mainline.initd "$pkgdir"/etc/init.d/a70q-arm-mainline
+	install -Dm755 "$srcdir"/a70q-chain.initd "$pkgdir"/etc/init.d/a70q-chain
+	ln -s /etc/init.d/a70q-arm-mainline "$pkgdir"/etc/runlevels/default/a70q-arm-mainline
+	mkdir -p "$pkgdir"/etc/runlevels/boot
+	ln -s /etc/init.d/a70q-chain "$pkgdir"/etc/runlevels/boot/a70q-chain
 	install -Dm644 "$srcdir"/50-a70q.gschema.override "$pkgdir"/usr/share/glib-2.0/schemas/50-a70q.gschema.override
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
@@ -261,5 +271,8 @@ d103770aba3cea1887edaae364c2ef5ed1033a3d9a7f0fb4872fd3025e66d72d8289800ec56d5243
 956fba03ebca2468f620e74951c4d1b1a17d9c8943a71fa99fbbd5b8ef27be50726b49e01ee625b163382cc2c1f86313dd3f8e0fb60697b94e3064187d788ba7  sxmo_brun.sh
 52767386585f8d6e3ede6248efb1573b76f94f46e464d68fb7920b963b69c27033f41eb4a6914e532ec40761ff2cb088cb3d87d59dc9fc556438de27d9be997e  a70q-qgd.py
 de66bebae183071f6911c80fa06166033bf88082af2106bc0d0f8b1f48d0e297a72f9c95a00447bc88798b0fddf6c0d4e3043b0a45627b3a88fec499e4413ff3  a70q-qgd.initd
+fe3b444e2e846bf0626bea8fd954ca0c1ea5d03eab1dc56966da76280fd36b971450b2bb857a97233609646a08a92bde281e0e623975f2b5f18abb344f3c33b9  a70q-boot-default
+0028cc8095f41b1a3f632abcc5de918f201b1358d8b021ba066160611f184d9ec9f8bb0b5c85ae40349bcc9b3fa8f0714116e73981e4b0e5d15da6b7ed0a3521  a70q-arm-mainline.initd
+42abe17a6702c9360b782abf1a93810369c85c17932b2c1cbba63622257c5a1aa149228e4b00683e60ca201513c0a9ee697bb10b0a8af6f1d529e14a57df4de2  a70q-chain.initd
 bd17d633579c0c3c384c7af56cffaa9e7ca2ff7af0e4665060b7500e7c57cc9c9618c7aa1d0cc122d6c4a78ac4f8d113436e7cacd23e8325ef2269801a4fefb6  50-a70q.gschema.override
 "

@@ -1,0 +1,17 @@
+#!/sbin/openrc-run
+# a70q, mainline kernel only: once pmOS has been up for a while, arm the next boot for RECOVERY
+# (the mainline kernel) when mainline is the default kernel; see a70q-boot-default.
+description="a70q: keep booting the mainline kernel"
+A=/sys/module/a70q_mark/parameters/arm_recovery
+
+depend() {
+	after local
+}
+
+start() {
+	[ -e $A ] || { mark_service_inactive; return 0; }	# not the mainline kernel
+	[ "$(cat /var/lib/a70q/boot-default 2>/dev/null)" = mainline ] || { mark_service_inactive; return 0; }
+	ebegin "Arming the next boot for the mainline kernel in 90 s"
+	( sleep 90; echo 1 > $A && echo 0 > /var/lib/a70q/chain-tries; sync ) >/dev/null 2>&1 &
+	eend 0
+}
