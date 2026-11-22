@@ -5,6 +5,15 @@ build từ source, rootfs cài vào UFS (phân vùng USERDATA), giao diện Sxmo
 
 English: [README.en.md](README.en.md), [INSTALL.en.md](INSTALL.en.md).
 
+## Kernel mainline (mặc định từ 2026-11-23)
+
+Máy chạy mặc định **Linux 7.3.4 mainline** (phân vùng RECOVERY); kernel downstream 4.14 vẫn nằm ở BOOT làm đường lùi.
+Chọn kernel trên máy: `a70q-boot-default mainline|downstream` rồi khởi động lại. Nếu mainline hỏng (không chạy ổn định
+được 90 s) hai lần liên tiếp, máy tự ở lại downstream. Cập nhật kernel mainline qua gói `linux-samsung-a70q-mainline`
+(`apk upgrade`). Trên mainline có thêm so với downstream: giải mã video phần cứng (venus), 4 camera qua libcamera
+(chưa lấy nét), tai nghe USB-C qua OTG. Chi tiết, cách build và những gì còn thiếu: [pmos/mainline/README.md](pmos/mainline/README.md).
+Không bao giờ ghi image mainline vào BOOT (bootloader áp DTBO của downstream → treo ở logo, phải vào Download Mode).
+
 ## Trạng thái (2026-11-15)
 
 | Tính năng | Trạng thái | Ghi chú |
