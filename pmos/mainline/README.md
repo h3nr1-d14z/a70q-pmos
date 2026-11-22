@@ -609,3 +609,14 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 | Camera | 🟡 | 4 camera qua libcamera; chưa có lấy nét (FP5529) |
 | ModemManager / wpa_supplicant (OpenRC) | 🟡 | báo `failed` nhưng chỉ là trạng thái: D-Bus đã tự khởi động bản khác trước (NetworkManager kéo theo) |
 | Suspend | ⏳ | bước tiếp |
+
+### Suspend trên mainline (2026-11-22)
+- **cpuidle chưa từng chạy**: `CONFIG_ARM_PSCI_CPUIDLE(_DOMAIN)` tắt → `current_driver none`, CPU chỉ WFI, SoC không
+  bao giờ ngủ (qcom_stats aosd/cxsd/ddr = 0). Bật lên: `psci_idle`, PSCI OSI (firmware báo "OSI mode supported";
+  "failed to set PC mode" chỉ là firmware từ chối PC), các trạng thái `cpu-sleep-0-0/0-1`, `1-0/1-1` được dùng nhiều.
+- Chỉ có `s2idle` (`mem_sleep: [s2idle]`), đánh thức: nút nguồn (pon pwrkey), RTC (pm8xxx).
+- **Lỗi upstream `qcom-wdt`** (patch 0047): bootloader để watchdog chạy (`WDOG_HW_RUNNING`, core watchdog tự ping),
+  nhưng suspend/resume chỉ dừng/khởi lại khi `watchdog_active()` (có userspace mở). Trong s2idle timer ping dừng →
+  ngay sau khi thức dậy lũ `watchdog0: pretimeout event` rồi reset. Sửa: thêm `|| watchdog_hw_running()`.
+  Kiểm: `rtcwake -m freeze -s 60` → thức đúng hẹn, 90 s sau vẫn cùng boot, 0 pretimeout.
+- Còn lại: với cáp USB cắm, aosd/cxsd vẫn 0 sau suspend (USB giữ nguồn) - cần đo khi rút cáp.
