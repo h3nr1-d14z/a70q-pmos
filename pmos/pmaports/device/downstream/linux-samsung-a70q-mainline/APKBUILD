@@ -1,0 +1,26 @@
+# Mainline kernel for the Samsung Galaxy A70 (a70q), packaged from pmos/mainline (build.sh +
+# mkboot-pmos.sh, see pmos/mainline/README.md): the modules plus the daily boot image, which the
+# install script writes to the RECOVERY partition (BOOT keeps the downstream kernel; never put this
+# image in BOOT, the bootloader applies the dtbo partition overlays there and hangs).
+# Built with pmos/mainline/pack-apk.sh, which copies boot-mainline.img and modules.tar.gz here.
+pkgname=linux-samsung-a70q-mainline
+pkgver=7.3.4
+pkgrel=1
+pkgdesc="Samsung Galaxy A70 mainline kernel (RECOVERY partition, selected with a70q-boot-default)"
+url="https://kernel.org"
+arch="aarch64"
+license="GPL-2.0-only"
+options="!strip !check !tracedeps"
+install="$pkgname.post-install $pkgname.post-upgrade"
+source="boot-mainline.img modules.tar.gz"
+
+package() {
+	mkdir -p "$pkgdir"
+	tar -xzf "$srcdir"/modules.tar.gz -C "$pkgdir"
+	install -Dm644 "$srcdir"/boot-mainline.img "$pkgdir"/usr/share/a70q/mainline/boot-mainline.img
+}
+
+sha512sums="
+8dfeca6804f7d7e6eebf212ec7aaff5698316398be88e28334867e314fd8d1e092d74e02622cce06d3c0867be7455ed7328ae4c3fa0914d25b5011a58d52dd20  boot-mainline.img
+5a7675fea53f4f78966029b4bdb578954dfe0b5f5ab055ca7ece48627e384be401e8ad4628150b8a90a2ce411a8f939db0876c2f2811364dddeff745383481b3  modules.tar.gz
+"

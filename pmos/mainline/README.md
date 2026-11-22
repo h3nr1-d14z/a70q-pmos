@@ -659,3 +659,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   downstream** (chain-tries=2), `a70q-boot-default mainline` + reboot → về mainline.
 - Lưu ý khi phát triển: `remote-test.sh` ghi image thử nghiệm vào RECOVERY; thử xong chạy lại `deploy-daily.sh`.
   Muốn dùng downstream: `a70q-boot-default downstream` rồi reboot.
+- **Gói `linux-samsung-a70q-mainline`** (`pmos/pmaports/device/downstream/`): module + image hằng ngày;
+  post-install/upgrade ghi image vào RECOVERY (bỏ qua nếu trùng sha256, kiểm lại sau khi ghi; không làm gì trong
+  chroot). Quy trình cập nhật kernel: `MODULES=1 pmos/mainline/build.sh` → `pmos/mainline/pack-apk.sh` (dựng image,
+  tăng pkgrel, build vào kho riêng) → trên máy `apk upgrade`. Đã cài r1: 1675 file module thuộc gói.

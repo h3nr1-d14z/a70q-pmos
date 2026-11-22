@@ -1,0 +1,19 @@
+#!/bin/sh
+# write the mainline boot image to RECOVERY (only on the phone itself, not in a rootfs chroot)
+IMG=/usr/share/a70q/mainline/boot-mainline.img
+R=/dev/disk/by-partlabel/recovery
+depmod 7.3.4-a70q 2>/dev/null
+[ -b "$R" ] && grep -q -E "sm6150|a70q" /proc/device-tree/compatible 2>/dev/null || exit 0
+n=$(stat -c %s "$IMG")
+want=$(sha256sum "$IMG" | cut -d' ' -f1)
+if [ "$(head -c "$n" "$R" | sha256sum | cut -d' ' -f1)" = "$want" ]; then
+	echo "RECOVERY already has this mainline image"
+	exit 0
+fi
+dd if="$IMG" of="$R" bs=4M conv=fsync 2>/dev/null
+if [ "$(head -c "$n" "$R" | sha256sum | cut -d' ' -f1)" = "$want" ]; then
+	echo "mainline kernel written to RECOVERY (default kernel: $(a70q-boot-default 2>/dev/null))"
+else
+	echo "ERROR: RECOVERY verification failed" >&2
+	exit 1
+fi
