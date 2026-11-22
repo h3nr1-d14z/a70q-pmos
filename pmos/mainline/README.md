@@ -584,3 +584,9 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Chỉ GPIO 32-35 có chức năng `cci_i2c` (2 master), nên không có đường I²C camera nào khác. Downstream probe
   EEPROM/actuator từ userspace (CamX, `Userspace_probe: 1`) - không có log boot để so. Bước tiếp (lớn): trên
   downstream gọi UAPI camera Qualcomm (power-up actuator + đọc I²C) để xem Android cấp nguồn/bus thế nào.
+
+### Trạng thái các mục còn mở (2026-11-22, theo quyết định của người dùng)
+- **FP5529 (lấy nét)**: gác lại - camera sau chụp ở tiêu cự cố định. Hướng tiếp: giả lập UAPI CamX trên downstream.
+- **GPS**: gác lại - cần thử fix ngoài trời.
+- **Mic tai nghe 3.5 mm**: chờ người dùng có tai nghe 3.5 mm có mic (MBHC từng báo cross connection; cấu hình
+  MBHC đã khớp downstream). Mic qua tai nghe USB-C đã chạy.
