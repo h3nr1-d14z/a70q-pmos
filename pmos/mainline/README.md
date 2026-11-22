@@ -632,3 +632,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   "Rejected" hàng triệu lần, usage 0 (firmware từ chối CPU_SUSPEND, `pm_genpd_inc_rejected` trong cpuidle-psci).
   Ghi đè `&cluster_sleep_1/2` = `0x41001244`/`0x4100b244` → S1 usage 1288 / rejected 64 sau 2 phút.
 - Driver pin (patch 0022): sau suspend (khoảng lấy mẫu ≥ 60 s, không đếm được coulomb) lấy SoC từ OCV (chỉ giảm).
+- Sau sửa tham số PSCI: thức + tắt màn hình ~**80 mA** (từ 160 → 100 → 80); trong s2idle cụm vào **S2 (llcc-off)**
+  51/51 lần (cột S2idle), trước đó chưa từng. qcom_stats aosd/cxsd vẫn 0 (downstream lần đo cũng 0, chưa rõ bộ đếm
+  có đáng tin trên firmware này).
+- Khi tắt màn hình, MDSS/DPU/DSI/PHY đều `suspended` (không phải nguồn hao). UFS runtime-suspend được.
+- Còn ngỏ: 3 bus SoundWire `power/control=on` (cấm runtime PM, từ lúc đưa WSA lên không dùng clock stop) → 3 macro
+  LPASS luôn `active`; ghi `auto` không có tác dụng. Gỡ card âm thanh trong phép đo E3 không làm dòng giảm rõ.
+- Bước đo tiếp: thử qua đêm trên mainline (Sxmo tự suspend) để có số mAh/giờ thật.
