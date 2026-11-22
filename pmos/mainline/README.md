@@ -590,3 +590,22 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - **GPS**: gác lại - cần thử fix ngoài trời.
 - **Mic tai nghe 3.5 mm**: chờ người dùng có tai nghe 3.5 mm có mic (MBHC từng báo cross connection; cấu hình
   MBHC đã khớp downstream). Mic qua tai nghe USB-C đã chạy.
+
+### Kiểm tính năng trên mainline so với downstream (2026-11-22)
+| Tính năng | Mainline | Ghi chú |
+|---|---|---|
+| Màn hình, cảm ứng, phím, độ sáng | ✅ | shim `brightnessctl` tự chọn `ae94000.dsi.0` |
+| Xung CPU | ✅ | **sửa**: thêm OPP 1017.6/1708.8 MHz (nhỏ) và 2016 MHz (lớn) mà bảng LUT phần cứng có nhưng `talos.dtsi` (QCS615) thiếu → trước đó bị bỏ, máy tối đa 1.59/1.90 GHz |
+| Đèn pin | ✅ | **mới**: `&pm6150l_flash` (kênh 1, torch 500 mA) → `white:flash`; hook Sxmo dùng bản gốc khi không có `led:torch_0`; quick settings nhận trạng thái |
+| Rung | ✅ | **sửa hook**: Sxmo `sxmo_vibrate` + `SXMO_VIBRATE_DEV` (by-path `...vibrator@5300-event`); cường độ mặc định 0xe000 (Sxmo truyền 1 → `>>8` = 0, không rung) |
+| Âm thanh loa/tai nghe/mic, tai nghe USB-C | ✅ | |
+| Bluetooth | ✅ | `hci0` bật, quét thấy thiết bị, giữ thiết bị đã ghép |
+| Cảm biến (xoay, ánh sáng, tiệm cận, la bàn) | ✅ | hexagonrpcd + iio-sensor-proxy chạy như downstream |
+| Pin % | ✅ | driver `a70q-battery`; `a70q-qgd` (daemon QG downstream) **sửa**: `inactive` khi không có `/dev/qg` |
+| Nhiệt độ trên thanh / chi tiết | ✅ | **sửa**: chi tiết nhận zone `-thermal` (mainline); pin không báo nhiệt độ trên mainline → bỏ dòng |
+| WiFi, hotspot | ✅ | AP lên (kênh 11, 10.42.0.1), trả lại WiFi thường sau khi tắt |
+| microSD, OTG | ✅ | |
+| Giải mã video phần cứng | ✅ | **mới** (downstream ❌): `&venus` + firmware `apnhlos` (link + nạp lại driver trong `a70q-mainline-modem`); 1080p H.264 `h264_v4l2m2m` 78 fps, CPU 18% |
+| Camera | 🟡 | 4 camera qua libcamera; chưa có lấy nét (FP5529) |
+| ModemManager / wpa_supplicant (OpenRC) | 🟡 | báo `failed` nhưng chỉ là trạng thái: D-Bus đã tự khởi động bản khác trước (NetworkManager kéo theo) |
+| Suspend | ⏳ | bước tiếp |

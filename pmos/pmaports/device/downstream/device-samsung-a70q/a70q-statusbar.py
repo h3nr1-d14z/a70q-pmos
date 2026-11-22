@@ -178,15 +178,19 @@ def temp_info():
     zones = {}
     for z in sorted(os.listdir('/sys/class/thermal')):
         ty = rd(f'/sys/class/thermal/{z}/type')
-        if ty.endswith('-usr') or ty in ('xo-therm-adc', 'quiet-therm-adc', 'pa-therm1-adc'):
+        # downstream zones end in -usr, mainline ones in -thermal
+        if ty.endswith(('-usr', '-thermal')) or ty in ('xo-therm-adc', 'quiet-therm-adc', 'pa-therm1-adc'):
             try:
                 zones[ty] = int(rd(f'/sys/class/thermal/{z}/temp', '0')) / 1000
             except ValueError:
                 pass
     cpu = max([v for k, v in zones.items() if k.startswith(('cpu-', 'cpuss-'))] or [0])
-    gpu = zones.get('gpu-usr', 0)
-    bat = int(rd('/sys/class/power_supply/battery/temp', '0') or 0) / 10
-    notify('Temperature', f'CPU {cpu:.0f}°C\nGPU {gpu:.0f}°C\nBattery {bat:.1f}°C')
+    gpu = zones.get('gpu-usr', zones.get('gpu-thermal', 0))
+    lines = [f'CPU {cpu:.0f}°C', f'GPU {gpu:.0f}°C']
+    bt = rd('/sys/class/power_supply/battery/temp', '')  # not reported by the mainline driver
+    if bt.lstrip('-').isdigit():
+        lines.append(f'Battery {int(bt) / 10:.1f}°C')
+    notify('Temperature', '\n'.join(lines))
 
 
 def date_info():

@@ -11,7 +11,12 @@
 onoff() { if "$@" >/dev/null 2>&1; then printf %s "$icon_ton"; else printf %s "$icon_tof"; fi; }
 wifi_on() { [ "$(nmcli radio wifi 2>/dev/null)" = enabled ]; }
 bt_on() { bluetoothctl show 2>/dev/null | grep -q "Powered: yes"; }
-torch_on() { [ "$(cat /sys/class/leds/led:switch_0/brightness 2>/dev/null || echo 0)" -gt 0 ]; }
+torch_on() {	# downstream led:switch_0, mainline white:flash
+	for l in led:switch_0 white:flash; do
+		[ "$(cat /sys/class/leds/$l/brightness 2>/dev/null || echo 0)" -gt 0 ] && return 0
+	done
+	return 1
+}
 rotate_on() { sxmo_jobs.sh running autorotate -q; }
 adaptive_on() { [ "$(/usr/libexec/a70q/a70q-autobrightness status 2>/dev/null)" = on ]; }
 vi_on() { [ "$(fcitx5-remote 2>/dev/null)" = 2 ]; }

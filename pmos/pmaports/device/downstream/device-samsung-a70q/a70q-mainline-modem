@@ -37,6 +37,14 @@ mkdir -p /lib/firmware/qcom/a70q
 # IPA GSI firmware: the IPA driver loads it at probe, before this partition is mounted -> copy
 for f in $FW/ipa_fws.*; do [ -e "$f" ] && cmp -s "$f" /lib/firmware/qcom/a70q/${f##*/} || cp "$f" /lib/firmware/qcom/a70q/ 2>/dev/null; done
 for f in $FW/adsp.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/a70q/; done
+# video codec (venus): its driver loads the firmware once at probe, usually before this partition
+# is mounted -> link it, then reload the driver if it is not bound yet
+for f in $FW/venus.*; do [ -e "$f" ] && ln -sf "$f" /lib/firmware/qcom/a70q/; done
+if [ -d /sys/bus/platform/devices/aa00000.video-codec ] &&
+   [ ! -e /sys/bus/platform/devices/aa00000.video-codec/driver ]; then
+	modprobe -r venus_dec venus_enc venus_core 2>/dev/null
+	modprobe venus_core && modprobe venus_dec && modprobe venus_enc
+fi
 RA=$(grep -l '^adsp$' /sys/class/remoteproc/*/name 2>/dev/null | head -1)
 RA=${RA%/name}
 if [ -n "$RA" ] && [ "$(cat $RA/state)" != running ]; then

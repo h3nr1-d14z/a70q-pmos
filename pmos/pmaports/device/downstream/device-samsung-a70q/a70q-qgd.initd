@@ -9,6 +9,16 @@ pidfile=/run/a70q-qgd.pid
 output_log=/var/log/a70q-qgd.log
 error_log=/var/log/a70q-qgd.log
 
+start() {
+	# mainline kernel: the battery driver reports the capacity itself (no /dev/qg)
+	if [ ! -e /dev/qg ]; then
+		einfo "no /dev/qg (mainline kernel): nothing to do"
+		mark_service_inactive
+		return 0
+	fi
+	default_start
+}
+
 depend() {
 	need localmount
 	after udev-settle
