@@ -553,3 +553,11 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - 3 lần boot mainline liên tiếp, mỗi lần đọc `panel_state` lúc boot và sau 3 vòng sway `output * power off/on`:
   9/9 + 3/3 lúc boot đều `power_mode 9f` (sleep out + display on), `dsi_errors 00`, 0 `panel init failed`,
   0 lần thử lại, 0 lỗi DPU. Cộng ~10 lần boot khác trong phiên không lỗi panel.
+
+### Hoãn / ghi chú (2026-11-22)
+- **GPS**: hoãn - trong nhà đã có NMEA + giờ GPS; còn thử fix ngoài trời (`mmcli -m any --location-enable-gps-raw
+  --location-enable-gps-nmea`, đợi vài phút, `--location-get`).
+- **Tai nghe USB-C analog**: không hỗ trợ - downstream để `fsa4480@43` (i2c@88c000) `status = "disabled"`, máy dùng
+  giắc 3.5 mm; chỉ tai nghe USB-C digital (USB audio class, `snd-usb-audio`) dùng được qua OTG.
+- Lưới an toàn của `init-test` là `( sleep 900; echo s; echo b > sysrq )`: muốn tắt phải giết **subshell cha** trước
+  rồi mới giết `sleep 900` (giết riêng `sleep` làm máy khởi động lại ngay).
