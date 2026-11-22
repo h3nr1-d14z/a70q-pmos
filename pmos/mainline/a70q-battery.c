@@ -150,13 +150,24 @@ static void a70q_batt_poll(struct work_struct *w)
 		goto out;
 	b->last = now;
 
-	/* coulomb counting, ibat > 0 = charging */
-	if (dt_ms > 0 && dt_ms < 60000)
-		b->charge_uah += (s64)b->ibat_ua * dt_ms / 3600000;
-
 	/* IR-compensated open circuit voltage */
 	ocv_uv = b->vbat_uv - (s64)b->ibat_ua * b->rbat_mohm / 1000;
 	soc_ocv_x100 = ocv_to_soc_x100(ocv_uv);
+
+	/* coulomb counting, ibat > 0 = charging */
+	if (dt_ms > 0 && dt_ms < 60000) {
+		b->charge_uah += (s64)b->ibat_ua * dt_ms / 3600000;
+	} else if (dt_ms >= 60000 && !b->plugged) {
+		/*
+		 * Back from a system suspend (no samples meanwhile, so the charge drawn while
+		 * asleep was never counted): the pack rested, its voltage is close to the OCV
+		 * -> take the SoC from the OCV, downwards only.
+		 */
+		s64 target = (s64)soc_ocv_x100 * FCC_UAH / 10000;
+
+		if (target < b->charge_uah)
+			b->charge_uah = target;
+	}
 
 	if (abs(b->ibat_ua) < REST_UA) {
 		if (!b->resting) {

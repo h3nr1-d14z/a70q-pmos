@@ -9,7 +9,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"; REPO="$(cd "$HERE/../.." && pwd)"
 OUT="${1:-$HERE/out/recovery-mainline.img}"
 LIKE="${LIKE:-$REPO/backups/full/recovery.img}"
-CMDLINE="${CMDLINE:-console=tty0 loglevel=8 ignore_loglevel printk.devkmsg=on panic=10 oops=panic softlockup_panic=1 log_buf_len=1M sysctl.kernel.panic_on_rcu_stall=1 hung_task_panic=1 printk.always_kmsg_dump=1 reboot=warm clk_ignore_unused msm.separate_gpu_kms=1 firmware_class.path=/vendor/firmware-modem/image rdinit=/init}"
+CMDLINE="${CMDLINE:-console=tty0 loglevel=8 ignore_loglevel printk.devkmsg=on panic=10 oops=panic softlockup_panic=1 log_buf_len=1M sysctl.kernel.panic_on_rcu_stall=1 hung_task_panic=1 printk.always_kmsg_dump=1 reboot=warm fw_devlink.sync_state=timeout msm.separate_gpu_kms=1 firmware_class.path=/vendor/firmware-modem/image rdinit=/init}"
 [ -n "${ROOTFS:-}" ] && CMDLINE="$CMDLINE a70q.rootfs"
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 docker run --rm -v "$T":/o -v "$HERE":/a alpine:3.22 sh -ec '

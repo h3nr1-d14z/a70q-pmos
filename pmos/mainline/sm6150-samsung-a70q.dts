@@ -1779,6 +1779,29 @@
 	};
 };
 
+/*
+ * Crypto engine: its driver (CRYPTO_DEV_QCE) is BROKEN upstream, so the node never probes and the
+ * interconnect providers wait for it in sync_state, keeping every path (DDR, LLCC, L3) at INT_MAX
+ * bandwidth - DDR and CX never sleep.
+ */
+&crypto {
+	status = "disabled";
+};
+
+/*
+ * Cluster idle states: this phone's PSCI firmware takes the SM6150 downstream cluster modes
+ * (lpm-levels, psci-mode-shift 4: l3-pc 0x04, cx-ret 0x124, llcc-off 0xb24), not the QCS615 ones in
+ * talos.dtsi (0x134, 0xb34). With those, every CX retention / LLCC off attempt was rejected by
+ * the firmware (genpd cluster S1 "Rejected" millions of times, usage 0), so CX and DDR never slept.
+ */
+&cluster_sleep_1 {
+	arm,psci-suspend-param = <0x41001244>;
+};
+
+&cluster_sleep_2 {
+	arm,psci-suspend-param = <0x4100b244>;
+};
+
 &pm6150_vib {
 	status = "okay";
 };

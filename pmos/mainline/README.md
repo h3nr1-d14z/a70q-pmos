@@ -620,3 +620,15 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   ngay sau khi thức dậy lũ `watchdog0: pretimeout event` rồi reset. Sửa: thêm `|| watchdog_hw_running()`.
   Kiểm: `rtcwake -m freeze -s 60` → thức đúng hẹn, 90 s sau vẫn cùng boot, 0 pretimeout.
 - Còn lại: với cáp USB cắm, aosd/cxsd vẫn 0 sau suspend (USB giữ nguồn) - cần đo khi rút cáp.
+
+### Tiêu thụ khi nghỉ (2026-11-23)
+- Đo: downstream thức + tắt màn hình ~30 mA; mainline ban đầu ~160 mA, sau các sửa dưới đây ~100 mA (rồi tiếp tục).
+- **sync_state không bao giờ xong** → interconnect giữ DDR/LLCC/L3 ở INT_MAX: `1dfa000.crypto` (QCE, driver BROKEN
+  upstream) không bao giờ probe → `&crypto` disabled; `506d000.gmu` (RGMU A612, msm dùng trực tiếp, không bind
+  driver) giữ gcc/gpucc → cmdline `fw_devlink.sync_state=timeout`. Bỏ `clk_ignore_unused` (màn hình, WiFi, âm
+  thanh, camera, GPU vẫn chạy).
+- **Tham số PSCI của trạng thái cụm sai cho firmware này**: talos.dtsi (QCS615) dùng `0x41001344`/`0x4100b344`,
+  firmware A70 nhận mode downstream `cx-ret 0x124`, `llcc-off 0xb24` (lpm-levels, shift 4) → genpd cụm S1
+  "Rejected" hàng triệu lần, usage 0 (firmware từ chối CPU_SUSPEND, `pm_genpd_inc_rejected` trong cpuidle-psci).
+  Ghi đè `&cluster_sleep_1/2` = `0x41001244`/`0x4100b244` → S1 usage 1288 / rejected 64 sau 2 phút.
+- Driver pin (patch 0022): sau suspend (khoảng lấy mẫu ≥ 60 s, không đếm được coulomb) lấy SoC từ OCV (chỉ giảm).
