@@ -561,3 +561,11 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   giắc 3.5 mm; chỉ tai nghe USB-C digital (USB audio class, `snd-usb-audio`) dùng được qua OTG.
 - Lưới an toàn của `init-test` là `( sleep 900; echo s; echo b > sysrq )`: muốn tắt phải giết **subshell cha** trước
   rồi mới giết `sleep 900` (giết riêng `sleep` làm máy khởi động lại ngay).
+
+### ✅ USB OTG với thiết bị thật (2026-11-22)
+- Cắm hub USB 2.0 (1a86:809d) qua cổng USB-C: Type-C tự chuyển `data_role host`, `power_role source` (VBUS cấp ra),
+  dwc3 → host. Nhận đủ: đầu đọc thẻ (usb-storage, `sde`), chuột PixArt (hid-generic, con trỏ chạy - người dùng
+  xác nhận), card mạng 1a86:5394 (`cdc_ether`, `eth0`). Rút ra/cắm lại chạy đúng.
+- Tai nghe USB-C digital KTMicro Chu2 DSP (31b2:0113): `snd-usb-audio` card 2 (phát S16/S24 2 kênh, thu mono 48 kHz)
+  + phím HID. Phát bíp `aplay -D hw:2,0` và thu mic `arecord -D hw:2,0 -c 1` chạy (RMS 120-1130 khi nói); PipeWire
+  có sink/source `usb-KTMicro_Chu2_DSP` (profile `output:analog-stereo+input:mono-fallback`).
