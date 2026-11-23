@@ -14,6 +14,16 @@ Chọn kernel trên máy: `a70q-boot-default mainline|downstream` rồi khởi �
 (chưa lấy nét), tai nghe USB-C qua OTG. Chi tiết, cách build và những gì còn thiếu: [pmos/mainline/README.md](pmos/mainline/README.md).
 Không bao giờ ghi image mainline vào BOOT (bootloader áp DTBO của downstream → treo ở logo, phải vào Download Mode).
 
+| | Mainline 7.3.4 | Downstream 4.14 |
+|---|---|---|
+| Giải mã video phần cứng (venus) | ✅ ffmpeg `h264_v4l2m2m`, 1080p ~18% CPU | ❌ |
+| Camera | 🟡 4 camera qua libcamera, chưa lấy nét | ❌ (cần HAL Android) |
+| Tai nghe USB-C (OTG) | ✅ phát + mic | chưa thử |
+| Pin khi thức, tắt màn hình | ~80 mA | ~30 mA |
+| Mic tai nghe 3.5 mm | chưa kiểm | ✅ |
+| Màn hình, cảm ứng, WiFi/hotspot, Bluetooth, âm thanh, cảm biến, thẻ nhớ, OTG, đèn pin, % pin, suspend | ✅ | ✅ |
+| GPS | 🟡 có NMEA, chưa fix ngoài trời | 🟡 |
+
 ## Trạng thái (2026-11-15)
 
 | Tính năng | Trạng thái | Ghi chú |
