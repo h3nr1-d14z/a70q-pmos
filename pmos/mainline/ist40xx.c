@@ -19,6 +19,7 @@
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/pm_qos.h>
 #include <linux/regulator/consumer.h>
 
 #define IST40XX_DIRECT_ACCESS	BIT(31)
@@ -56,7 +57,16 @@ struct ist40xx {
 	struct gpio_desc *power_gpio;
 	struct regulator *vdd;
 	u32 buf[IST40XX_MAX_ID * IST40XX_EVENT_WORDS];
+	/*
+	 * CPU wakeup latency cap while a finger is down: the deep CPU / cluster idle states take
+	 * 1.5-6.5 ms to exit, which made every touch event late (the downstream Samsung driver holds
+	 * a PM QoS request while touching too).
+	 */
+	struct pm_qos_request qos;
+	bool touching;
 };
+
+#define IST40XX_QOS_US		100
 
 static int ist40xx_read(struct ist40xx *ts, u32 reg, u32 *data, unsigned int words)
 {
@@ -117,6 +127,20 @@ static void ist40xx_report(struct ist40xx *ts, unsigned int count)
 	}
 	input_mt_sync_frame(ts->input);
 	input_sync(ts->input);
+
+	/* release the latency cap once every finger is up */
+	if (ts->touching) {
+		bool any = false;
+
+		for (i = 0; i < IST40XX_MAX_ID && !any; i++) {
+			input_mt_slot(ts->input, i);
+			any = input_mt_get_value(&ts->input->mt->slots[i], ABS_MT_TRACKING_ID) >= 0;
+		}
+		if (!any) {
+			ts->touching = false;
+			cpu_latency_qos_update_request(&ts->qos, PM_QOS_DEFAULT_VALUE);
+		}
+	}
 }
 
 static irqreturn_t ist40xx_irq(int irq, void *dev_id)
@@ -126,6 +150,12 @@ static irqreturn_t ist40xx_irq(int irq, void *dev_id)
 	unsigned int count, first;
 	u32 msg;
 	int ret;
+
+	/* a touch is starting: keep the CPUs out of deep idle until it ends */
+	if (!ts->touching) {
+		ts->touching = true;
+		cpu_latency_qos_update_request(&ts->qos, IST40XX_QOS_US);
+	}
 
 	ret = ist40xx_read(ts, IST40XX_REG_INTR_MSG, &msg, 1);
 	if (ret) {
@@ -164,6 +194,11 @@ static void ist40xx_power_off(void *data)
 	gpiod_set_value_cansleep(ts->power_gpio, 0);
 	if (ts->vdd)
 		regulator_disable(ts->vdd);
+}
+
+static void ist40xx_qos_remove(void *data)
+{
+	cpu_latency_qos_remove_request(data);
 }
 
 static int ist40xx_probe(struct i2c_client *client)
@@ -239,6 +274,11 @@ static int ist40xx_probe(struct i2c_client *client)
 	if (ret)
 		return ret;
 	ret = input_register_device(ts->input);
+	if (ret)
+		return ret;
+
+	cpu_latency_qos_add_request(&ts->qos, PM_QOS_DEFAULT_VALUE);
+	ret = devm_add_action_or_reset(dev, ist40xx_qos_remove, &ts->qos);
 	if (ret)
 		return ret;
 

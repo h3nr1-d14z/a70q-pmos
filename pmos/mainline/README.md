@@ -664,3 +664,10 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   post-install/upgrade ghi image vào RECOVERY (bỏ qua nếu trùng sha256, kiểm lại sau khi ghi; không làm gì trong
   chroot). Quy trình cập nhật kernel: `MODULES=1 pmos/mainline/build.sh` → `pmos/mainline/pack-apk.sh` (dựng image,
   tăng pkgrel, build vào kho riêng) → trên máy `apk upgrade`. Đã cài r1: 1675 file module thuộc gói.
+
+### Bàn phím Bluetooth LE, độ trễ cảm ứng (2026-11-23)
+- Bàn phím BT kết nối được nhưng không gõ được: `CONFIG_UHID` tắt → BlueZ (HoG) không tạo được input cho thiết bị
+  BLE. Bật `CONFIG_UHID=m` (kernel r2) + `/etc/modules-load.d/a70q-uhid.conf` (device r75).
+- Cảm ứng chậm hơn downstream: từ khi bật cpuidle, CPU/cụm ngủ sâu (thoát 1.5-6.5 ms) nên mỗi ngắt cảm ứng trễ.
+  `ist40xx` (patch 0016): giữ `cpu_latency_qos` 100 µs từ ngắt đầu của một lần chạm tới khi nhấc hết ngón (như
+  driver Samsung downstream). Kernel r2 (`pack-apk.sh` → `apk add -u`, post-upgrade ghi RECOVERY).
