@@ -675,3 +675,15 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
   nên HoG không tạo input. Ghép bằng `bluetoothctl`: `agent KeyboardDisplay`, `default-agent`, `scan on`, `pair <mac>`
   (Just Works, không cần mã), `trust <mac>`. Lưu ý: ở chế độ ghép bàn phím **đổi địa chỉ** (54:46:6E:6B:… →
   54:46:6E:30:…) → lấy địa chỉ mới sau khi quét. Kết quả: `input: Bluetooth Keyboard` qua `/dev/uhid`.
+
+### Cảm ứng chết khi dùng lâu: GPI DMA của I²C kẹt (2026-11-24)
+- Triệu chứng (dùng thật cả ngày): lag, rồi chạm không ăn (phím âm lượng vẫn chạy). Log: `geni_i2c 884000.i2c:
+  GPI transfer failed: -110`, `gpi 800000.dma-controller: cmd: CH STOP completion timeout` → `ist40xx ... read failed`;
+  sau đó ngắt cảm ứng (GPIO 89) không còn chạy. 4 lần trong ~17 h (uptime 2815, 2976, 3009, 11019 s).
+- Gỡ/gắn lại `884000.i2c` (geni_i2c unbind/bind) → ist40xx probe lại, cảm ứng chạy lại.
+- Nghi trạng thái nghỉ sâu mới bật (cụm CX retention / LLCC off sau sửa tham số PSCI): lỗi -110 chỉ thấy sau đó (lần
+  21/11 là -5 trong lúc treo màn hình, khác). i2c1 có `power-domains` CX + `required-opps` nên chưa rõ cơ chế.
+- Tạm thời (device r76): dịch vụ `a70q-touch-watchdog` (mainline) - theo `dmesg -w`, khi có lỗi GPI/ist40xx thì
+  gỡ/gắn lại `884000.i2c`, ghi `/var/log/a70q-touch-watchdog.log`; đồng thời chỉ cho CPU nghỉ WFI (tắt cpuidle
+  state ≥ 1; bật lại ngủ sâu: `A70Q_DEEP_IDLE=yes` trong `/etc/conf.d/a70q-touch-watchdog`). Theo dõi log để biết lỗi
+  còn xảy ra khi không có ngủ sâu không.

@@ -1,0 +1,23 @@
+#!/sbin/openrc-run
+# a70q, mainline kernel only: revive the touchscreen when its I2C GPI DMA channel gets stuck,
+# and (for now) keep the CPUs out of the deep idle states while that is being investigated.
+description="a70q: touchscreen I2C watchdog"
+command=/usr/libexec/a70q/a70q-touch-watchdog
+command_background=true
+pidfile=/run/a70q-touch-watchdog.pid
+
+depend() {
+	after local
+}
+
+start_pre() {
+	[ -e /sys/module/a70q_mark ] || return 1	# downstream kernel: nothing to do
+	# shallow CPU idle only (WFI): the GPI transfer timeouts showed up with the deep states
+	# (cluster CX retention / LLCC off); see pmos/mainline/README.md
+	if [ "${A70Q_DEEP_IDLE:-no}" != yes ]; then
+		for s in /sys/devices/system/cpu/cpu*/cpuidle/state[1-9]; do
+			echo 1 > "$s/disable" 2>/dev/null
+		done
+	fi
+	return 0
+}

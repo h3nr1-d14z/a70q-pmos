@@ -3,7 +3,7 @@ maintainer="a70q pmOS port <noreply@example.org>"
 pkgname=device-samsung-a70q
 pkgdesc="Samsung Galaxy A70"
 pkgver=1
-pkgrel=75
+pkgrel=76
 url="https://postmarketos.org"
 license="MIT"
 arch="aarch64"
@@ -92,6 +92,8 @@ source="
 	a70q-arm-mainline.initd
 	a70q-chain.initd
 	a70q-uhid.conf
+	a70q-touch-watchdog
+	a70q-touch-watchdog.initd
 	50-a70q.gschema.override
 "
 options="!archcheck !check"
@@ -181,6 +183,9 @@ package() {
 	mkdir -p "$pkgdir"/etc/runlevels/boot
 	ln -s /etc/init.d/a70q-chain "$pkgdir"/etc/runlevels/boot/a70q-chain
 	install -Dm644 "$srcdir"/a70q-uhid.conf "$pkgdir"/etc/modules-load.d/a70q-uhid.conf
+	install -Dm755 "$srcdir"/a70q-touch-watchdog "$pkgdir"/usr/libexec/a70q/a70q-touch-watchdog
+	install -Dm755 "$srcdir"/a70q-touch-watchdog.initd "$pkgdir"/etc/init.d/a70q-touch-watchdog
+	ln -s /etc/init.d/a70q-touch-watchdog "$pkgdir"/etc/runlevels/default/a70q-touch-watchdog
 	install -Dm644 "$srcdir"/50-a70q.gschema.override "$pkgdir"/usr/share/glib-2.0/schemas/50-a70q.gschema.override
 	install -Dm755 "$srcdir"/sxmo_hook_start.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_start.sh
 	install -Dm755 "$srcdir"/sxmo_hook_contextmenu.sh "$pkgdir"/usr/share/a70q/sxmo/default_hooks/sxmo_hook_contextmenu.sh
@@ -277,5 +282,7 @@ fe3b444e2e846bf0626bea8fd954ca0c1ea5d03eab1dc56966da76280fd36b971450b2bb857a9723
 0028cc8095f41b1a3f632abcc5de918f201b1358d8b021ba066160611f184d9ec9f8bb0b5c85ae40349bcc9b3fa8f0714116e73981e4b0e5d15da6b7ed0a3521  a70q-arm-mainline.initd
 42abe17a6702c9360b782abf1a93810369c85c17932b2c1cbba63622257c5a1aa149228e4b00683e60ca201513c0a9ee697bb10b0a8af6f1d529e14a57df4de2  a70q-chain.initd
 f0b03d67c209fa77e95b3d785275c0e3d270808fc47ad5ed850908171db8defdef106b4dbc377a1f6583f651d0f0a433a85765ee191911477d600cbd7839dc59  a70q-uhid.conf
+e1866f2e2e2d88c990d0c050cacd2224927563e23322678865d5339089412577372f31777626476993bc039d812145bde5c6087aab2a5db709def15745a4d7f6  a70q-touch-watchdog
+c3c62b2aa0353496574ea215cc01a914d9968bbb1e8a8e2d06b740e8f63ff31d02fbb5b392a2283c6b97855714189a693a03032b5067fc12e9281b3cc563a76b  a70q-touch-watchdog.initd
 bd17d633579c0c3c384c7af56cffaa9e7ca2ff7af0e4665060b7500e7c57cc9c9618c7aa1d0cc122d6c4a78ac4f8d113436e7cacd23e8325ef2269801a4fefb6  50-a70q.gschema.override
 "

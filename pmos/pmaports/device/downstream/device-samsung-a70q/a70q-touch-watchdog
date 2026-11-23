@@ -1,0 +1,26 @@
+#!/bin/sh
+# a70q mainline: the touchscreen I2C bus (GENI 884000.i2c, GPI DMA) sometimes gets its GPI channel
+# stuck ("GPI transfer failed: -110", "CH STOP completion timeout") and the touchscreen goes dead.
+# Rebind the controller when that happens (re-probes ist40xx); log every event.
+L=/var/log/a70q-touch-watchdog.log
+D=884000.i2c
+start=$(cut -d. -f1 /proc/uptime)
+echo "$(date '+%F %T') start (uptime $start)" >> $L
+dmesg -w | while read -r line; do
+	case "$line" in
+	*"$D: GPI transfer failed"*|*"ist40xx"*"read failed"*) ;;
+	*) continue ;;
+	esac
+	# dmesg -w replays the buffer first: skip what happened before we started
+	ts=${line#\[}; ts=${ts%%.*}; ts=${ts## }
+	[ "${ts:-0}" -gt "$start" ] 2>/dev/null || continue
+	now=$(cut -d. -f1 /proc/uptime)
+	[ -n "$last" ] && [ $((now - last)) -lt 5 ] && continue
+	last=$now
+	echo "$(date '+%F %T') $line" >> $L
+	sleep 1
+	echo $D > /sys/bus/platform/drivers/geni_i2c/unbind 2>/dev/null
+	sleep 1
+	echo $D > /sys/bus/platform/drivers/geni_i2c/bind 2>> $L
+	echo "$(date '+%F %T') rebound $D" >> $L
+done
