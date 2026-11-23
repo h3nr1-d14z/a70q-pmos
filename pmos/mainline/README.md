@@ -671,3 +671,7 @@ Từ DTS violet: `&gcc { power-domains = <&rpmhpd RPMHPD_CX>; }` (GPUCC thiếu 
 - Cảm ứng chậm hơn downstream: từ khi bật cpuidle, CPU/cụm ngủ sâu (thoát 1.5-6.5 ms) nên mỗi ngắt cảm ứng trễ.
   `ist40xx` (patch 0016): giữ `cpu_latency_qos` 100 µs từ ngắt đầu của một lần chạm tới khi nhấc hết ngón (như
   driver Samsung downstream). Kernel r2 (`pack-apk.sh` → `apk add -u`, post-upgrade ghi RECOVERY).
+- Ghép bàn phím BLE (Samsung "Bluetooth Keyboard", 04e8:7021): menu Bluetooth của Sxmo chỉ *kết nối* (không bond)
+  nên HoG không tạo input. Ghép bằng `bluetoothctl`: `agent KeyboardDisplay`, `default-agent`, `scan on`, `pair <mac>`
+  (Just Works, không cần mã), `trust <mac>`. Lưu ý: ở chế độ ghép bàn phím **đổi địa chỉ** (54:46:6E:6B:… →
+  54:46:6E:30:…) → lấy địa chỉ mới sau khi quét. Kết quả: `input: Bluetooth Keyboard` qua `/dev/uhid`.
